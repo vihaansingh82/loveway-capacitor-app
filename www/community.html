@@ -1,0 +1,436 @@
+﻿<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Community — Loveway</title>
+<link rel="stylesheet" href="lw-app.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="lw-core.js?v=2"></script>
+<script src="lw-app.js?v=2"></script>
+</head>
+<body data-theme="ocean">
+
+<header>
+  <h1>💕 Loveway</h1>
+  <div class="header-tools">
+    <a class="header-action" href="dashboard.html" data-icon="home" title="Home"></a>
+    <a class="header-action" href="activities.html" data-icon="pin" title="Activity Board"></a>
+    <button class="header-action" onclick="LW.logout()" data-icon="logout" title="Log out"></button>
+  </div>
+</header>
+
+<div class="container">
+  <div id="alertBox" class="alert"></div>
+
+  <!-- ===== list view ===== -->
+  <div id="listView">
+    <div class="page-head">
+      <h2 data-i18n="communityPageTitle">🏘️ Communities</h2>
+      <span class="spacer"></span>
+      <button class="btn primary" onclick="openForm()" data-i18n="communityNewBtn">+ Nayi community</button>
+    </div>
+
+    <h3 style="margin-bottom:2px" data-i18n="communityFeaturedTitle">✨ Featured Communities</h3>
+    <div class="featured-communities" id="featuredList"><div class="spinner" data-i18n="loading">Load ho raha hai…</div></div>
+
+    <div class="card tight">
+      <input type="search" id="cityFilter" placeholder="Shehar se dhoondo — Delhi, Mumbai…"
+             oninput="debounced()" data-i18n-placeholder="communityCityFilterPh">
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="setTab('all',this)" data-i18n="all">Saari</div>
+      <div class="tab" onclick="setTab('mine',this)" data-i18n="communityTabMine">Meri</div>
+    </div>
+
+    <div class="grid-3" id="commList"><div class="spinner" data-i18n="loading">Load ho raha hai…</div></div>
+  </div>
+
+  <!-- ===== single community ===== -->
+  <div id="oneView" style="display:none">
+    <div class="page-head">
+      <button class="btn" onclick="backToList()" data-i18n="backLink">← Wapas</button>
+      <span class="spacer"></span>
+      <span id="joinArea"></span>
+    </div>
+
+    <div class="card">
+      <h2 id="cName" style="font-size:1.3rem">—</h2>
+      <div class="muted" id="cMeta"></div>
+      <div class="muted" id="cDesc" style="margin-top:10px"></div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="setSub('feed',this)" data-i18n="communityFeedTab">📝 Feed</div>
+      <div class="tab" onclick="setSub('members',this)" data-i18n="communityMembersTab">👥 Members</div>
+      <div class="tab" onclick="setSub('board',this)" data-i18n="communityActivitiesTab">📌 Activities</div>
+    </div>
+
+    <div id="sub-feed">
+      <div class="card" id="postBox" style="display:none">
+        <textarea id="cPostText" placeholder="Community mein kuch likho… (jagah, restaurant suggest karo)" data-i18n-placeholder="communityPostPh"></textarea>
+        <div id="cMediaPreviewWrap" style="display:none;position:relative;margin-top:8px;max-width:220px">
+          <img id="cMediaPreview" src="" alt="" style="max-width:100%;border-radius:12px;display:block">
+          <button type="button" class="icon-btn" onclick="clearCommunityMedia()"
+            style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.5);color:#fff">✕</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+          <button type="button" class="btn" onclick="document.getElementById('cMediaFile').click()" data-i18n="uploadImageBtn">📷 Upload Image</button>
+          <input type="file" id="cMediaFile" accept="image/*" style="display:none" onchange="onCommunityMediaPicked(event)">
+          <button class="btn primary" onclick="postToCommunity()" style="margin-left:auto" data-i18n="postSubmit">Post karo</button>
+        </div>
+      </div>
+      <div class="card" id="cFeed"><div class="spinner" data-i18n="loading">Load…</div></div>
+    </div>
+
+    <div id="sub-members" style="display:none">
+      <div class="card" id="cMembers"><div class="spinner" data-i18n="loading">Load…</div></div>
+    </div>
+
+    <div id="sub-board" style="display:none">
+      <div class="card" id="cBoard"><div class="spinner" data-i18n="loading">Load…</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- create modal -->
+<div class="modal-bg" id="cmodal" onclick="if(event.target===this)closeForm()">
+  <div class="modal">
+    <h3 data-i18n="communityCreateModalTitle">Nayi community banao</h3>
+    <label class="fl" data-i18n="name">Naam</label>
+    <input type="text" id="nName" placeholder="Rohini Loveway, Pune Friends…" data-i18n-placeholder="communityNamePh">
+    <div class="row-2">
+      <div><label class="fl" data-i18n="communityCityLabel">Shehar</label><input type="text" id="nCity"></div>
+      <div><label class="fl" data-i18n="communityPincodeLabel">Pincode</label><input type="text" id="nPin"></div>
+    </div>
+    <label class="fl" data-i18n="communityAboutLabel">Ye community kis liye hai?</label>
+    <textarea id="nDesc" rows="3"></textarea>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:.86rem">
+      <input type="checkbox" id="nPublic" checked style="width:auto"> <span data-i18n="communityPublicLabel">Koi bhi join kar sake</span>
+    </label>
+    <div class="foot">
+      <button class="btn" onclick="closeForm()" data-i18n="cancelBtn">Cancel</button>
+      <button class="btn primary" id="nBtn" onclick="create()" data-i18n="createBtn">Banao</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var me = null, all = [], featured = [], mineIds = {}, tab = 'all', current = null, timer = null;
+var communityPosts = [];
+
+var CATEGORY_KEYS = {
+  couples: 'communityCatCouples', singles: 'communityCatSingles', spiritual: 'communityCatSpiritual',
+  heartbreak: 'communityCatHeartbreak', healing: 'communityCatHealing', student: 'communityCatStudent',
+  heart_talk: 'communityCatHeartTalk', professional: 'communityCatProfessional'
+};
+function categoryLabel(category) { return (category && CATEGORY_KEYS[category]) ? window.t(CATEGORY_KEYS[category]) : ''; }
+
+// language switch par date bhi usi bhaasha ke script mein dikhe (Devanagari ke liye 'hi-IN', warna 'en-IN')
+var DATE_LOCALE = { en: 'en-IN', hi: 'hi-IN', braj: 'hi-IN', raj: 'hi-IN', bho: 'hi-IN', hyd: 'hi-IN', mr: 'mr-IN', ta: 'ta-IN', te: 'te-IN', bn: 'bn-IN', pa: 'pa-IN', gu: 'gu-IN' };
+
+// couples/singles communities join karne ke liye relationship_status match hona chahiye —
+// baaki (spiritual/heartbreak/healing/student/heart_talk) sabke liye khuli hain
+function eligibleFor(category) {
+  if (category !== 'couples' && category !== 'singles') return true;
+  var status = me.relationship_status;
+  if (category === 'couples') return status === 'in_relationship' || status === 'engaged' || status === 'married';
+  return !status || status === 'single';
+}
+
+function debounced() { clearTimeout(timer); timer = setTimeout(load, 350); }
+
+async function loadFeatured() {
+  featured = await LWApp.featuredCommunities();
+  var ids = await LWApp.myCommunityIds();
+  ids.forEach(function (x) { mineIds[x.community_id] = x.role; });
+  renderFeatured();
+}
+
+function renderFeatured() {
+  document.getElementById('featuredList').innerHTML = featured.map(function (c) {
+    var joined = !!mineIds[c.id];
+    var ok = eligibleFor(c.category);
+    var action = joined
+      ? '<button class="btn sm" onclick="openOne(' + c.id + ')">' + LWApp.esc(window.t('communityOpenBtn')) + '</button>'
+      : (ok
+          ? '<button class="btn sm primary" onclick="join(' + c.id + ')">' + LWApp.esc(window.t('communityJoinBtn')) + '</button>'
+          : '<span class="chip locked">' + LWApp.esc(window.t('communityLockedPrefix')) + LWApp.esc(categoryLabel(c.category)) + LWApp.esc(window.t('communityLockedSuffix')) + '</span>');
+    return '<div class="fc-card">' +
+      '<span class="fc-icon">' + (c.icon || '🏘️') + '</span>' +
+      '<h4 onclick="openOne(' + c.id + ')">' + LWApp.esc(c.name) + '</h4>' +
+      '<p>' + LWApp.esc((c.description || '').slice(0, 90)) + '</p>' +
+      action +
+    '</div>';
+  }).join('');
+}
+
+function setTab(t, el) {
+  tab = t;
+  document.querySelectorAll('#listView .tab').forEach(function (x) { x.classList.remove('active'); });
+  el.classList.add('active');
+  render();
+}
+
+function setSub(name, el) {
+  ['feed', 'members', 'board'].forEach(function (s) {
+    document.getElementById('sub-' + s).style.display = (s === name) ? '' : 'none';
+  });
+  document.querySelectorAll('#oneView .tab').forEach(function (x) { x.classList.remove('active'); });
+  el.classList.add('active');
+  if (name === 'members') loadMembers();
+  if (name === 'board')   loadBoard();
+}
+
+async function load() {
+  var city = document.getElementById('cityFilter').value.trim();
+  all = await LWApp.communities(city ? { city: city } : {});
+  var ids = await LWApp.myCommunityIds();
+  mineIds = {};
+  ids.forEach(function (x) { mineIds[x.community_id] = x.role; });
+  render();
+  renderFeatured();
+}
+
+function render() {
+  var base = all.filter(function (c) { return !c.category; }); // curated wali upar Featured mein hain
+  var list = (tab === 'mine') ? base.filter(function (c) { return mineIds[c.id]; }) : base;
+  var el = document.getElementById('commList');
+
+  if (!list.length) {
+    el.innerHTML = '<div class="empty" style="grid-column:1/-1"><span class="ic">🏘️</span>' +
+      LWApp.esc(tab === 'mine' ? window.t('noCommunitiesMsg') : window.t('communityNoneFoundMsg')) +
+      '<br>' + LWApp.esc(window.t('communityCreateHintMsg')) + '</div>';
+    return;
+  }
+
+  el.innerHTML = list.map(function (c) {
+    var joined = !!mineIds[c.id];
+    return '<div class="card" style="margin:0">' +
+      '<h3 style="cursor:pointer" onclick="openOne(' + c.id + ')">🏘️ ' + LWApp.esc(c.name) + '</h3>' +
+      '<div class="muted">📍 ' + LWApp.esc(c.city || '—') +
+      (c.pincode ? ' · ' + LWApp.esc(c.pincode) : '') + '</div>' +
+      '<div class="muted" style="margin:8px 0;min-height:34px">' +
+      LWApp.esc((c.description || '').slice(0, 90)) + '</div>' +
+      '<div style="display:flex;gap:8px">' +
+      '<button class="btn sm" onclick="openOne(' + c.id + ')">' + LWApp.esc(window.t('communityOpenBtn')) + '</button>' +
+      (joined
+        ? '<button class="btn sm danger" onclick="leave(' + c.id + ')">' + LWApp.esc(window.t('communityLeaveBtn')) + '</button>'
+        : '<button class="btn sm primary" onclick="join(' + c.id + ')">' + LWApp.esc(window.t('communityJoinBtn')) + '</button>') +
+      '</div></div>';
+  }).join('');
+}
+
+async function join(id) {
+  var r = await LWApp.joinCommunity(id);
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  LWApp.toast(window.t('communityJoinedMsg'));
+  await load();
+  if (current && current.id === id) openOne(id);
+}
+
+async function leave(id) {
+  if (!confirm(window.t('communityLeaveConfirm'))) return;
+  var r = await LWApp.leaveCommunity(id);
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  LWApp.toast(window.t('communityLeftMsg'));
+  await load();
+  if (current && current.id === id) openOne(id);
+}
+
+async function openOne(id) {
+  current = all.filter(function (c) { return c.id === id; })[0] ||
+            featured.filter(function (c) { return c.id === id; })[0];
+  if (!current) return;
+
+  document.getElementById('listView').style.display = 'none';
+  document.getElementById('oneView').style.display  = '';
+
+  document.getElementById('cName').textContent = (current.icon || '🏘️') + ' ' + current.name;
+  document.getElementById('cMeta').textContent = current.category
+    ? '✨ ' + (categoryLabel(current.category) || window.t('communityFeaturedFallback')) + window.t('communityTypeSuffix')
+    : '📍 ' + (current.city || '—') + (current.pincode ? ' · ' + current.pincode : '');
+  document.getElementById('cDesc').textContent = current.description || '';
+
+  var joined = !!mineIds[id];
+  var ok = eligibleFor(current.category);
+  document.getElementById('joinArea').innerHTML = joined
+    ? '<button class="btn danger" onclick="leave(' + id + ')">' + LWApp.esc(window.t('communityLeaveBtn')) + '</button>'
+    : (ok
+        ? '<button class="btn primary" onclick="join(' + id + ')">' + LWApp.esc(window.t('communityJoinBtn')) + '</button>'
+        : '<span class="chip locked">' + LWApp.esc(window.t('communityLockedPrefix')) + LWApp.esc(categoryLabel(current.category)) + LWApp.esc(window.t('communityLockedSuffix')) + '</span>');
+  document.getElementById('postBox').style.display = joined ? '' : 'none';
+
+  loadFeed();
+}
+
+function backToList() {
+  document.getElementById('oneView').style.display  = 'none';
+  document.getElementById('listView').style.display = '';
+  current = null;
+}
+
+function communityPostHtml(p) {
+  return '<div class="post"><div class="post-head">' + LWApp.avatarHtml(p.author, 'sm') +
+    '<div><b>' + LWApp.esc(p.author.full_name || p.author.username || '—') + '</b>' +
+    '<small>' + LWApp.timeAgo(p.created_at) + '</small></div></div>' +
+    (p.content ? '<div class="post-body">' + LWApp.esc(p.content) + '</div>' : '') +
+    (p.media_url ? '<div class="post-media"><img src="' + LWApp.esc(p.media_url) + '" alt="" loading="lazy"></div>' : '') +
+    '<div class="post-actions">' +
+    '<span class="' + (p.i_loved ? 'on' : '') + '" onclick="loveCommunityPost(' + p.id + ')">❤️ ' + p.love_count + '</span>' +
+    '<span>💬 ' + p.comment_count + '</span></div></div>';
+}
+
+async function loadFeed() {
+  var el = document.getElementById('cFeed');
+  communityPosts = await LWApp.feed({ communityId: current.id, limit: 40 });
+  renderCommunityFeed();
+}
+
+function renderCommunityFeed() {
+  var el = document.getElementById('cFeed');
+  el.innerHTML = communityPosts.length
+    ? communityPosts.map(communityPostHtml).join('')
+    : '<div class="empty"><span class="ic">📝</span>' + LWApp.esc(window.t('communityFeedEmptyMsg')) + '</div>';
+}
+
+async function loveCommunityPost(id) {
+  var p = communityPosts.filter(function (x) { return x.id === id; })[0];
+  if (!p) return;
+  p.i_loved = !p.i_loved;
+  p.love_count += p.i_loved ? 1 : -1;
+  renderCommunityFeed();
+  var r = await LWApp.toggleLove(id, !p.i_loved);
+  if (r && r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); loadFeed(); }
+}
+
+var communityMediaUrl = null;
+
+async function onCommunityMediaPicked(e) {
+  var file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  if (file.type.indexOf('image/') !== 0) { LWApp.toast(window.t('onlyImageErr'), 'error'); return; }
+  if (file.size > 15 * 1024 * 1024) { LWApp.toast(window.t('photoSizeErr'), 'error'); return; }
+
+  LWApp.toast(window.t('uploadingPhotoMsg'));
+  try {
+    communityMediaUrl = await LWApp.uploadPostMedia(file);
+    document.getElementById('cMediaPreview').src = communityMediaUrl;
+    document.getElementById('cMediaPreviewWrap').style.display = '';
+    LWApp.toast(window.t('photoReadyMsg'));
+  } catch (er) {
+    LWApp.toast('❌ ' + LWApp.err(er), 'error');
+  }
+}
+
+function clearCommunityMedia() {
+  communityMediaUrl = null;
+  document.getElementById('cMediaPreview').src = '';
+  document.getElementById('cMediaPreviewWrap').style.display = 'none';
+}
+
+async function postToCommunity() {
+  var text = document.getElementById('cPostText').value.trim();
+  if (!text && !communityMediaUrl) { LWApp.toast(window.t('nothingToPostErr'), 'error'); return; }
+  var r = await LWApp.createPost({
+    content: text || null, kind: communityMediaUrl ? 'photo' : 'text',
+    media_url: communityMediaUrl, visibility: 'community', community_id: current.id
+  });
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  document.getElementById('cPostText').value = '';
+  clearCommunityMedia();
+  LWApp.toast(window.t('postSuccessMsg'));
+  loadFeed();
+}
+
+async function loadMembers() {
+  var rows = await LWApp.communityMembers(current.id);
+  document.getElementById('cMembers').innerHTML = rows.length
+    ? rows.map(function (m) {
+        return '<div class="person">' + LWApp.avatarHtml(m) +
+          '<div class="who"><b>' + LWApp.esc(m.full_name || m.username) + '</b>' +
+          '<small>@' + LWApp.esc(m.username || '—') + ' · ' + LWApp.esc(m.role || window.t('communityMemberRoleFallback')) + '</small></div>' +
+          '<div class="acts"><a class="btn sm" href="profile.html?u=' +
+          encodeURIComponent(m.username || '') + '">' + LWApp.esc(window.t('profileTab')) + '</a></div></div>';
+      }).join('')
+    : '<div class="empty"><span class="ic">👥</span>' + LWApp.esc(window.t('communityMembersEmptyMsg')) + '</div>';
+}
+
+async function loadBoard() {
+  var rows = await LWApp.activities({ communityId: current.id });
+  var locale = DATE_LOCALE[window.LW_CURRENT] || 'en-IN';
+  document.getElementById('cBoard').innerHTML = rows.length
+    ? rows.map(function (a) {
+        return '<div class="person"><div class="who"><b>📌 ' + LWApp.esc(a.title) + '</b>' +
+          '<small>' + (a.starts_at ? new Date(a.starts_at).toLocaleString(locale) : LWApp.esc(window.t('communityNoTimeMsg'))) +
+          ' · ' + a.going_count + LWApp.esc(window.t('communityGoingSuffix')) + '</small></div>' +
+          '<div class="acts"><a class="btn sm" href="activities.html">' + LWApp.esc(window.t('communityBoardBtn')) + '</a></div></div>';
+      }).join('')
+    : '<div class="empty"><span class="ic">📌</span>' + LWApp.esc(window.t('communityNoActivityMsg')) + '<br>' +
+      '<a href="activities.html">' + LWApp.esc(window.t('communityActivityBoardLink')) + '</a>' + LWApp.esc(window.t('communityCreateFromBoardSuffix')) + '</div>';
+}
+
+function openForm()  { document.getElementById('cmodal').classList.add('open'); }
+function closeForm() { document.getElementById('cmodal').classList.remove('open'); }
+
+async function create() {
+  var name = document.getElementById('nName').value.trim();
+  if (name.length < 2) { LWApp.toast(window.t('communityNameRequiredErr'), 'error'); return; }
+
+  var btn = document.getElementById('nBtn');
+  btn.disabled = true; btn.textContent = window.t('creatingMsg');
+
+  var r = await LWApp.createCommunity({
+    name: name,
+    city: document.getElementById('nCity').value.trim() || null,
+    pincode: document.getElementById('nPin').value.trim() || null,
+    description: document.getElementById('nDesc').value.trim() || null,
+    is_public: document.getElementById('nPublic').checked
+  });
+
+  btn.disabled = false; btn.textContent = window.t('createBtn');
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+
+  LWApp.toast(window.t('communityCreatedMsg'));
+  closeForm();
+  document.getElementById('nName').value = '';
+  document.getElementById('nDesc').value = '';
+  await load();
+}
+
+document.addEventListener('DOMContentLoaded', async function () {
+  if (!LW.configOk) { LWApp.toast('config.js me Supabase keys daalo.', 'error'); return; }
+  me = await LW.requireAuth();
+  if (!me) return;
+  LWApp.shell('community');
+  if (me.city) document.getElementById('cityFilter').placeholder = window.t('communityCityFilterHintPrefix') + me.city;
+  await loadFeatured();
+  load();
+});
+
+document.addEventListener('lw:language', function () {
+  if (!me) return;
+  renderFeatured();
+  render();
+  if (current) {
+    document.getElementById('cMeta').textContent = current.category
+      ? '✨ ' + (categoryLabel(current.category) || window.t('communityFeaturedFallback')) + window.t('communityTypeSuffix')
+      : '📍 ' + (current.city || '—') + (current.pincode ? ' · ' + current.pincode : '');
+    var joined = !!mineIds[current.id];
+    var ok = eligibleFor(current.category);
+    document.getElementById('joinArea').innerHTML = joined
+      ? '<button class="btn danger" onclick="leave(' + current.id + ')">' + LWApp.esc(window.t('communityLeaveBtn')) + '</button>'
+      : (ok
+          ? '<button class="btn primary" onclick="join(' + current.id + ')">' + LWApp.esc(window.t('communityJoinBtn')) + '</button>'
+          : '<span class="chip locked">' + LWApp.esc(window.t('communityLockedPrefix')) + LWApp.esc(categoryLabel(current.category)) + LWApp.esc(window.t('communityLockedSuffix')) + '</span>');
+    renderCommunityFeed();
+    if (document.getElementById('sub-members').style.display !== 'none') loadMembers();
+    if (document.getElementById('sub-board').style.display !== 'none') loadBoard();
+  }
+});
+</script>
+</body>
+</html>

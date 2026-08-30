@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Features — Loveway</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&amp;family=DM+Sans:wght@300;400;500&amp;family=Dancing+Script:wght@700&amp;display=swap" rel="stylesheet"><style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --pink: #FF4F7B; --pink-light: #FF85A1; --pink-pale: #FFD6E0;
+    --dark: #1A0A14; --dark2: #2D1525; --dark3: #3D1E30;
+    --gold: #FFB347; --white: #FFF5F8; --text-muted: #C4849A;
+  }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(--white); overflow-x: hidden; }
+
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 60px;
+    background: rgba(26,10,20,0.9); backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255,79,123,0.15);
+  }
+  nav ul { list-style: none; display: flex; gap: 32px; }
+  nav ul li a { font-size:.875rem; letter-spacing:.04em; text-transform:uppercase; color:var(--text-muted); text-decoration:none; transition:color .3s; }
+  nav ul li a:hover, nav ul li a.active { color:var(--pink); }
+  .nav-actions { display:flex; gap:12px; align-items:center; }
+  .btn-ghost { padding:9px 22px; border-radius:50px; border:1px solid rgba(255,79,123,0.5); color:var(--pink); background:transparent; font-size:.875rem; cursor:pointer; transition:all .3s; text-decoration:none; display:inline-block; }
+  .btn-ghost:hover { background:rgba(255,79,123,0.1); }
+  .btn-primary { padding:9px 22px; border-radius:50px; background:var(--pink); color:#fff; border:none; font-size:.875rem; font-weight:500; cursor:pointer; transition:all .3s; text-decoration:none; display:inline-block; }
+  .btn-primary:hover { background:#e03565; transform:translateY(-1px); }
+
+  footer {
+    background: var(--dark2); border-top:1px solid rgba(255,79,123,0.1);
+    padding: 60px 60px 0; display:flex; flex-wrap:wrap; gap:40px; position:relative;
+  }
+  .footer-col { display:flex; flex-direction:column; gap:10px; min-width:140px; }
+  .footer-col h4 { font-size:.75rem; letter-spacing:.1em; text-transform:uppercase; color:var(--pink); margin-bottom:4px; }
+  .footer-col a { font-size:.85rem; color:var(--text-muted); text-decoration:none; transition:color .3s; }
+  .footer-col a:hover { color:var(--pink); }
+  .footer-bottom { width:100%; border-top:1px solid rgba(255,79,123,0.1); padding:20px 0; font-size:.8rem; color:var(--text-muted); text-align:center; margin-top:20px; }
+
+  .section-tag { display:inline-flex; align-items:center; gap:8px; color:var(--pink); font-size:.8rem; letter-spacing:.1em; text-transform:uppercase; margin-bottom:16px; }
+  .section-tag::before { content:''; display:block; width:30px; height:1px; background:var(--pink); }
+  .page-hero { padding: 140px 60px 80px; min-height: 50vh; position:relative; display:flex; align-items:center; }
+  .page-hero-bg { position:absolute; inset:0; background: radial-gradient(ellipse 70% 60% at 30% 50%, rgba(255,79,123,0.14) 0%, transparent 65%), linear-gradient(160deg, #1A0A14 0%, #2D1525 50%, #1A0A14 100%); }
+  .page-hero-content { position:relative; z-index:2; max-width:620px; }
+  .page-hero h1 { font-family:'Playfair Display',serif; font-size:clamp(2.8rem,5vw,4.2rem); line-height:1.1; margin-bottom:20px; }
+  .page-hero h1 em { color:var(--pink); font-style:italic; }
+  .page-hero p { color:var(--text-muted); font-size:1.05rem; line-height:1.75; max-width:480px; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);} }
+  .fade { animation: fadeUp .8s ease both; }
+  .fade-1 { animation-delay:.1s; } .fade-2 { animation-delay:.2s; } .fade-3 { animation-delay:.3s; } .fade-4 { animation-delay:.4s; }
+  .btn-hero { padding:14px 32px; border-radius:50px; font-size:1rem; font-weight:500; cursor:pointer; transition:all .3s; display:inline-flex; align-items:center; gap:8px; text-decoration:none; font-family:'DM Sans',sans-serif; }
+  .btn-hero.pink { background:var(--pink); color:#fff; border:none; box-shadow:0 8px 30px rgba(255,79,123,0.4); }
+  .btn-hero.pink:hover { transform:translateY(-3px); box-shadow:0 12px 40px rgba(255,79,123,0.5); }
+  .btn-hero.outline { background:transparent; color:var(--white); border:1px solid rgba(255,255,255,0.25); }
+  .btn-hero.outline:hover { border-color:var(--pink); color:var(--pink); }
+  input, textarea, select { width:100%; padding:13px 18px; background:var(--dark3); border:1px solid rgba(255,79,123,0.2); border-radius:12px; color:var(--white); font-family:'DM Sans',sans-serif; font-size:.95rem; outline:none; transition:border .3s; }
+  input:focus, textarea:focus, select:focus { border-color:var(--pink); }
+  input::placeholder, textarea::placeholder { color:var(--text-muted); }
+  label { font-size:.85rem; color:var(--text-muted); margin-bottom:6px; display:block; }
+</style>
+<style>
+  .feat-hero{padding:160px 60px 80px;position:relative;text-align:center;overflow:hidden;}
+  .feat-hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 40%,rgba(255,79,123,0.16) 0%,transparent 65%),linear-gradient(160deg,#1A0A14 0%,#2D1525 50%,#1A0A14 100%);}
+  .feat-hero h1{font-family:'Playfair Display',serif;font-size:clamp(3rem,6vw,4.5rem);position:relative;z-index:2;line-height:1.1;}
+  .feat-hero h1 em{color:var(--pink);font-style:italic;}
+  .feat-hero p{color:var(--text-muted);font-size:1.05rem;max-width:500px;margin:20px auto 0;line-height:1.75;position:relative;z-index:2;}
+  .section-tag{position:relative;z-index:2;}
+  .features-section{padding:80px 60px;}
+  .big-feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
+  .big-feat{background:var(--dark2);border:1px solid rgba(255,79,123,0.12);border-radius:24px;padding:36px;transition:all .3s;position:relative;overflow:hidden;}
+  .big-feat::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--pink),var(--gold));opacity:0;transition:opacity .3s;}
+  .big-feat:hover{border-color:rgba(255,79,123,0.3);transform:translateY(-6px);box-shadow:0 24px 60px rgba(255,79,123,0.12);}
+  .big-feat:hover::before{opacity:1;}
+  .big-feat .bf-icon{width:60px;height:60px;border-radius:18px;background:linear-gradient(135deg,rgba(255,79,123,0.25),rgba(255,79,123,0.05));display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin-bottom:20px;border:1px solid rgba(255,79,123,0.2);}
+  .big-feat h3{font-size:1.2rem;margin-bottom:12px;}
+  .big-feat p{font-size:.9rem;color:var(--text-muted);line-height:1.7;margin-bottom:16px;}
+  .feat-tag{display:inline-block;padding:4px 12px;background:rgba(255,79,123,0.12);border-radius:50px;font-size:.75rem;color:var(--pink-light);}
+  .highlight-section{padding:80px 60px;background:var(--dark2);}
+  .highlight-row{display:flex;gap:60px;align-items:center;}
+  .highlight-row.reverse{flex-direction:row-reverse;}
+  .highlight-text{flex:1;}
+  .highlight-text h2{font-family:'Playfair Display',serif;font-size:clamp(1.8rem,3vw,2.5rem);margin-bottom:16px;line-height:1.2;}
+  .highlight-text h2 em{color:var(--pink);font-style:italic;}
+  .highlight-text p{color:var(--text-muted);line-height:1.75;margin-bottom:20px;}
+  .check-list{list-style:none;display:flex;flex-direction:column;gap:12px;}
+  .check-list li{display:flex;align-items:flex-start;gap:12px;font-size:.9rem;color:var(--text-muted);}
+  .check-list li::before{content:'❤';color:var(--pink);flex-shrink:0;margin-top:2px;}
+  .highlight-visual{flex:1;display:flex;justify-content:center;}
+  .visual-card{background:var(--dark);border:1px solid rgba(255,79,123,0.2);border-radius:24px;padding:32px;max-width:340px;width:100%;}
+  .divider{background:var(--dark);padding:80px 60px;}
+  .mini-feat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:50px;}
+  .mini-feat{background:var(--dark2);border:1px solid rgba(255,79,123,0.1);border-radius:16px;padding:24px;text-align:center;transition:all .3s;}
+  .mini-feat:hover{border-color:rgba(255,79,123,0.3);transform:translateY(-3px);}
+  .mini-feat .m-icon{font-size:2rem;margin-bottom:12px;}
+  .mini-feat h4{font-size:.95rem;margin-bottom:6px;}
+  .mini-feat p{font-size:.8rem;color:var(--text-muted);line-height:1.5;}
+  .notif-item{display:flex;align-items:center;gap:12px;padding:12px;background:var(--dark2);border-radius:12px;margin-bottom:10px;}
+  .notif-dot{width:10px;height:10px;border-radius:50%;background:var(--pink);flex-shrink:0;}
+  .notif-text{font-size:.8rem;}
+  .notif-time{font-size:.7rem;color:var(--text-muted);margin-left:auto;}
+  @media(max-width:820px){
+    .feat-hero,.features-section,.highlight-section,.divider{padding-left:28px;padding-right:28px}
+    .big-feat-grid{grid-template-columns:1fr}
+    .highlight-row,.highlight-row.reverse{flex-direction:column;gap:36px}
+    .mini-feat-grid{grid-template-columns:repeat(2,1fr)}
+  }
+  @media(max-width:520px){
+    .mini-feat-grid{grid-template-columns:1fr}
+    .feat-hero{padding-top:130px}
+  }
+</style>
+<style>
+.language-switcher{display:flex;align-items:center;gap:6px;margin-left:auto;margin-right:14px;background:rgba(255,79,123,.08);border:1px solid rgba(255,79,123,.22);padding:5px 9px;border-radius:999px;backdrop-filter:blur(10px);z-index:200}
+.language-switcher span{font-size:14px}.language-switcher select{width:auto;padding:6px 22px 6px 8px;background:transparent;border:0;color:var(--white);font-size:.78rem;outline:none;cursor:pointer}
+.language-switcher option{background:#2D1525;color:#fff}
+@media(max-width:800px){nav{padding:10px 18px}.language-switcher{margin-right:8px}.language-switcher select{max-width:105px}.nav-actions{gap:6px}nav ul{gap:12px}}
+</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="lw-core.js?v=2"></script>
+<link rel="stylesheet" href="lw-site.css"></head>
+<body>
+<nav>
+  <a href="index.html" class="lw-brand" aria-label="Loveway home">
+    <img class="nav-logo" src="logo.png" alt="Loveway" width="340" height="185">
+  </a>
+  <ul>
+    <li><a href="index.html">Home</a></li>
+    <li><a href="about.html">About</a></li>
+    <li><a href="features.html" class="active">Features</a></li>
+    <li><a href="how-it-works.html">How it Works</a></li>
+    <li><a href="contact.html">Contact</a></li>
+    <li><a href="app.html">App</a></li>
+  </ul>
+  <div class="nav-actions">
+    <div class="lw-lang" aria-label="Language selector">
+      <span aria-hidden="true">🌐</span>
+      <select id="siteLanguage" class="lw-lang-select" aria-label="Language"><option value="en">English</option><option value="hi">हिंदी</option><option value="braj">ब्रज</option><option value="raj">राजस्थानी</option><option value="bho">भोजपुरी</option><option value="hyd">हैदराबादी</option><option value="mr">मराठी</option></select>
+    </div>
+    <a href="login.html" class="btn-ghost" data-lw-when="out">Login</a>
+    <a href="signup.html" class="btn-primary" data-lw-when="out">Sign Up</a>
+    <a href="dashboard.html" class="btn-ghost" data-lw-when="in" data-lw-target="" style="display:none">Dashboard</a>
+    <a href="#" class="btn-primary" data-lw-when="in" onclick="LW.logout();return false" style="display:none">Log out</a>
+    <button type="button" class="lw-nav-toggle" aria-label="Menu" aria-expanded="false" onclick="LWSite.toggleNav()">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<section class="feat-hero">
+  <div class="feat-hero-bg"></div>
+  <div class="section-tag fade fade-1">Features</div>
+  <h1 class="fade fade-2">Built for <em>love,</em><br>designed for <em>connection</em></h1>
+  <p class="fade fade-3">Every feature on Loveway was crafted with one purpose — to make expressing and receiving love easier, safer, and more beautiful.</p>
+</section>
+
+<section class="features-section">
+  <div class="big-feat-grid">
+    <div class="big-feat">
+      <div class="bf-icon">💬</div>
+      <h3>Private Chat</h3>
+      <p>Safe, private conversations between two people. No one else can read your messages. Express freely, love openly.</p>
+      <ul class="check-list">
+        <li>End-to-end encrypted messages</li>
+        <li>Seen / Delivered status</li>
+        <li>Share images &amp; voice notes</li>
+        <li>Message reactions with hearts</li>
+      </ul>
+      <div style="margin-top:20px;"><span class="feat-tag">Most Loved ❤</span></div>
+    </div>
+    <div class="big-feat" style="border-color:rgba(255,179,71,0.2);">
+      <div class="bf-icon" style="background:linear-gradient(135deg,rgba(255,179,71,0.25),rgba(255,179,71,0.05));border-color:rgba(255,179,71,0.2);">🎵</div>
+      <h3>Song Dedication</h3>
+      <p>Dedicate any song to someone special with a personal message. Sometimes a song says everything your heart wants to say.</p>
+      <ul class="check-list">
+        <li>Search from millions of songs</li>
+        <li>Add a personal dedication note</li>
+        <li>Public or private dedication</li>
+        <li>Song history &amp; favorites</li>
+      </ul>
+      <div style="margin-top:20px;"><span class="feat-tag" style="background:rgba(255,179,71,0.12);color:var(--gold);">Most Romantic 🎵</span></div>
+    </div>
+    <div class="big-feat">
+      <div class="bf-icon">📢</div>
+      <h3>Announcements</h3>
+      <p>Share big moments with the whole Loveway community — birthdays, anniversaries, achievements, or simply a thought that needs to be heard.</p>
+      <ul class="check-list">
+        <li>Rich text with emoji support</li>
+        <li>Community reactions &amp; comments</li>
+        <li>Pin important announcements</li>
+        <li>Admin moderation for safety</li>
+      </ul>
+      <div style="margin-top:20px;"><span class="feat-tag">Community Favourite 📢</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="highlight-section">
+  <div class="highlight-row">
+    <div class="highlight-text">
+      <div class="section-tag">Safety First</div>
+      <h2>Verification &amp;<br><em>Moderation</em></h2>
+      <p>Joining is instant, but not anonymous. Every member verifies by OTP, and admins actively moderate — so the community stays genuine, warm, and free of fake profiles and bad actors.</p>
+      <ul class="check-list">
+        <li>Mobile number OTP verification</li>
+        <li>Instant access — no waiting for approval</li>
+        <li>Real name and photo required</li>
+        <li>Zero tolerance for harassment or fake accounts</li>
+        <li>One-click reporting for any concern</li>
+      </ul>
+    </div>
+    <div class="highlight-visual">
+      <div class="visual-card">
+        <div style="font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--pink);margin-bottom:16px;">Recently Joined</div>
+        <div class="notif-item"><div class="notif-dot"></div><div class="notif-text">Rahul Kumar — <span style="color:#4CAF50;">Verified ✓</span></div><div class="notif-time">2m ago</div></div>
+        <div class="notif-item"><div class="notif-dot"></div><div class="notif-text">Priya Singh — <span style="color:#4CAF50;">Verified ✓</span></div><div class="notif-time">5m ago</div></div>
+        <div class="notif-item"><div class="notif-dot"></div><div class="notif-text">Ankit Shah — <span style="color:#4CAF50;">Verified ✓</span></div><div class="notif-time">12m ago</div></div>
+        <div class="notif-item"><div class="notif-dot"></div><div class="notif-text">Neha Jain — <span style="color:#4CAF50;">Verified ✓</span></div><div class="notif-time">18m ago</div></div>
+        <div style="margin-top:20px;background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.2);border-radius:10px;padding:12px;font-size:.8rem;color:#4CAF50;">🛡 All 10,247 members are verified humans</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="divider">
+  <div class="section-tag">More Features</div>
+  <h2 style="font-family:'Playfair Display',serif;font-size:clamp(1.8rem,3vw,2.5rem);">Everything else you'll <em style="color:var(--pink);font-style:italic;">love</em></h2>
+  <div class="mini-feat-grid">
+    <div class="mini-feat"><div class="m-icon">👥</div><h4>My Friends</h4><p>Build your circle of trusted connections on Loveway.</p></div>
+    <div class="mini-feat"><div class="m-icon">🔔</div><h4>Notifications</h4><p>Stay updated on dedications, messages and announcements.</p></div>
+    <div class="mini-feat"><div class="m-icon">👤</div><h4>My Profile</h4><p>Showcase your personality with a beautiful profile page.</p></div>
+    <div class="mini-feat"><div class="m-icon">⚙️</div><h4>Settings</h4><p>Control your privacy, notifications and account preferences.</p></div>
+  </div>
+</section>
+
+<section style="padding:80px 60px;text-align:center;position:relative;overflow:hidden;">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 70% 80% at 50% 50%,rgba(255,79,123,0.1) 0%,transparent 70%);"></div>
+  <h2 style="font-family:'Playfair Display',serif;font-size:clamp(2rem,4vw,3.5rem);position:relative;z-index:1;">Try all features — <em style="color:var(--pink);font-style:italic;">free forever</em></h2>
+  <p style="color:var(--text-muted);margin:20px auto 36px;max-width:420px;line-height:1.7;position:relative;z-index:1;">No hidden charges. No premium locks. Every feature on Loveway is free because love should be.</p>
+  <div style="display:flex;gap:14px;justify-content:center;position:relative;z-index:1;">
+    <a href="signup.html" class="btn-hero pink" style="font-size:1rem;padding:15px 36px;">Join Free ❤</a>
+    <a href="contact.html" class="btn-hero outline" style="font-size:1rem;padding:15px 36px;">Ask a Question</a>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-col">
+    <img src="logo.png" alt="Loveway" width="340" height="185" class="footer-logo">
+    <p style="font-size:.85rem;color:var(--text-muted);max-width:240px;line-height:1.7;">A community where hearts connect, songs express feelings and love spreads.</p>
+  </div>
+  <div class="footer-col">
+    <h4>Pages</h4>
+    <a href="index.html">Home</a>
+    <a href="about.html">About</a>
+    <a href="features.html">Features</a>
+    <a href="how-it-works.html">How it Works</a>
+    <a href="contact.html">Contact</a>
+  </div>
+  <div class="footer-col">
+    <h4>Account</h4>
+    <a href="login.html">Login</a>
+    <a href="signup.html">Sign Up</a>
+  </div>
+  <div class="footer-col">
+    <h4>Connect</h4>
+    <a href="#">Instagram</a>
+    <a href="#">Twitter / X</a>
+    <a href="#">YouTube</a>
+    <a href="contact.html">Contact Us</a>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2025 Loveway — प्यारी दुनिया. Made with ❤ in India</span>
+  </div>
+</footer>
+<script src="lw-site.js?v=2"></script></body></html>

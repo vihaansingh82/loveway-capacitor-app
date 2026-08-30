@@ -1,0 +1,93 @@
+/* Shared side-rail widgets (nearby couple-spots, song suggestions, upcoming festivals/birthdays)
+   used on wide-desktop viewports across app pages. */
+
+/* Header mini music player — prev/play/next + track name, all viewport widths */
+.mini-player{display:flex;align-items:center;gap:2px;background:var(--bg2);border:1px solid var(--border);
+  border-radius:999px;padding:4px 14px 4px 6px;margin:0 12px;max-width:280px;flex:1;min-width:0}
+.mini-player .mp-btn{border:0;background:transparent;color:var(--text);cursor:pointer;font-size:1rem;
+  padding:4px 6px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none;line-height:1}
+.mini-player .mp-btn:hover{color:var(--primary);background:var(--primary-soft)}
+.mini-player .mp-name{font-size:.78rem;color:var(--text);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;flex:1;min-width:0;margin-left:4px}
+@media(max-width:480px){.mini-player{display:none}}
+.mp-fallback-link{flex:none;font-size:.9rem;text-decoration:none;margin-left:2px}
+.mp-fallback-link-big{display:block;text-align:center;font-size:.8rem;color:var(--primary);margin-top:6px;text-decoration:none}
+/* Spotify ka apna compact widget — yahin par asli volume control milta hai
+   (Spotify ki iFrame API khud volume control expose nahi karti) */
+.mp-embed-visible{margin-top:10px;border-radius:12px;overflow:hidden}
+
+/* Header button that opens the mobile "Extras" sheet — shown whenever the side rails are hidden */
+.rail-sheet-trigger{border:0;background:var(--bg2);color:var(--text);width:38px;height:38px;border-radius:50%;
+  cursor:pointer;font-size:1.05rem;display:none;align-items:center;justify-content:center;flex:none;transition:.2s}
+.rail-sheet-trigger:hover{background:var(--primary-soft);color:var(--primary)}
+@media(max-width:1679px){.rail-sheet-trigger{display:inline-flex}}
+
+/* Mobile/medium-screen bottom sheet — same widgets as the desktop side rails.
+   Stays display:flex (just invisible) even when "closed" so the Spotify embed
+   inside it can initialize in the background instead of waiting for display:none
+   to lift — some browsers never load/play iframe content inside a display:none parent. */
+.rail-sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;
+  align-items:flex-end;justify-content:center;visibility:hidden;opacity:0;
+  transition:opacity .25s ease,visibility 0s linear .25s}
+.rail-sheet-overlay.open{visibility:visible;opacity:1;transition:opacity .25s ease}
+.rail-sheet{background:var(--card);width:100%;max-width:560px;max-height:88vh;overflow-y:auto;
+  border-radius:22px 22px 0 0;padding:18px 18px 28px;position:relative;
+  transform:translateY(30px);transition:transform .25s ease}
+.rail-sheet-overlay.open .rail-sheet{transform:translateY(0)}
+.rail-sheet-handle{width:40px;height:4px;background:var(--border);border-radius:4px;margin:0 auto 14px}
+.rail-sheet-close{position:absolute;top:14px;right:14px;border:0;background:var(--bg2);color:var(--text);
+  width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:.9rem}
+.rail-sheet h2{margin-bottom:16px;font-size:1.1rem}
+.rail-sheet-section{margin-bottom:22px}
+.rail-sheet-section:last-child{margin-bottom:4px}
+.rail-sheet-section h3{font-size:.92rem;margin-bottom:10px}
+.mp-big{display:flex;align-items:center;justify-content:center;gap:18px;margin-bottom:8px}
+.mp-btn-big{border:0;background:var(--bg2);color:var(--text);width:52px;height:52px;border-radius:50%;
+  font-size:1.4rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.mp-btn-big:hover{background:var(--primary-soft);color:var(--primary)}
+.mp-name-big{text-align:center;font-size:.85rem;color:var(--muted)}
+
+.side-rail{position:fixed;top:90px;width:230px;max-height:calc(100vh - 110px);overflow-y:auto;z-index:10}
+.side-rail-left{left:max(14px, calc(50% - 840px))}
+.side-rail-right{right:max(14px, calc(50% - 840px))}
+@media(max-width:1680px){.side-rail{display:none}}
+.side-rail .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:var(--shadow)}
+.side-rail h3{font-size:.9rem;margin-bottom:10px}
+
+.spot-slider-wrap{position:relative}
+.spot-slider{display:flex;gap:14px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.spot-slider::-webkit-scrollbar{display:none}
+.spot-nav{position:absolute;top:calc(50% - 26px);z-index:5;border:0;background:var(--card);color:var(--text);
+  width:32px;height:32px;border-radius:50%;box-shadow:var(--shadow);cursor:pointer;font-size:1.1rem;
+  display:flex;align-items:center;justify-content:center;line-height:1;opacity:.9}
+.spot-nav:hover{background:var(--primary);color:#fff;opacity:1}
+.spot-nav.prev{left:-6px}
+.spot-nav.next{right:-6px}
+.spot-card{flex:none;width:230px;scroll-snap-align:start;background:var(--bg2);border-radius:16px;padding:12px;
+  text-decoration:none;color:var(--text);transition:.2s;display:flex;flex-direction:column;text-align:left;overflow:hidden}
+.spot-card:hover{transform:translateY(-3px)}
+.spot-card-img-wrap{position:relative;width:calc(100% + 24px);margin:-12px -12px 10px;height:140px}
+.spot-card-img-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+.spot-card-img-wrap .ic{position:absolute;bottom:6px;right:6px;font-size:1.3rem;background:rgba(0,0,0,.45);
+  width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.spot-card b{font-size:.92rem;line-height:1.3;margin-bottom:4px}
+.spot-card small{color:var(--muted);font-size:.78rem}
+@media(max-width:1679px){.rail-sheet .spot-card{width:250px}.rail-sheet .spot-card-img-wrap{height:150px}}
+
+.upcoming-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);opacity:0;animation:lwFadeInUp .4s ease forwards}
+.upcoming-item:last-child{border-bottom:0}
+@keyframes lwFadeInUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.upcoming-item .ic{font-size:1.25rem;flex:none}
+
+.rail-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.rail-card-head h3{margin-bottom:0}
+.rail-refresh-btn{border:0;background:var(--bg2);color:var(--text);width:26px;height:26px;border-radius:50%;
+  cursor:pointer;font-size:.85rem;display:inline-flex;align-items:center;justify-content:center;transition:.2s}
+.rail-refresh-btn:hover{background:var(--primary-soft);color:var(--primary);transform:rotate(90deg)}
+.song-sugg-wrap{border-bottom:1px solid var(--border);border-radius:10px;transition:.2s}
+.song-sugg-wrap:last-child{border-bottom:0}
+.song-sugg-wrap.playing{background:var(--primary-soft)}
+.song-sugg-wrap.playing .song-sugg-item{padding-left:6px}
+.song-sugg-item{display:flex;align-items:center;gap:6px;padding:8px 0;opacity:0;animation:lwFadeInUp .4s ease forwards}
+.song-sugg-item .ic{font-size:1.25rem;flex:none}
+.song-sugg-item .icon-btn{flex:none}

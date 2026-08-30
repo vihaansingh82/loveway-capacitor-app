@@ -1,0 +1,183 @@
+﻿<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Friend Request — Loveway</title>
+<link rel="stylesheet" href="lw-app.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="lw-core.js?v=2"></script>
+<script src="lw-app.js?v=2"></script>
+<style>
+.af-hero{text-align:center;padding:34px 22px}
+.af-hero .avatar{width:100px;height:100px;font-size:2.2rem;margin:0 auto 14px;
+  box-shadow:0 10px 26px rgba(233,30,99,.22);animation:lwPop .4s ease both}
+.af-hero h2{font-size:1.35rem;margin-bottom:4px}
+.af-hero .muted{margin-bottom:16px}
+.af-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:6px}
+.af-status{
+  display:inline-flex;align-items:center;gap:8px;background:var(--primary-soft);
+  color:var(--primary);padding:10px 18px;border-radius:30px;font-weight:600;
+  font-size:.9rem;animation:lwPop .35s ease both;
+}
+.af-bio{max-width:440px;margin:14px auto 0;color:var(--text-soft);font-size:.9rem;line-height:1.6}
+.big-btn{padding:13px 26px;font-size:.95rem;border-radius:34px}
+.af-block-link{display:block;margin-top:14px;color:var(--text-soft);font-size:.8rem;cursor:pointer;text-decoration:underline}
+.af-block-link:hover{color:#e53935}
+</style>
+</head>
+<body data-theme="ocean">
+
+<header>
+  <h1>💕 Loveway</h1>
+  <div class="header-tools">
+    <a class="header-action" href="friends.html" data-icon="friends" title="Dost"></a>
+    <a class="header-action" href="dashboard.html" data-icon="home" title="Home"></a>
+    <button class="header-action" onclick="LW.logout()" data-icon="logout" title="Log out"></button>
+  </div>
+</header>
+
+<div class="container" style="max-width:640px">
+  <div id="alertBox" class="alert"></div>
+
+  <a class="btn sm" href="friends.html" style="margin-bottom:14px" data-i18n="backLink">← Wapas</a>
+
+  <div class="card" id="afCard">
+    <div class="spinner" data-i18n="loading">Load ho raha hai…</div>
+  </div>
+</div>
+
+<script>
+var me = null, target = null, friendStatus = 'none'; // none | friends | sent | received
+
+function heroHtml() {
+  var t = target;
+  var bio = [];
+  if (t.profession) bio.push('💼 ' + LWApp.esc(t.profession));
+  if (t.city)       bio.push('📍 ' + LWApp.esc(t.city));
+  var bioLine = t.bio ? '<div class="af-bio">' + LWApp.esc(t.bio) + '</div>' : '';
+
+  return '<div class="af-hero">' +
+    LWApp.avatarHtml(t, 'lg') +
+    '<h2>' + LWApp.esc(t.full_name || t.username || '—') + '</h2>' +
+    '<div class="muted">@' + LWApp.esc(t.username || '—') + (bio.length ? ' · ' + bio.join(' · ') : '') + '</div>' +
+    bioLine +
+    '<div class="af-actions" id="afActions"></div>' +
+    '<a class="btn sm" href="profile.html?u=' + encodeURIComponent(t.username || '') +
+    '" style="margin-top:16px" data-i18n="viewFullProfileBtn">Poori profile dekho</a>' +
+    '</div>';
+}
+
+function actionsHtml() {
+  if (friendStatus === 'blocked') {
+    return '<span class="af-status" data-i18n="youBlockedThemMsg">🚫 Aapne inhe block kar rakha hai</span>' +
+      '<button class="btn danger big-btn" onclick="unblockThem()" data-i18n="unblockBtn">Unblock karo</button>';
+  }
+
+  var main;
+  if (friendStatus === 'friends') {
+    main = '<span class="af-status" data-i18n="alreadyFriendsMsg">✓ Pehle se dost ho</span>' +
+      '<button class="btn primary big-btn" onclick="msgThem()" data-i18n="messageBtn">💬 Message</button>';
+  } else if (friendStatus === 'sent') {
+    main = '<span class="af-status" data-i18n="requestPendingMsg">⏳ Request pehle hi bheji ja chuki hai</span>';
+  } else if (friendStatus === 'received') {
+    main = '<span class="af-status" data-i18n="requestReceivedMsg">📨 Inhone tumhe request bheji hai</span>' +
+      '<button class="btn primary big-btn" onclick="acceptThem()" data-i18n="acceptBtn">Accept karo</button>';
+  } else {
+    main = '<button class="btn primary big-btn" id="reqBtn" onclick="sendRequest()" data-i18n="sendRequestBtn">➕ Friend Request Bhejo</button>';
+  }
+  return main + '<span class="af-block-link" onclick="blockThem()" data-i18n="blockUserLink">🚫 Is user ko block karo</span>';
+}
+
+async function computeStatus() {
+  var blocked = await LWApp.blockedUsers();
+  if (blocked.some(function (b) { return b.person.id === target.id; })) {
+    friendStatus = 'blocked';
+    return;
+  }
+
+  var friends = await LWApp.myFriends();
+  if (friends.some(function (f) { return f.id === target.id; })) { friendStatus = 'friends'; return; }
+
+  var recv = await LWApp.pendingRequests();
+  if (recv.some(function (r) { return r.person && r.person.id === target.id; })) {
+    friendStatus = 'received';
+    window._afReqId = recv.filter(function (r) { return r.person.id === target.id; })[0].req_id;
+    return;
+  }
+
+  var sent = await LWApp.sentRequests();
+  var mine = sent.filter(function (s) { return s.addressee_id === target.id; })[0];
+  friendStatus = (mine && mine.status === 'pending') ? 'sent' : 'none';
+}
+
+async function blockThem() {
+  if (!confirm((target.full_name || target.username || window.t('someoneLabel')) + window.t('blockConfirmSuffix'))) return;
+  var r = await LWApp.blockUser(target.id);
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  friendStatus = 'blocked';
+  document.getElementById('afActions').innerHTML = actionsHtml();
+  LWApp.toast(window.t('blockedToast'));
+}
+
+async function unblockThem() {
+  var r = await LWApp.removeFriend(target.id);
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  friendStatus = 'none';
+  document.getElementById('afActions').innerHTML = actionsHtml();
+  LWApp.toast(window.t('unblockedToast'));
+}
+
+async function sendRequest() {
+  var btn = document.getElementById('reqBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  var r = await LWApp.addFriend(target.id);
+  if (r.error) {
+    LWApp.toast('❌ ' + LWApp.err(r.error), 'error');
+    if (btn) { btn.disabled = false; btn.textContent = window.t('sendRequestBtn'); }
+    return;
+  }
+  friendStatus = 'sent';
+  document.getElementById('afActions').innerHTML = actionsHtml();
+  if (typeof window.applyLanguage === 'function') window.applyLanguage();
+  LWApp.toast(window.t('requestSentToast'));
+}
+
+async function acceptThem() {
+  var r = await LWApp.answerRequest(window._afReqId, true);
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  friendStatus = 'friends';
+  document.getElementById('afActions').innerHTML = actionsHtml();
+  if (typeof window.applyLanguage === 'function') window.applyLanguage();
+  LWApp.toast(window.t('nowFriendsToast'));
+}
+
+async function msgThem() {
+  try {
+    var cid = await LWApp.openDirect(target.id);
+    window.location.href = 'messages.html?c=' + cid;
+  } catch (e) { LWApp.toast('❌ ' + LWApp.err(e), 'error'); }
+}
+
+document.addEventListener('DOMContentLoaded', async function () {
+  if (!LW.configOk) { LWApp.toast('config.js me Supabase keys daalo.', 'error'); return; }
+  me = await LW.requireAuth();
+  if (!me) return;
+  LWApp.shell('profile');
+
+  var who = new URLSearchParams(location.search).get('u');
+  if (!who) { window.location.href = 'friends.html'; return; }
+
+  target = await LWApp.publicProfile(who);
+  if (!target) { document.getElementById('afCard').innerHTML = '<div class="empty"><span class="ic">🔎</span>' + window.t('userNotFoundEmptyMsg') + '</div>'; return; }
+  if (target.id === me.id) { window.location.href = 'profile.html'; return; }
+
+  await computeStatus();
+  document.getElementById('afCard').innerHTML = heroHtml();
+  document.getElementById('afActions').innerHTML = actionsHtml();
+  if (typeof window.applyLanguage === 'function') window.applyLanguage();
+});
+</script>
+</body>
+</html>

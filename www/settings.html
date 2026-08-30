@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loveway — Settings ⚙️</title>
+<style>
+:root{
+  --bg:#fff0f5;--bg2:#ffe4ec;--card:#fff;--primary:#e91e63;
+  --soft:#fce4ec;--accent:#ff6b9d;--text:#2d1b2e;--muted:#8a6d7e;
+  --border:#f8d7e3;--grad:linear-gradient(135deg,#ff6b9d,#e91e63);
+  --shadow:0 8px 30px rgba(233,30,99,.12);
+}
+[data-theme="dark"]{
+  --bg:#12121a;--bg2:#1a1a26;--card:#1e1e2e;--primary:#bb86fc;
+  --soft:#2d2440;--accent:#cf9fff;--text:#eaeaf2;--muted:#9a94b0;
+  --border:#2e2e42;--grad:linear-gradient(135deg,#bb86fc,#7c4dff);
+  --shadow:0 8px 30px rgba(0,0,0,.35);
+}
+[data-theme="ocean"]{
+  --bg:#eef7fb;--bg2:#dff0f7;--card:#fff;--primary:#0288d1;
+  --soft:#e1f5fe;--accent:#26c6da;--text:#10303f;--muted:#5e8494;
+  --border:#cde9f5;--grad:linear-gradient(135deg,#26c6da,#0288d1);
+}
+[data-theme="sunset"]{
+  --bg:#fff6ee;--bg2:#ffeadb;--card:#fff;--primary:#f4511e;
+  --soft:#ffe8df;--accent:#ffb74d;--text:#3a2418;--muted:#a07862;
+  --border:#ffdcc7;--grad:linear-gradient(135deg,#ffb74d,#f4511e);
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Segoe UI,system-ui,sans-serif}
+body{background:var(--bg);color:var(--text);min-height:100vh;transition:.25s}
+header{
+  position:sticky;top:0;z-index:20;background:var(--grad);color:#fff;
+  padding:13px 22px;display:flex;align-items:center;justify-content:space-between;
+  box-shadow:var(--shadow)
+}
+.brand{display:flex;align-items:center;gap:10px}
+.brand h1{font-size:1.25rem}
+.header-right{display:flex;align-items:center;gap:8px}
+.lang{display:flex;align-items:center;gap:5px;background:#ffffff20;border:1px solid #ffffff55;border-radius:20px;padding:6px 10px}
+.lang select{background:transparent;color:#fff;border:0;outline:0;font-weight:600}
+.lang option{color:#222;background:#fff}
+.back{border:1px solid #ffffff55;background:#ffffff18;color:#fff;border-radius:20px;padding:8px 13px;text-decoration:none}
+.wrap{max-width:1050px;margin:28px auto;padding:0 16px}
+.hero{
+  background:var(--card);border:1px solid var(--border);border-radius:22px;padding:25px;
+  box-shadow:var(--shadow);margin-bottom:18px;display:flex;align-items:center;gap:18px
+}
+.avatar{width:70px;height:70px;border-radius:50%;background:var(--grad);color:#fff;display:grid;place-items:center;font-size:1.7rem;font-weight:800;overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.avatar-wrap{position:relative;flex:none}
+.avatar-edit-btn{
+  position:absolute;right:-4px;bottom:-4px;width:28px;height:28px;border-radius:50%;border:2px solid var(--card);
+  background:var(--grad);color:#fff;display:grid;place-items:center;cursor:pointer;font-size:.85rem;padding:0
+}
+.hero h2{font-size:1.5rem;margin-bottom:5px}.hero p{color:var(--muted)}
+.hint{display:block;margin-top:5px;font-size:.8rem;min-height:1em}
+.hint.ok{color:#2e7d32}.hint.bad{color:#d32f2f}
+.layout{display:grid;grid-template-columns:240px 1fr;gap:18px}
+.menu,.panel{background:var(--card);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow)}
+.menu{padding:10px;height:max-content}
+.menu button{
+  width:100%;text-align:left;border:0;background:transparent;color:var(--text);
+  padding:12px 14px;border-radius:12px;cursor:pointer;font-size:.92rem;margin-bottom:3px
+}
+.menu button:hover,.menu button.active{background:var(--soft);color:var(--primary);font-weight:700}
+.panel{padding:22px}
+.section{display:none}.section.active{display:block}
+.section-head{margin-bottom:18px}.section-head h3{color:var(--primary);margin-bottom:5px}.section-head p{color:var(--muted);font-size:.88rem}
+.card{
+  border:1px solid var(--border);background:var(--bg2);border-radius:14px;
+  padding:15px;margin-bottom:12px
+}
+.row{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.row strong{display:block;margin-bottom:3px}.row small{color:var(--muted)}
+.input,.select{
+  width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:11px;
+  background:var(--card);color:var(--text);outline:0;margin-top:7px
+}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.switch{position:relative;width:48px;height:27px;flex:none}
+.switch input{display:none}
+.slider{position:absolute;inset:0;background:#aaa;border-radius:30px;cursor:pointer;transition:.2s}
+.slider:before{content:"";position:absolute;width:21px;height:21px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+.switch input:checked+.slider{background:var(--primary)}
+.switch input:checked+.slider:before{transform:translateX(21px)}
+.btn{
+  border:0;border-radius:11px;padding:10px 16px;cursor:pointer;font-weight:700
+}
+.primary{background:var(--grad);color:#fff}.secondary{background:var(--soft);color:var(--primary)}
+.danger{background:#ffe5e5;color:#d32f2f}
+.theme-list{display:flex;gap:10px;flex-wrap:wrap}
+.theme{
+  width:80px;height:55px;border-radius:12px;border:3px solid transparent;cursor:pointer;
+  box-shadow:0 2px 8px #0001
+}
+.theme.active{border-color:var(--text)}
+.romantic{background:linear-gradient(135deg,#ff6b9d,#e91e63)}
+.dark{background:linear-gradient(135deg,#bb86fc,#2d2440)}
+.ocean{background:linear-gradient(135deg,#26c6da,#0288d1)}
+.sunset{background:linear-gradient(135deg,#ffb74d,#f4511e)}
+.badge{font-size:.72rem;background:var(--soft);color:var(--primary);padding:4px 8px;border-radius:10px}
+.toast{
+  position:fixed;left:50%;bottom:25px;transform:translateX(-50%);
+  background:var(--text);color:var(--card);padding:11px 18px;border-radius:22px;
+  display:none;z-index:100;box-shadow:var(--shadow)
+}
+.blocked-row{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:9px 0;border-bottom:1px solid var(--border)}
+.blocked-row:last-child{border-bottom:0}
+.s-dd{position:relative;display:inline-block}
+.s-dd-trigger{background:transparent;border:0;color:inherit;font:inherit;font-weight:600;cursor:pointer;outline:0}
+.s-dd-menu{display:none;position:absolute;top:calc(100% + 8px);left:0;min-width:150px;
+  background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:12px;
+  box-shadow:0 12px 30px rgba(0,0,0,.2);padding:6px;z-index:60;max-height:260px;overflow-y:auto}
+.s-dd-menu.open{display:block}
+.s-dd-item{padding:8px 11px;border-radius:8px;cursor:pointer;font-size:.86rem}
+.s-dd-item:hover{background:var(--soft)}
+.s-dd-item.selected{background:var(--soft);color:var(--primary);font-weight:700}
+.lang .s-dd-trigger{color:#fff}
+body.bg-photo{
+  background-image:linear-gradient(rgba(255,255,255,.82),rgba(255,255,255,.82)),url('auth-bg.jpg');
+  background-size:cover;background-position:center center;background-attachment:fixed;
+}
+body.bg-photo[data-theme="dark"]{
+  background-image:linear-gradient(rgba(18,18,26,.86),rgba(18,18,26,.86)),url('auth-bg.jpg');
+}
+@media(max-width:750px){
+  .layout{grid-template-columns:1fr}.menu{display:grid;grid-template-columns:repeat(2,1fr);gap:4px}
+  .grid2{grid-template-columns:1fr}.hero{padding:18px}.back{display:none}
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="lw-core.js?v=2"></script>
+<script src="lw-app.js?v=2"></script>
+</head>
+<body data-theme="ocean">
+
+<header>
+  <div class="brand"><span>💕</span><h1>Loveway</h1></div>
+  <div class="header-right">
+    <div class="lang">🌐
+      <select id="languageQuick"><option value="en">English</option><option value="hi">हिंदी</option><option value="braj">ब्रज</option><option value="raj">राजस्थानी</option><option value="bho">भोजपुरी</option><option value="hyd">हैदराबादी</option><option value="mr">मराठी</option><option value="ta">தமிழ்</option><option value="te">తెలుగు</option><option value="bn">বাংলা</option><option value="pa">ਪੰਜਾਬੀ</option><option value="gu">ગુજરાતી</option></select>
+    </div>
+    <a class="back" href="dashboard.html" data-i18n="backBtn">← Dashboard</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="hero">
+    <div class="avatar-wrap">
+      <div class="avatar" id="meAvatar">•</div>
+      <button type="button" class="avatar-edit-btn" onclick="document.getElementById('avatarInput').click()" title="Change photo">📷</button>
+      <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="onAvatarPicked(event)">
+    </div>
+    <div>
+      <h2 id="meName">—</h2>
+      <p id="meMeta">—</p>
+      <span class="badge" id="meStatus">—</span>
+    </div>
+  </div>
+
+  <div class="layout">
+    <aside class="menu">
+      <button class="active" data-tab="account">👤 <span data-i18n="accountTab">Account</span></button>
+      <button data-tab="privacy">🔒 <span data-i18n="privacyTab">Privacy</span></button>
+      <button data-tab="notifications">🔔 <span data-i18n="notificationTab">Notifications</span></button>
+      <button data-tab="appearance">🎨 <span data-i18n="appearanceTab">Appearance</span></button>
+      <button data-tab="language">🌐 <span data-i18n="languageTab">Language</span></button>
+      <button data-tab="security">🛡️ <span data-i18n="securityTab">Security</span></button>
+      <button data-tab="help">❓ <span data-i18n="helpTab">Help & Support</span></button>
+    </aside>
+
+    <section class="panel">
+      <div class="section active" id="account">
+        <div class="section-head"><h3 data-i18n="accountTitle">Account Settings</h3><p data-i18n="accountDesc">Apni profile aur account details manage karo.</p></div>
+        <div class="grid2">
+          <div><label data-i18n="fullNameLabel">Full Name</label><input id="name" class="input"></div>
+          <div><label data-i18n="usernameLabel">Username</label><input id="usernameField" class="input" oninput="onUsernameInput()"><small id="uHint" class="hint"></small></div>
+          <div><label data-i18n="mobileLabel">Mobile</label><input id="mobileField" class="input"></div>
+          <div><label data-i18n="cityLabel">City</label><input id="cityField" class="input"></div>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <div class="row"><div><strong data-i18n="emailLogin">Login & Email</strong><small id="meEmail">—</small></div><button class="btn secondary" onclick="changeEmail()" data-i18n="manageBtn">Manage</button></div>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <div class="row"><div><strong data-i18n="spotifyLabel">🎵 Spotify</strong><small id="spotifyStatus" data-i18n="spotifyChecking">Checking…</small></div><button class="btn secondary" id="spotifyBtn">…</button></div>
+        </div>
+        <button class="btn primary" onclick="save()">💾 <span data-i18n="save">Save Changes</span></button>
+      </div>
+
+      <div class="section" id="privacy">
+        <div class="section-head"><h3 data-i18n="privacyTitle">Privacy</h3><p data-i18n="privacyDesc">Kaun tumhari profile aur activity dekh sakta hai.</p></div>
+        <div class="card row"><div><strong data-i18n="profileVisibilityLabel">Profile Visibility</strong><small data-i18n="profileVisibilityDesc">Who can see your profile?</small></div><select class="select" style="max-width:160px"><option data-i18n="visFriends">Friends</option><option data-i18n="visEveryone">Everyone</option><option data-i18n="visOnlyMe">Only Me</option></select></div>
+        <div class="card row"><div><strong data-i18n="onlineStatusLabel">Online Status</strong><small data-i18n="onlineStatusDesc">Show when you are online</small></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+        <div class="card row"><div><strong data-i18n="lastSeenLabel">Last Seen</strong><small data-i18n="lastSeenDesc">Allow friends to see your last active time</small></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+        <div class="card row"><div><strong data-i18n="friendRequestsLabel">Friend Requests</strong><small data-i18n="friendReqDescPrivacy">Allow people to send requests</small></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+        <div class="card">
+          <strong data-i18n="blockedUsersLabel">🚫 Blocked Users</strong>
+          <div id="blockedList" style="margin-top:10px"><small style="color:var(--muted)" data-i18n="blockedLoading">Load ho raha hai…</small></div>
+        </div>
+      </div>
+
+      <div class="section" id="notifications">
+        <div class="section-head"><h3 data-i18n="notificationTitle">Notifications</h3><p data-i18n="notificationDesc">Loveway ki notifications control karo.</p></div>
+        <div class="card row"><div><strong data-i18n="messagesLabel">Messages</strong><small data-i18n="messagesDesc">New chat messages</small></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+        <div class="card row"><div><strong data-i18n="friendRequestsLabel">Friend Requests</strong><small data-i18n="friendReqDescNotif">New friend or partner requests</small></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+        <div class="card row"><div><strong data-i18n="birthdaysLabel">Birthdays</strong><small data-i18n="birthdaysDesc">Upcoming birthday reminders</small></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+        <div class="card row"><div><strong data-i18n="songDedicationsLabel">Song Dedications</strong><small data-i18n="songDedicationsDesc">When someone dedicates a song to you</small></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+        <div class="card row"><div><strong data-i18n="announcementsLabel">Announcements</strong><small data-i18n="announcementsDesc">Important Loveway updates</small></div><label class="switch"><input type="checkbox"><span class="slider"></span></label></div>
+      </div>
+
+      <div class="section" id="appearance">
+        <div class="section-head"><h3 data-i18n="appearanceTitle">Appearance</h3><p data-i18n="appearanceDesc">Loveway ka look apne hisaab se set karo.</p></div>
+        <div class="card"><strong data-i18n="themeLabel">Theme</strong><div class="theme-list" style="margin-top:12px">
+          <button class="theme romantic" data-theme="romantic" title="Romantic" data-i18n-title="themeRomanticTitle"></button>
+          <button class="theme dark" data-theme="dark" title="Dark" data-i18n-title="themeDarkTitle"></button>
+          <button class="theme ocean active" data-theme="ocean" title="Ocean" data-i18n-title="themeOceanTitle"></button>
+          <button class="theme sunset" data-theme="sunset" title="Sunset" data-i18n-title="themeSunsetTitle"></button>
+          <label class="theme" id="customColorDot" title="Custom color" data-i18n-title="customColorTitle"
+            style="position:relative;overflow:hidden;display:block;cursor:pointer;
+            background:conic-gradient(from 0deg,#ff595e,#ffca3a,#8ac926,#1982c4,#6a4c93,#ff595e)">
+            <input type="color" id="customColorInput" oninput="onCustomColorPick(this.value)"
+              style="opacity:0;width:100%;height:100%;border:0;cursor:pointer;position:absolute;inset:0">
+          </label>
+        </div></div>
+        <div class="card">
+          <div class="row">
+            <div><strong data-i18n="bgPhotoLabel">🖼️ Photo Background</strong><small data-i18n="bgPhotoDesc">Show a background photo behind pages</small></div>
+            <label class="switch"><input type="checkbox" id="bgPhotoCheck" onchange="toggleBgPhotoSettings(this.checked)"><span class="slider"></span></label>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <button type="button" class="btn secondary" onclick="document.getElementById('bgImageFile').click()" data-i18n="uploadBgBtn">📤 Upload Custom Image</button>
+            <button type="button" class="btn secondary" id="resetBgBtn" onclick="resetBgImage()" style="display:none" data-i18n="resetBgBtn">↩ Default par wapas</button>
+            <input type="file" id="bgImageFile" accept="image/*" style="display:none" onchange="onBgImagePicked(event)">
+          </div>
+          <small id="bgImageStatus" style="display:block;margin-top:8px;color:var(--muted)"></small>
+        </div>
+        <div class="card row"><div><strong data-i18n="reduceAnimLabel">Reduce Animations</strong><small data-i18n="reduceAnimDesc">Use fewer visual animations</small></div><label class="switch"><input type="checkbox"><span class="slider"></span></label></div>
+      </div>
+
+      <div class="section" id="language">
+        <div class="section-head"><h3 data-i18n="languageTitle">Language</h3><p data-i18n="languageDesc">Loveway ko apni pasand ki language mein use karo.</p></div>
+        <div class="card">
+          <strong data-i18n="selectLanguageLabel">Select Language</strong>
+          <select id="languageMain" class="select"><option value="en">English</option><option value="hi">हिंदी</option><option value="braj">ब्रज</option><option value="raj">राजस्थानी</option><option value="bho">भोजपुरी</option><option value="hyd">हैदराबादी</option><option value="mr">मराठी</option><option value="ta">தமிழ்</option><option value="te">తెలుగు</option><option value="bn">বাংলা</option><option value="pa">ਪੰਜਾਬੀ</option><option value="gu">ગુજરાતી</option></select>
+        </div>
+        <button class="btn primary" onclick="saveLanguage()" data-i18n="save">Save Changes</button>
+      </div>
+
+      <div class="section" id="security">
+        <div class="section-head"><h3 data-i18n="securityTitle">Security</h3><p data-i18n="securityDesc">Account ko secure rakho.</p></div>
+        <div class="card row"><div><strong data-i18n="passwordLabel">Password</strong><small data-i18n="passwordDesc">Reset link email par aayega</small></div><button class="btn secondary" onclick="changePassword()" data-i18n="changeBtn">Change</button></div>
+        <div class="card row"><div><strong data-i18n="otpLoginLabel">OTP Login</strong><small data-i18n="otpLoginDesc">Use mobile OTP for sign-in</small></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+        <div class="card row"><div><strong data-i18n="loginAlertsLabel">Login Alerts</strong><small data-i18n="loginAlertsDesc">Get notified about new logins</small></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+        <div class="card row"><div><strong data-i18n="activeSessionsLabel">Active Sessions</strong><small data-i18n="activeSessionsDesc">Manage devices where Loveway is open</small></div><button class="btn secondary" data-i18n="viewBtn">View</button></div>
+        <div class="card"><button class="btn danger" onclick="logoutAll()" data-i18n="logoutAllBtn">Log out from all devices</button></div>
+      </div>
+
+      <div class="section" id="help">
+        <div class="section-head"><h3 data-i18n="helpTitle">Help & Support</h3><p data-i18n="helpDesc">Koi problem hai? Humse contact karo.</p></div>
+        <div class="card row"><div><strong data-i18n="helpCenterLabel">📚 Help Center</strong><small data-i18n="helpCenterDesc">Common questions and guides</small></div><button class="btn secondary" data-i18n="openBtn">Open</button></div>
+        <div class="card row"><div><strong data-i18n="contactSupportLabel">💬 Contact Support</strong><small data-i18n="contactSupportDesc">Send a message to Loveway support</small></div><button class="btn secondary" data-i18n="contactBtn">Contact</button></div>
+        <div class="card row"><div><strong data-i18n="reportProblemLabel">🐞 Report a Problem</strong><small data-i18n="reportProblemDesc">Tell us about an issue</small></div><button class="btn secondary" data-i18n="reportBtn">Report</button></div>
+      </div>
+    </section>
+  </div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const translations={
+braj:{accountTab:"खातो",privacyTab:"गोपनीयता",notificationTab:"सूचनायें",appearanceTab:"दिखावट",languageTab:"भाखा",securityTab:"सुरक्षा",helpTab:"मदद अर सहायता",
+accountTitle:"खातो की सेटिंग्स",accountDesc:"अपनी प्रोफाइल अर खातो की जानकारी संभालौ।",emailLogin:"लॉगिन अर ईमेल",save:"सहेजौ",
+privacyTitle:"गोपनीयता",privacyDesc:"कौन तुम्हारी प्रोफाइल अर एक्टिविटी देख सकै।",notificationTitle:"सूचनायें",notificationDesc:"Loveway की सूचनायें अपने हिसाब सैं रखौ।",
+appearanceTitle:"दिखावट",appearanceDesc:"Loveway को रूप अपने हिसाब सैं सजाओ।",languageTitle:"भाखा",languageDesc:"Loveway अपनी पसंद की भाखा में चलाओ।",
+securityTitle:"सुरक्षा",securityDesc:"अपनो खातो सुरक्षित राखौ।",helpTitle:"मदद अर सहायता",helpDesc:"कछु दिक्कत है तो हमैं बताओ।",saved:"सहेज दियो! ✨",
+fullNameLabel:"पूरौ नाम",usernameLabel:"यूज़रनेम",mobileLabel:"मोबाइल",cityLabel:"सहर",manageBtn:"मैनेज करौ",
+profileVisibilityLabel:"प्रोफाइल की दिखावट",profileVisibilityDesc:"तुम्हारी प्रोफाइल कौन देख सकै?",visFriends:"मीत",visEveryone:"सब",visOnlyMe:"सिरफ मैं",
+onlineStatusLabel:"ऑनलाइन स्टेटस",onlineStatusDesc:"जब ऑनलाइन होउ तब दिखाऔ",lastSeenLabel:"लास्ट सीन",lastSeenDesc:"मीतन कों अपणों आखरी सक्रिय समय देखन देउ",
+friendRequestsLabel:"मीत की बिनती",friendReqDescPrivacy:"लोगन कों बिनती भेजन देउ",friendReqDescNotif:"नई मीत या साथी की बिनती",
+blockedUsersLabel:"🚫 ब्लॉक करे मनुष्य",blockedLoading:"लोड है रह्यौ है…",blockedLoadError:"लोड नाय भयौ।",blockedNone:"कोई ब्लॉक नाय है।",unblockBtn:"अनब्लॉक करौ",unblockedToast:"अनब्लॉक भयौ",
+messagesLabel:"संदेश",messagesDesc:"नए चैट संदेश",birthdaysLabel:"जनम दिन",birthdaysDesc:"आवन वारे जनम दिन की सुध",
+songDedicationsLabel:"गीत भेंट",songDedicationsDesc:"जब कोई तुमकों गीत भेंट करै",announcementsLabel:"सूचना",announcementsDesc:"जरूरी Loveway अपडेट",
+themeLabel:"थीम",bgPhotoLabel:"🖼️ फोटो बैकग्राउंड",bgPhotoDesc:"पेजन के पाछें एक फोटो दिखाओ",uploadBgBtn:"📤 अपनी image लगाओ",resetBgBtn:"↩ डिफ़ॉल्ट पै वापस जाओ",customBgActive:"तुम्हारी अपनी image लगी है",bgImageTypeErr:"❌ सिरफ image चुनौ",bgImageSizeErr:"❌ फोटो 15MB सैं छोटी होनी चइये",uploading:"⏳ अपलोड है रह्यौ है…",bgImageSaved:"✅ बैकग्राउंड लगा दियौ",bgImageReset:"डिफ़ॉल्ट बैकग्राउंड पै वापस आ गए",reduceAnimLabel:"एनिमेशन घटाओ",reduceAnimDesc:"कम विज़ुअल एनिमेशन इस्तेमाल करौ",selectLanguageLabel:"भाखा चुनौ",
+passwordLabel:"पासवर्ड",passwordDesc:"रीसेट लिंक तुम्हारे ईमेल पै आवैगौ",changeBtn:"बदलौ",otpLoginLabel:"OTP लॉगिन",otpLoginDesc:"साइन-इन कों मोबाइल OTP इस्तेमाल करौ",
+loginAlertsLabel:"लॉगिन सूचना",loginAlertsDesc:"नए लॉगिन की सूचना पाओ",activeSessionsLabel:"सक्रिय सेशन",activeSessionsDesc:"जिन डिवाइस पै Loveway खुल्यौ है उनकों मैनेज करौ",
+viewBtn:"देखौ",logoutAllBtn:"सब डिवाइस सैं लॉगआउट करौ",helpCenterLabel:"📚 मदद केंद्र",helpCenterDesc:"आम सवाल अर गाइड",openBtn:"खोलौ",
+contactSupportLabel:"💬 सहायता सैं संपर्क करौ",contactSupportDesc:"Loveway सहायता कों संदेश भेजौ",contactBtn:"संपर्क करौ",
+reportProblemLabel:"🐞 समस्या बताओ",reportProblemDesc:"हमैं कोई समस्या बताओ",reportBtn:"रिपोर्ट करौ",
+requiredFieldsMsg:"नाम, यूज़रनेम अर मोबाइल जरूरी हैं",emailConfirmMsg:"कन्फर्मेशन लिंक दोई ईमेल पै भेज्यौ गयौ है",newEmailPrompt:"नयौ ईमेल:",emailNotFoundMsg:"ईमेल नाय मिल्यौ",spotifyLabel:"🎵 Spotify",spotifyChecking:"जांच है रह्यौ है…",spotifyNotConnected:"🔴 Connect नाय है",spotifyExpired:"🟡 Session खतम है गयौ — दुबारा connect करौ",spotifyConnectBtn:"Connect करौ",spotifyConnectedAs:"इस नाम सैं connected:",spotifyRecheckBtn:"फेर जांचौ",backBtn:"← डैशबोर्ड",themeRomanticTitle:"रोमांटिक",themeDarkTitle:"डार्क",themeOceanTitle:"ओशन",themeSunsetTitle:"सनसेट",customColorTitle:"कस्टम कलर"},
+hi:{accountTab:"खाता",privacyTab:"प्राइवेसी",notificationTab:"नोटिफिकेशन",appearanceTab:"दिखावट",languageTab:"भाषा",securityTab:"सुरक्षा",helpTab:"मदद और सहायता",
+accountTitle:"अकाउंट सेटिंग्स",accountDesc:"अपनी प्रोफ़ाइल और अकाउंट की जानकारी मैनेज करें।",emailLogin:"लॉगिन और ईमेल",save:"सेव करें",
+privacyTitle:"प्राइवेसी",privacyDesc:"कौन आपकी प्रोफ़ाइल और एक्टिविटी देख सकता है।",notificationTitle:"नोटिफिकेशन",notificationDesc:"Loveway की नोटिफिकेशन को कंट्रोल करें।",
+appearanceTitle:"दिखावट",appearanceDesc:"Loveway का लुक अपने हिसाब से सेट करें।",languageTitle:"भाषा",languageDesc:"Loveway को अपनी पसंद की भाषा में इस्तेमाल करें।",
+securityTitle:"सुरक्षा",securityDesc:"अपने अकाउंट को सुरक्षित रखें।",helpTitle:"मदद और सहायता",helpDesc:"कोई समस्या है? हमसे संपर्क करें।",saved:"सेव हो गया! ✨",
+fullNameLabel:"पूरा नाम",usernameLabel:"यूज़रनेम",mobileLabel:"मोबाइल",cityLabel:"शहर",manageBtn:"मैनेज करें",
+profileVisibilityLabel:"प्रोफ़ाइल विज़िबिलिटी",profileVisibilityDesc:"आपकी प्रोफ़ाइल कौन देख सकता है?",visFriends:"दोस्त",visEveryone:"सभी",visOnlyMe:"सिर्फ़ मैं",
+onlineStatusLabel:"ऑनलाइन स्टेटस",onlineStatusDesc:"जब आप ऑनलाइन हों तो दिखाएं",lastSeenLabel:"लास्ट सीन",lastSeenDesc:"दोस्तों को आपका आख़िरी एक्टिव समय देखने दें",
+friendRequestsLabel:"फ्रेंड रिक्वेस्ट",friendReqDescPrivacy:"लोगों को रिक्वेस्ट भेजने दें",friendReqDescNotif:"नई फ्रेंड या पार्टनर रिक्वेस्ट",
+blockedUsersLabel:"🚫 ब्लॉक किए गए यूज़र",blockedLoading:"लोड हो रहा है…",blockedLoadError:"लोड नहीं हो पाया।",blockedNone:"कोई भी ब्लॉक नहीं है।",unblockBtn:"अनब्लॉक करें",unblockedToast:"अनब्लॉक हो गया",
+messagesLabel:"मैसेज",messagesDesc:"नए चैट मैसेज",birthdaysLabel:"बर्थडे",birthdaysDesc:"आने वाले बर्थडे के रिमाइंडर",
+songDedicationsLabel:"सॉन्ग डेडिकेशन",songDedicationsDesc:"जब कोई आपको गाना डेडिकेट करे",announcementsLabel:"अनाउंसमेंट",announcementsDesc:"ज़रूरी Loveway अपडेट",
+themeLabel:"थीम",bgPhotoLabel:"🖼️ फोटो बैकग्राउंड",bgPhotoDesc:"पेजों के पीछे एक बैकग्राउंड फोटो दिखाएं",uploadBgBtn:"📤 Custom Image Upload करें",resetBgBtn:"↩ Default पर वापस जाएं",customBgActive:"आपकी अपनी image active है",bgImageTypeErr:"❌ सिर्फ़ image चुनें",bgImageSizeErr:"❌ Photo 15MB से छोटी होनी चाहिए",uploading:"⏳ Upload हो रहा है…",bgImageSaved:"✅ बैकग्राउंड अपडेट हो गया",bgImageReset:"डिफ़ॉल्ट बैकग्राउंड पर वापस आ गए",reduceAnimLabel:"एनिमेशन कम करें",reduceAnimDesc:"कम विज़ुअल एनिमेशन इस्तेमाल करें",selectLanguageLabel:"भाषा चुनें",
+passwordLabel:"पासवर्ड",passwordDesc:"रीसेट लिंक आपके ईमेल पर आएगा",changeBtn:"बदलें",otpLoginLabel:"OTP लॉगिन",otpLoginDesc:"साइन-इन के लिए मोबाइल OTP इस्तेमाल करें",
+loginAlertsLabel:"लॉगिन अलर्ट",loginAlertsDesc:"नए लॉगिन की सूचना पाएं",activeSessionsLabel:"एक्टिव सेशन",activeSessionsDesc:"जिन डिवाइस पर Loveway खुला है उन्हें मैनेज करें",
+viewBtn:"देखें",logoutAllBtn:"सभी डिवाइस से लॉगआउट करें",helpCenterLabel:"📚 हेल्प सेंटर",helpCenterDesc:"आम सवाल और गाइड",openBtn:"खोलें",
+contactSupportLabel:"💬 सपोर्ट से संपर्क करें",contactSupportDesc:"Loveway सपोर्ट को मैसेज भेजें",contactBtn:"संपर्क करें",
+reportProblemLabel:"🐞 समस्या रिपोर्ट करें",reportProblemDesc:"हमें किसी समस्या के बारे में बताएं",reportBtn:"रिपोर्ट करें",
+requiredFieldsMsg:"नाम, यूज़रनेम और मोबाइल ज़रूरी हैं",emailConfirmMsg:"कन्फ़र्मेशन लिंक दोनों ईमेल पर भेजा गया है",newEmailPrompt:"नया ईमेल:",emailNotFoundMsg:"ईमेल नहीं मिला",spotifyLabel:"🎵 Spotify",spotifyChecking:"चेक हो रहा है…",spotifyNotConnected:"🔴 Connected नहीं है",spotifyExpired:"🟡 Session expire हो गया — दोबारा connect करें",spotifyConnectBtn:"Connect करें",spotifyConnectedAs:"इस नाम से connected:",spotifyRecheckBtn:"दोबारा check करें",backBtn:"← डैशबोर्ड",themeRomanticTitle:"रोमांटिक",themeDarkTitle:"डार्क",themeOceanTitle:"ओशन",themeSunsetTitle:"सनसेट",customColorTitle:"कस्टम कलर"},
+mr:{accountTab:"खाते",privacyTab:"प्रायव्हसी",notificationTab:"सूचना",appearanceTab:"दिसणे",languageTab:"भाषा",securityTab:"सुरक्षा",helpTab:"मदत आणि सहाय्य",
+accountTitle:"खाते सेटिंग्ज",accountDesc:"तुमची प्रोफाइल आणि खाते माहिती व्यवस्थापित करा.",emailLogin:"लॉगिन आणि ईमेल",save:"सेव्ह करा",
+privacyTitle:"प्रायव्हसी",privacyDesc:"तुमची प्रोफाइल आणि अॅक्टिव्हिटी कोण पाहू शकते.",notificationTitle:"सूचना",notificationDesc:"Loveway सूचना नियंत्रित करा.",
+appearanceTitle:"दिसणे",appearanceDesc:"Loveway चे रूप तुमच्या आवडीनुसार सेट करा.",languageTitle:"भाषा",languageDesc:"Loveway तुमच्या आवडत्या भाषेत वापरा.",
+securityTitle:"सुरक्षा",securityDesc:"तुमचे खाते सुरक्षित ठेवा.",helpTitle:"मदत आणि सहाय्य",helpDesc:"काही समस्या आहे? आमच्याशी संपर्क करा.",saved:"सेव्ह झाले! ✨",
+fullNameLabel:"पूर्ण नाव",usernameLabel:"युजरनेम",mobileLabel:"मोबाईल",cityLabel:"शहर",manageBtn:"व्यवस्थापित करा",
+profileVisibilityLabel:"प्रोफाइल दृश्यता",profileVisibilityDesc:"तुमची प्रोफाइल कोण पाहू शकतो?",visFriends:"मित्र",visEveryone:"सर्वजण",visOnlyMe:"फक्त मी",
+onlineStatusLabel:"ऑनलाइन स्टेटस",onlineStatusDesc:"तुम्ही ऑनलाइन असता तेव्हा दाखवा",lastSeenLabel:"लास्ट सीन",lastSeenDesc:"मित्रांना तुमची शेवटची अ‍ॅक्टिव्ह वेळ पाहू द्या",
+friendRequestsLabel:"फ्रेंड रिक्वेस्ट",friendReqDescPrivacy:"लोकांना रिक्वेस्ट पाठवू द्या",friendReqDescNotif:"नवीन फ्रेंड किंवा पार्टनर रिक्वेस्ट",
+blockedUsersLabel:"🚫 ब्लॉक केलेले युजर्स",blockedLoading:"लोड होत आहे…",blockedLoadError:"लोड होऊ शकले नाही.",blockedNone:"कोणीही ब्लॉक केलेले नाही.",unblockBtn:"अनब्लॉक करा",unblockedToast:"अनब्लॉक झाले",
+messagesLabel:"मेसेजेस",messagesDesc:"नवीन चॅट मेसेज",birthdaysLabel:"वाढदिवस",birthdaysDesc:"येणाऱ्या वाढदिवसांची आठवण",
+songDedicationsLabel:"गाणे समर्पण",songDedicationsDesc:"जेव्हा कोणी तुम्हाला गाणे समर्पित करते",announcementsLabel:"घोषणा",announcementsDesc:"महत्त्वाचे Loveway अपडेट्स",
+themeLabel:"थीम",bgPhotoLabel:"🖼️ फोटो बॅकग्राउंड",bgPhotoDesc:"पेजेसच्या मागे बॅकग्राउंड फोटो दाखवा",uploadBgBtn:"📤 कस्टम इमेज अपलोड करा",resetBgBtn:"↩ डिफॉल्टवर परत जा",customBgActive:"तुमची स्वतःची इमेज अ‍ॅक्टिव्ह आहे",bgImageTypeErr:"❌ फक्त इमेज निवडा",bgImageSizeErr:"❌ फोटो 15MB पेक्षा लहान असावा",uploading:"⏳ अपलोड होत आहे…",bgImageSaved:"✅ बॅकग्राउंड अपडेट झाले",bgImageReset:"डिफॉल्ट बॅकग्राउंडवर परत आले",reduceAnimLabel:"अ‍ॅनिमेशन कमी करा",reduceAnimDesc:"कमी व्हिज्युअल अ‍ॅनिमेशन वापरा",selectLanguageLabel:"भाषा निवडा",
+passwordLabel:"पासवर्ड",passwordDesc:"रीसेट लिंक तुमच्या ईमेलवर येईल",changeBtn:"बदला",otpLoginLabel:"OTP लॉगिन",otpLoginDesc:"साइन-इनसाठी मोबाईल OTP वापरा",
+loginAlertsLabel:"लॉगिन अलर्ट",loginAlertsDesc:"नवीन लॉगिनची सूचना मिळवा",activeSessionsLabel:"अ‍ॅक्टिव्ह सेशन्स",activeSessionsDesc:"ज्या डिव्हाइसवर Loveway उघडे आहे ते व्यवस्थापित करा",
+viewBtn:"पहा",logoutAllBtn:"सर्व डिव्हाइसवरून लॉगआउट करा",helpCenterLabel:"📚 हेल्प सेंटर",helpCenterDesc:"सामान्य प्रश्न आणि मार्गदर्शक",openBtn:"उघडा",
+contactSupportLabel:"💬 सपोर्टशी संपर्क करा",contactSupportDesc:"Loveway सपोर्टला मेसेज पाठवा",contactBtn:"संपर्क करा",
+reportProblemLabel:"🐞 समस्या नोंदवा",reportProblemDesc:"आम्हाला समस्येबद्दल सांगा",reportBtn:"रिपोर्ट करा",
+requiredFieldsMsg:"नाव, युजरनेम आणि मोबाईल आवश्यक आहे",emailConfirmMsg:"कन्फर्मेशन लिंक दोन्ही ईमेलवर पाठवली आहे",newEmailPrompt:"नवीन ईमेल:",emailNotFoundMsg:"ईमेल सापडला नाही",spotifyLabel:"🎵 Spotify",spotifyChecking:"तपासत आहे…",spotifyNotConnected:"🔴 कनेक्ट नाही",spotifyExpired:"🟡 सेशन एक्सपायर झाले — पुन्हा कनेक्ट करा",spotifyConnectBtn:"कनेक्ट करा",spotifyConnectedAs:"या नावाने कनेक्टेड:",spotifyRecheckBtn:"पुन्हा तपासा",backBtn:"← डॅशबोर्ड",themeRomanticTitle:"रोमँटिक",themeDarkTitle:"डार्क",themeOceanTitle:"ओशन",themeSunsetTitle:"सनसेट",customColorTitle:"कस्टम कलर"},
+en:{accountTab:"Account",privacyTab:"Privacy",notificationTab:"Notifications",appearanceTab:"Appearance",languageTab:"Language",securityTab:"Security",helpTab:"Help & Support",
+accountTitle:"Account Settings",accountDesc:"Manage your profile and account details.",emailLogin:"Login & Email",save:"Save Changes",
+privacyTitle:"Privacy",privacyDesc:"Control who can see your profile and activity.",notificationTitle:"Notifications",notificationDesc:"Control your Loveway notifications.",
+appearanceTitle:"Appearance",appearanceDesc:"Customize the look of Loveway.",languageTitle:"Language",languageDesc:"Use Loveway in your preferred language.",
+securityTitle:"Security",securityDesc:"Keep your account secure.",helpTitle:"Help & Support",helpDesc:"Need help? Contact us.",saved:"Saved! ✨",
+fullNameLabel:"Full Name",usernameLabel:"Username",mobileLabel:"Mobile",cityLabel:"City",manageBtn:"Manage",
+profileVisibilityLabel:"Profile Visibility",profileVisibilityDesc:"Who can see your profile?",visFriends:"Friends",visEveryone:"Everyone",visOnlyMe:"Only Me",
+onlineStatusLabel:"Online Status",onlineStatusDesc:"Show when you are online",lastSeenLabel:"Last Seen",lastSeenDesc:"Allow friends to see your last active time",
+friendRequestsLabel:"Friend Requests",friendReqDescPrivacy:"Allow people to send requests",friendReqDescNotif:"New friend or partner requests",
+blockedUsersLabel:"🚫 Blocked Users",blockedLoading:"Loading…",blockedLoadError:"Couldn't load.",blockedNone:"No one is blocked.",unblockBtn:"Unblock",unblockedToast:"Unblocked",
+messagesLabel:"Messages",messagesDesc:"New chat messages",birthdaysLabel:"Birthdays",birthdaysDesc:"Upcoming birthday reminders",
+songDedicationsLabel:"Song Dedications",songDedicationsDesc:"When someone dedicates a song to you",announcementsLabel:"Announcements",announcementsDesc:"Important Loveway updates",
+themeLabel:"Theme",bgPhotoLabel:"🖼️ Photo Background",bgPhotoDesc:"Show a background photo behind pages",uploadBgBtn:"📤 Upload Custom Image",resetBgBtn:"↩ Reset to Default",customBgActive:"Your custom image is active",bgImageTypeErr:"❌ Please choose an image",bgImageSizeErr:"❌ Photo must be under 15MB",uploading:"⏳ Uploading…",bgImageSaved:"✅ Background updated",bgImageReset:"Back to the default background",reduceAnimLabel:"Reduce Animations",reduceAnimDesc:"Use fewer visual animations",selectLanguageLabel:"Select Language",
+passwordLabel:"Password",passwordDesc:"Reset link will be emailed to you",changeBtn:"Change",otpLoginLabel:"OTP Login",otpLoginDesc:"Use mobile OTP for sign-in",
+loginAlertsLabel:"Login Alerts",loginAlertsDesc:"Get notified about new logins",activeSessionsLabel:"Active Sessions",activeSessionsDesc:"Manage devices where Loveway is open",
+viewBtn:"View",logoutAllBtn:"Log out from all devices",helpCenterLabel:"📚 Help Center",helpCenterDesc:"Common questions and guides",openBtn:"Open",
+contactSupportLabel:"💬 Contact Support",contactSupportDesc:"Send a message to Loveway support",contactBtn:"Contact",
+reportProblemLabel:"🐞 Report a Problem",reportProblemDesc:"Tell us about an issue",reportBtn:"Report",
+requiredFieldsMsg:"Name, username and mobile are required",emailConfirmMsg:"Confirmation link sent to both emails",newEmailPrompt:"New email:",emailNotFoundMsg:"Email not found",spotifyLabel:"🎵 Spotify",spotifyChecking:"Checking…",spotifyNotConnected:"🔴 Not connected",spotifyExpired:"🟡 Session expired — reconnect",spotifyConnectBtn:"Connect",spotifyConnectedAs:"Connected as",spotifyRecheckBtn:"Recheck",backBtn:"← Dashboard",themeRomanticTitle:"Romantic",themeDarkTitle:"Dark",themeOceanTitle:"Ocean",themeSunsetTitle:"Sunset",customColorTitle:"Custom color"},
+ raj:{accountTab:"खातो",privacyTab:"निजता",notificationTab:"सूचना",appearanceTab:"रूप-रंग",languageTab:"बोली",securityTab:"सुरक्षा",helpTab:"मदद अर सहारो",accountTitle:"खाता री सैटिंग",accountDesc:"आपरी प्रोफाइल अर खाता री बातां संभाळो।",emailLogin:"लॉगिन अर ईमेल",save:"बदळाव सैव करो",privacyTitle:"निजता",privacyDesc:"कुण थांरी प्रोफाइल अर काम देख सकै, यो तय करो।",notificationTitle:"सूचना",notificationDesc:"Loveway री सूचना आपरे मुजब राखो।",appearanceTitle:"रूप-रंग",appearanceDesc:"Loveway रो रूप आपरे मन मुजब बणावो।",languageTitle:"बोली",languageDesc:"Loveway नै आपरी पसंद री बोली में चलावो।",securityTitle:"सुरक्षा",securityDesc:"खाता नै सुरक्षित राखो।",helpTitle:"मदद अर सहारो",helpDesc:"कोई दिक्कत है? म्हांसूं संपरक करो।",saved:"सैव हो ग्यो! ✨",
+fullNameLabel:"पूरो नाम",usernameLabel:"यूज़रनेम",mobileLabel:"मोबाइल",cityLabel:"शहर",manageBtn:"मैनेज करो",
+profileVisibilityLabel:"प्रोफाइल री दिखावट",profileVisibilityDesc:"थांरी प्रोफाइल कुण देख सकै?",visFriends:"गैला",visEveryone:"सगळा",visOnlyMe:"सिरफ म्हैं",
+onlineStatusLabel:"ऑनलाइन स्टेटस",onlineStatusDesc:"जद ऑनलाइन हो तो दिखावो",lastSeenLabel:"लास्ट सीन",lastSeenDesc:"गैलां नै आपरो आखरी सक्रिय समय देखण द्यो",
+friendRequestsLabel:"दोस्ती री विनती",friendReqDescPrivacy:"लोगां नै विनती भेजण द्यो",friendReqDescNotif:"नई दोस्ती या साथी री विनती",
+blockedUsersLabel:"🚫 ब्लॉक करिया लोग",blockedLoading:"लोड हो रह्यो है…",blockedLoadError:"लोड नीं होयो।",blockedNone:"कोई ब्लॉक नीं है।",unblockBtn:"अनब्लॉक करो",unblockedToast:"अनब्लॉक हो ग्यो",
+messagesLabel:"संदेश",messagesDesc:"नवा चैट संदेश",birthdaysLabel:"जलम दिन",birthdaysDesc:"आवण वाळा जलम दिन री सुध",
+songDedicationsLabel:"गीत भेंट",songDedicationsDesc:"जद कोई थांनै गीत भेंट करै",announcementsLabel:"सूचना",announcementsDesc:"जरूरी Loveway अपडेट",
+themeLabel:"थीम",bgPhotoLabel:"🖼️ फोटो बैकग्राउंड",bgPhotoDesc:"पेजां रे पाछै एक फोटो दिखावो",uploadBgBtn:"📤 आपरी image अपलोड करो",resetBgBtn:"↩ डिफ़ॉल्ट माथै वापस जावो",customBgActive:"थांरी आपरी image एक्टिव है",bgImageTypeErr:"❌ सिरफ image चुणो",bgImageSizeErr:"❌ फोटो 15MB सूं छोटी होणी चाहिए",uploading:"⏳ अपलोड हो रह्यो है…",bgImageSaved:"✅ बैकग्राउंड अपडेट हो ग्यो",bgImageReset:"डिफ़ॉल्ट बैकग्राउंड माथै वापस आ ग्या",reduceAnimLabel:"एनिमेशन घटावो",reduceAnimDesc:"कम विज़ुअल एनिमेशन काम में ल्यो",selectLanguageLabel:"बोली चुणो",
+passwordLabel:"पासवर्ड",passwordDesc:"रीसेट लिंक थांरे ईमेल माथै आसी",changeBtn:"बदलो",otpLoginLabel:"OTP लॉगिन",otpLoginDesc:"साइन-इन खातर मोबाइल OTP काम में ल्यो",
+loginAlertsLabel:"लॉगिन सूचना",loginAlertsDesc:"नवा लॉगिन री सूचना पावो",activeSessionsLabel:"सक्रिय सेशन",activeSessionsDesc:"जिण डिवाइस माथै Loveway खुल्यो है उणनै मैनेज करो",
+viewBtn:"देखो",logoutAllBtn:"सगळा डिवाइस सूं लॉगआउट करो",helpCenterLabel:"📚 मदद केंद्र",helpCenterDesc:"आम सवाल अर गाइड",openBtn:"खोलो",
+contactSupportLabel:"💬 सहायता सूं संपर्क करो",contactSupportDesc:"Loveway सहायता नै संदेश भेजो",contactBtn:"संपर्क करो",
+reportProblemLabel:"🐞 समस्या बतावो",reportProblemDesc:"म्हांनै कोई समस्या बतावो",reportBtn:"रिपोर्ट करो",
+requiredFieldsMsg:"नाम, यूज़रनेम अर मोबाइल जरूरी है",emailConfirmMsg:"कन्फर्मेशन लिंक दोनूं ईमेल माथै भेज दियो है",newEmailPrompt:"नवो ईमेल:",emailNotFoundMsg:"ईमेल नीं मिल्यो",spotifyLabel:"🎵 Spotify",spotifyChecking:"जांच हो रही है…",spotifyNotConnected:"🔴 Connect कोनी है",spotifyExpired:"🟡 Session खतम हो ग्यो — दुबारा connect करो",spotifyConnectBtn:"Connect करो",spotifyConnectedAs:"इण नाम सूं connected:",spotifyRecheckBtn:"फेर जांचो",backBtn:"← डैशबोर्ड",themeRomanticTitle:"रोमांटिक",themeDarkTitle:"डार्क",themeOceanTitle:"ओशन",themeSunsetTitle:"सनसेट",customColorTitle:"कस्टम कलर"},
+ bho:{accountTab:"खाता",privacyTab:"निजता",notificationTab:"सूचना",appearanceTab:"रूप-रंग",languageTab:"भाषा",securityTab:"सुरक्षा",helpTab:"मदद आ सहारा",accountTitle:"खाता के सेटिंग",accountDesc:"आपन प्रोफाइल आ खाता के बात संभालीं।",emailLogin:"लॉगिन आ ईमेल",save:"बदलाव सेव करीं",privacyTitle:"निजता",privacyDesc:"के राउर प्रोफाइल आ काम देख सके, ई तय करीं।",notificationTitle:"सूचना",notificationDesc:"Loveway के सूचना आपन हिसाब से राखीं।",appearanceTitle:"रूप-रंग",appearanceDesc:"Loveway के रूप आपन मन के हिसाब से बनाईं।",languageTitle:"भाषा",languageDesc:"Loveway के आपन पसंद के भाषा में चलाईं।",securityTitle:"सुरक्षा",securityDesc:"खाता के सुरक्षित राखीं।",helpTitle:"मदद आ सहारा",helpDesc:"कवनो दिक्कत बा? हमनी से संपर्क करीं।",saved:"सेव हो गइल! ✨",
+fullNameLabel:"पूरा नाम",usernameLabel:"यूज़रनेम",mobileLabel:"मोबाइल",cityLabel:"शहर",manageBtn:"मैनेज करीं",
+profileVisibilityLabel:"प्रोफाइल के देखाई",profileVisibilityDesc:"राउर प्रोफाइल के देख सके?",visFriends:"दोस्त",visEveryone:"सभे",visOnlyMe:"खाली हम",
+onlineStatusLabel:"ऑनलाइन स्टेटस",onlineStatusDesc:"जब ऑनलाइन रहीं त देखाईं",lastSeenLabel:"लास्ट सीन",lastSeenDesc:"दोस्तन के आपन आखिरी एक्टिव समय देखे दीं",
+friendRequestsLabel:"दोस्ती के विनती",friendReqDescPrivacy:"लोगन के विनती भेजे दीं",friendReqDescNotif:"नयका दोस्त भा पार्टनर के विनती",
+blockedUsersLabel:"🚫 ब्लॉक कइल लोग",blockedLoading:"लोड हो रहल बा…",blockedLoadError:"लोड ना हो पावल।",blockedNone:"केहू ब्लॉक ना बा।",unblockBtn:"अनब्लॉक करीं",unblockedToast:"अनब्लॉक हो गइल",
+messagesLabel:"संदेश",messagesDesc:"नयका चैट संदेश",birthdaysLabel:"जनमदिन",birthdaysDesc:"आवे वाला जनमदिन के याद",
+songDedicationsLabel:"गीत भेंट",songDedicationsDesc:"जब केहू राउर खातिर गीत भेंट करे",announcementsLabel:"सूचना",announcementsDesc:"जरूरी Loveway अपडेट",
+themeLabel:"थीम",bgPhotoLabel:"🖼️ फोटो बैकग्राउंड",bgPhotoDesc:"पेजन के पाछे एगो बैकग्राउंड फोटो देखाईं",uploadBgBtn:"📤 आपन image अपलोड करीं",resetBgBtn:"↩ डिफ़ॉल्ट पर वापस जाईं",customBgActive:"राउर आपन image एक्टिव बा",bgImageTypeErr:"❌ खाली image चुनीं",bgImageSizeErr:"❌ फोटो 15MB से छोट होखे के चाहीं",uploading:"⏳ अपलोड हो रहल बा…",bgImageSaved:"✅ बैकग्राउंड अपडेट हो गइल",bgImageReset:"डिफ़ॉल्ट बैकग्राउंड पर वापस आ गइल",reduceAnimLabel:"एनिमेशन कम करीं",reduceAnimDesc:"कम विज़ुअल एनिमेशन इस्तेमाल करीं",selectLanguageLabel:"भाषा चुनीं",
+passwordLabel:"पासवर्ड",passwordDesc:"रीसेट लिंक राउर ईमेल पर आई",changeBtn:"बदलीं",otpLoginLabel:"OTP लॉगिन",otpLoginDesc:"साइन-इन खातिर मोबाइल OTP इस्तेमाल करीं",
+loginAlertsLabel:"लॉगिन सूचना",loginAlertsDesc:"नयका लॉगिन के सूचना पाईं",activeSessionsLabel:"एक्टिव सेशन",activeSessionsDesc:"जवन डिवाइस पर Loveway खुलल बा ओकरा के मैनेज करीं",
+viewBtn:"देखीं",logoutAllBtn:"सभे डिवाइस से लॉगआउट करीं",helpCenterLabel:"📚 मदद केंद्र",helpCenterDesc:"आम सवाल आ गाइड",openBtn:"खोलीं",
+contactSupportLabel:"💬 सहायता से संपर्क करीं",contactSupportDesc:"Loveway सहायता के संदेश भेजीं",contactBtn:"संपर्क करीं",
+reportProblemLabel:"🐞 समस्या बताईं",reportProblemDesc:"हमनी के कवनो समस्या बताईं",reportBtn:"रिपोर्ट करीं",
+requiredFieldsMsg:"नाम, यूज़रनेम आ मोबाइल जरूरी बा",emailConfirmMsg:"कन्फर्मेशन लिंक दुनो ईमेल पर भेज दिहल गइल बा",newEmailPrompt:"नयका ईमेल:",emailNotFoundMsg:"ईमेल ना मिलल",spotifyLabel:"🎵 Spotify",spotifyChecking:"चेक हो रहल बा…",spotifyNotConnected:"🔴 Connect नइखे",spotifyExpired:"🟡 Session खतम हो गइल — दुबारा connect करीं",spotifyConnectBtn:"Connect करीं",spotifyConnectedAs:"ई नाम से connected:",spotifyRecheckBtn:"फेर से चेक करीं",backBtn:"← डैशबोर्ड",themeRomanticTitle:"रोमांटिक",themeDarkTitle:"डार्क",themeOceanTitle:"ओशन",themeSunsetTitle:"सनसेट",customColorTitle:"कस्टम कलर"},
+ hyd:{accountTab:"खाता",privacyTab:"प्राइवेसी",notificationTab:"इत्तिला",appearanceTab:"लुक",languageTab:"ज़बान",securityTab:"हिफ़ाज़त",helpTab:"मदद और सहारा",accountTitle:"खाते की सेटिंग",accountDesc:"अपनी प्रोफाइल और खाते की बातें संभालो।",emailLogin:"लॉगिन और ईमेल",save:"बदलाव सेव करो",privacyTitle:"प्राइवेसी",privacyDesc:"कौन तुमारी प्रोफाइल और काम देख सकता, ये तय करो।",notificationTitle:"इत्तिला",notificationDesc:"Loveway की इत्तिला अपने हिसाब से रखो।",appearanceTitle:"लुक",appearanceDesc:"Loveway का लुक अपने मन के हिसाब से बनाओ।",languageTitle:"ज़बान",languageDesc:"Loveway को अपनी पसंद की ज़बान में चलाओ।",securityTitle:"हिफ़ाज़त",securityDesc:"खाते को महफ़ूज़ रखो।",helpTitle:"मदद और सहारा",helpDesc:"कोई दिक्कत है? अपन से संपर्क करो।",saved:"सेव हो गया! ✨",
+fullNameLabel:"पूरा नाम",usernameLabel:"यूज़रनेम",mobileLabel:"मोबाइल",cityLabel:"शहर",manageBtn:"मैनेज करो",
+profileVisibilityLabel:"प्रोफाइल की नुमाइश",profileVisibilityDesc:"तुम्हारी प्रोफाइल कौन देख सकता?",visFriends:"दोस्त",visEveryone:"सब लोग",visOnlyMe:"सिर्फ मैं",
+onlineStatusLabel:"ऑनलाइन स्टेटस",onlineStatusDesc:"जब ऑनलाइन रहो दिखाओ",lastSeenLabel:"लास्ट सीन",lastSeenDesc:"दोस्तों को अपना आख़िरी एक्टिव टाइम देखने दो",
+friendRequestsLabel:"दोस्ती की रिक्वेस्ट",friendReqDescPrivacy:"लोगों को रिक्वेस्ट भेजने दो",friendReqDescNotif:"नई दोस्ती या पार्टनर की रिक्वेस्ट",
+blockedUsersLabel:"🚫 ब्लॉक किए हुए लोग",blockedLoading:"लोड हो रहा...",blockedLoadError:"लोड नहीं हुआ।",blockedNone:"कोई भी ब्लॉक नहीं है।",unblockBtn:"अनब्लॉक करो",unblockedToast:"अनब्लॉक हो गया",
+messagesLabel:"मैसेज",messagesDesc:"नए चैट मैसेज",birthdaysLabel:"बर्थडे",birthdaysDesc:"आने वाले बर्थडे की याद-दहानी",
+songDedicationsLabel:"गाना डेडिकेशन",songDedicationsDesc:"जब कोई तुमको गाना डेडिकेट करे",announcementsLabel:"इत्तिला",announcementsDesc:"जरूरी Loveway अपडेट",
+themeLabel:"थीम",bgPhotoLabel:"🖼️ फोटो बैकग्राउंड",bgPhotoDesc:"पेजों के पीछे एक बैकग्राउंड फोटो दिखाओ",uploadBgBtn:"📤 अपनी image अपलोड करो",resetBgBtn:"↩ डिफ़ॉल्ट पे वापस जाओ",customBgActive:"तुम्हारी अपनी image एक्टिव है",bgImageTypeErr:"❌ सिर्फ image चुनो",bgImageSizeErr:"❌ फोटो 15MB से छोटी होनी चाहिए",uploading:"⏳ अपलोड हो रहा है…",bgImageSaved:"✅ बैकग्राउंड अपडेट हो गया",bgImageReset:"डिफ़ॉल्ट बैकग्राउंड पे वापस आ गया",reduceAnimLabel:"एनिमेशन कम करो",reduceAnimDesc:"कम विज़ुअल एनिमेशन इस्तेमाल करो",selectLanguageLabel:"ज़बान चुनो",
+passwordLabel:"पासवर्ड",passwordDesc:"रीसेट लिंक तुम्हारे ईमेल पे आएगा",changeBtn:"बदलो",otpLoginLabel:"OTP लॉगिन",otpLoginDesc:"साइन-इन के लिए मोबाइल OTP इस्तेमाल करो",
+loginAlertsLabel:"लॉगिन अलर्ट",loginAlertsDesc:"नए लॉगिन की इत्तिला पाओ",activeSessionsLabel:"एक्टिव सेशन",activeSessionsDesc:"जिन डिवाइस पे Loveway खुला है उनको मैनेज करो",
+viewBtn:"देखो",logoutAllBtn:"सब डिवाइस से लॉगआउट करो",helpCenterLabel:"📚 हेल्प सेंटर",helpCenterDesc:"आम सवाल और गाइड",openBtn:"खोलो",
+contactSupportLabel:"💬 सपोर्ट से राब्ता करो",contactSupportDesc:"Loveway सपोर्ट को मैसेज भेजो",contactBtn:"राब्ता करो",
+reportProblemLabel:"🐞 दिक्कत बताओ",reportProblemDesc:"हमको कोई दिक्कत बताओ",reportBtn:"रिपोर्ट करो",
+requiredFieldsMsg:"नाम, यूज़रनेम और मोबाइल जरूरी है",emailConfirmMsg:"कन्फर्मेशन लिंक दोनों ईमेल पे भेज दिया गया है",newEmailPrompt:"नया ईमेल:",emailNotFoundMsg:"ईमेल नहीं मिला",spotifyLabel:"🎵 Spotify",spotifyChecking:"चेक हो रहा है…",spotifyNotConnected:"🔴 Connect नहीं है",spotifyExpired:"🟡 Session खतम हो गया — दोबारा connect करो",spotifyConnectBtn:"Connect करो",spotifyConnectedAs:"इस नाम से connected:",spotifyRecheckBtn:"दोबारा चेक करो",backBtn:"← डैशबोर्ड",themeRomanticTitle:"रोमांटिक",themeDarkTitle:"डार्क",themeOceanTitle:"ओशन",themeSunsetTitle:"सनसेट",customColorTitle:"कस्टम कलर"},
+ta:{accountTab:"கணக்கு",privacyTab:"தனியுரிமை",notificationTab:"அறிவிப்புகள்",appearanceTab:"தோற்றம்",languageTab:"மொழி",securityTab:"பாதுகாப்பு",helpTab:"உதவி & ஆதரவு",
+accountTitle:"கணக்கு அமைப்புகள்",accountDesc:"உங்கள் சுயவிவரம் மற்றும் கணக்கு விவரங்களை நிர்வகிக்கவும்.",emailLogin:"உள்நுழைவு & மின்னஞ்சல்",save:"மாற்றங்களைச் சேமி",
+privacyTitle:"தனியுரிமை",privacyDesc:"உங்கள் சுயவிவரம் மற்றும் செயல்பாட்டை யார் பார்க்கலாம் என்பதைக் கட்டுப்படுத்தவும்.",notificationTitle:"அறிவிப்புகள்",notificationDesc:"உங்கள் Loveway அறிவிப்புகளைக் கட்டுப்படுத்தவும்.",
+appearanceTitle:"தோற்றம்",appearanceDesc:"Loveway-ன் தோற்றத்தைத் தனிப்பயனாக்கவும்.",languageTitle:"மொழி",languageDesc:"உங்களுக்குப் பிடித்த மொழியில் Loveway-ஐப் பயன்படுத்துங்கள்.",
+securityTitle:"பாதுகாப்பு",securityDesc:"உங்கள் கணக்கைப் பாதுகாப்பாக வைத்திருங்கள்.",helpTitle:"உதவி & ஆதரவு",helpDesc:"உதவி தேவையா? எங்களைத் தொடர்பு கொள்ளுங்கள்.",saved:"சேமிக்கப்பட்டது! ✨",
+fullNameLabel:"முழு பெயர்",usernameLabel:"பயனர்பெயர்",mobileLabel:"மொபைல்",cityLabel:"நகரம்",manageBtn:"நிர்வகி",
+profileVisibilityLabel:"சுயவிவரம் தெரியும் தன்மை",profileVisibilityDesc:"உங்கள் சுயவிவரத்தை யார் பார்க்கலாம்?",visFriends:"நண்பர்கள்",visEveryone:"அனைவரும்",visOnlyMe:"நான் மட்டும்",
+onlineStatusLabel:"ஆன்லைன் நிலை",onlineStatusDesc:"நீங்கள் ஆன்லைனில் இருக்கும்போது காட்டு",lastSeenLabel:"கடைசியாகப் பார்த்தது",lastSeenDesc:"உங்கள் கடைசி செயல்பாட்டு நேரத்தை நண்பர்கள் பார்க்க அனுமதிக்கவும்",
+friendRequestsLabel:"நட்பு கோரிக்கைகள்",friendReqDescPrivacy:"நபர்கள் கோரிக்கைகள் அனுப்ப அனுமதிக்கவும்",friendReqDescNotif:"புதிய நட்பு அல்லது துணை கோரிக்கைகள்",
+blockedUsersLabel:"🚫 தடுக்கப்பட்ட பயனர்கள்",blockedLoading:"ஏற்றுகிறது…",blockedLoadError:"ஏற்ற முடியவில்லை.",blockedNone:"யாரும் தடுக்கப்படவில்லை.",unblockBtn:"தடையை நீக்கு",unblockedToast:"தடை நீக்கப்பட்டது",
+messagesLabel:"செய்திகள்",messagesDesc:"புதிய அரட்டைச் செய்திகள்",birthdaysLabel:"பிறந்தநாள்கள்",birthdaysDesc:"வரவிருக்கும் பிறந்தநாள் நினைவூட்டல்கள்",
+songDedicationsLabel:"பாடல் அர்ப்பணிப்புகள்",songDedicationsDesc:"யாராவது உங்களுக்கு ஒரு பாடலை அர்ப்பணிக்கும்போது",announcementsLabel:"அறிவிப்புகள்",announcementsDesc:"முக்கியமான Loveway புதுப்பிப்புகள்",
+themeLabel:"தீம்",bgPhotoLabel:"🖼️ புகைப்பட பின்னணி",bgPhotoDesc:"பக்கங்களுக்குப் பின்னால் ஒரு பின்னணிப் புகைப்படத்தைக் காட்டு",uploadBgBtn:"📤 தனிப்பயன் படத்தைப் பதிவேற்று",resetBgBtn:"↩ இயல்புநிலைக்கு மீட்டமை",customBgActive:"உங்கள் தனிப்பயன் படம் செயலில் உள்ளது",bgImageTypeErr:"❌ ஒரு படத்தைத் தேர்ந்தெடுக்கவும்",bgImageSizeErr:"❌ புகைப்படம் 15MB க்கும் குறைவாக இருக்க வேண்டும்",uploading:"⏳ பதிவேற்றுகிறது…",bgImageSaved:"✅ பின்னணி புதுப்பிக்கப்பட்டது",bgImageReset:"இயல்புநிலை பின்னணிக்குத் திரும்பியது",reduceAnimLabel:"அனிமேஷன்களைக் குறை",reduceAnimDesc:"குறைவான காட்சி அனிமேஷன்களைப் பயன்படுத்து",selectLanguageLabel:"மொழியைத் தேர்ந்தெடு",
+passwordLabel:"கடவுச்சொல்",passwordDesc:"மீட்டமைப்பு இணைப்பு உங்கள் மின்னஞ்சலுக்கு அனுப்பப்படும்",changeBtn:"மாற்று",otpLoginLabel:"OTP உள்நுழைவு",otpLoginDesc:"உள்நுழைவுக்கு மொபைல் OTP-ஐப் பயன்படுத்து",
+loginAlertsLabel:"உள்நுழைவு எச்சரிக்கைகள்",loginAlertsDesc:"புதிய உள்நுழைவுகள் பற்றி அறிவிப்பு பெறுங்கள்",activeSessionsLabel:"செயலில் உள்ள அமர்வுகள்",activeSessionsDesc:"Loveway திறந்திருக்கும் சாதனங்களை நிர்வகிக்கவும்",
+viewBtn:"பார்",logoutAllBtn:"அனைத்து சாதனங்களில் இருந்தும் வெளியேறு",helpCenterLabel:"📚 உதவி மையம்",helpCenterDesc:"பொதுவான கேள்விகள் மற்றும் வழிகாட்டிகள்",openBtn:"திற",
+contactSupportLabel:"💬 ஆதரவைத் தொடர்பு கொள்",contactSupportDesc:"Loveway ஆதரவுக்கு ஒரு செய்தி அனுப்பு",contactBtn:"தொடர்பு கொள்",
+reportProblemLabel:"🐞 சிக்கலைப் புகாரளி",reportProblemDesc:"ஒரு சிக்கலைப் பற்றி எங்களிடம் கூறுங்கள்",reportBtn:"புகாரளி",
+requiredFieldsMsg:"பெயர், பயனர்பெயர் மற்றும் மொபைல் தேவை",emailConfirmMsg:"உறுதிப்படுத்தல் இணைப்பு இரண்டு மின்னஞ்சல்களுக்கும் அனுப்பப்பட்டது",newEmailPrompt:"புதிய மின்னஞ்சல்:",emailNotFoundMsg:"மின்னஞ்சல் கிடைக்கவில்லை",spotifyLabel:"🎵 Spotify",spotifyChecking:"சரிபார்க்கிறது…",spotifyNotConnected:"🔴 இணைக்கப்படவில்லை",spotifyExpired:"🟡 அமர்வு காலாவதியானது — மீண்டும் இணைக்கவும்",spotifyConnectBtn:"இணை",spotifyConnectedAs:"இணைக்கப்பட்டவர்:",spotifyRecheckBtn:"மீண்டும் சரிபார்",backBtn:"← டாஷ்போர்டு",themeRomanticTitle:"ரொமான்டிக்",themeDarkTitle:"டார்க்",themeOceanTitle:"ஓஷன்",themeSunsetTitle:"சன்செட்",customColorTitle:"தனிப்பயன் நிறம்"},
+te:{accountTab:"ఖాతా",privacyTab:"ప్రైవసీ",notificationTab:"నోటిఫికేషన్లు",appearanceTab:"అపియరెన్స్",languageTab:"భాష",securityTab:"సెక్యూరిటీ",helpTab:"సహాయం & మద్దతు",
+accountTitle:"ఖాతా సెట్టింగ్స్",accountDesc:"మీ ప్రొఫైల్ మరియు ఖాతా వివరాలను మేనేజ్ చేయండి.",emailLogin:"లాగిన్ & ఇమెయిల్",save:"మార్పులు సేవ్ చేయండి",
+privacyTitle:"ప్రైవసీ",privacyDesc:"మీ ప్రొఫైల్ మరియు యాక్టివిటీని ఎవరు చూడగలరో నియంత్రించండి.",notificationTitle:"నోటిఫికేషన్లు",notificationDesc:"మీ Loveway నోటిఫికేషన్లను నియంత్రించండి.",
+appearanceTitle:"అపియరెన్స్",appearanceDesc:"Loveway రూపాన్ని కస్టమైజ్ చేయండి.",languageTitle:"భాష",languageDesc:"మీకు నచ్చిన భాషలో Loveway వాడండి.",
+securityTitle:"సెక్యూరిటీ",securityDesc:"మీ ఖాతాను సురక్షితంగా ఉంచుకోండి.",helpTitle:"సహాయం & మద్దతు",helpDesc:"సహాయం కావాలా? మమ్మల్ని సంప్రదించండి.",saved:"సేవ్ అయింది! ✨",
+fullNameLabel:"పూర్తి పేరు",usernameLabel:"యూజర్‌నేమ్",mobileLabel:"మొబైల్",cityLabel:"నగరం",manageBtn:"మేనేజ్",
+profileVisibilityLabel:"ప్రొఫైల్ విజిబిలిటీ",profileVisibilityDesc:"మీ ప్రొఫైల్‌ని ఎవరు చూడగలరు?",visFriends:"స్నేహితులు",visEveryone:"అందరూ",visOnlyMe:"నేను మాత్రమే",
+onlineStatusLabel:"ఆన్‌లైన్ స్టేటస్",onlineStatusDesc:"మీరు ఆన్‌లైన్‌లో ఉన్నప్పుడు చూపించండి",lastSeenLabel:"లాస్ట్ సీన్",lastSeenDesc:"మీ చివరి యాక్టివ్ సమయాన్ని స్నేహితులు చూడటానికి అనుమతించండి",
+friendRequestsLabel:"ఫ్రెండ్ రిక్వెస్టులు",friendReqDescPrivacy:"వ్యక్తులు రిక్వెస్టులు పంపడానికి అనుమతించండి",friendReqDescNotif:"కొత్త ఫ్రెండ్ లేదా పార్టనర్ రిక్వెస్టులు",
+blockedUsersLabel:"🚫 బ్లాక్ చేసిన యూజర్లు",blockedLoading:"లోడ్ అవుతోంది…",blockedLoadError:"లోడ్ కాలేదు.",blockedNone:"ఎవరినీ బ్లాక్ చేయలేదు.",unblockBtn:"అన్‌బ్లాక్",unblockedToast:"అన్‌బ్లాక్ చేశారు",
+messagesLabel:"మెసేజ్‌లు",messagesDesc:"కొత్త చాట్ మెసేజ్‌లు",birthdaysLabel:"పుట్టినరోజులు",birthdaysDesc:"రాబోయే పుట్టినరోజు రిమైండర్లు",
+songDedicationsLabel:"సాంగ్ డెడికేషన్లు",songDedicationsDesc:"ఎవరైనా మీకు పాట డెడికేట్ చేసినప్పుడు",announcementsLabel:"అనౌన్స్‌మెంట్లు",announcementsDesc:"ముఖ్యమైన Loveway అప్‌డేట్‌లు",
+themeLabel:"థీమ్",bgPhotoLabel:"🖼️ ఫోటో బ్యాక్‌గ్రౌండ్",bgPhotoDesc:"పేజీల వెనుక బ్యాక్‌గ్రౌండ్ ఫోటో చూపించండి",uploadBgBtn:"📤 కస్టమ్ ఇమేజ్ అప్‌లోడ్ చేయండి",resetBgBtn:"↩ డిఫాల్ట్‌కి రీసెట్ చేయండి",customBgActive:"మీ కస్టమ్ ఇమేజ్ యాక్టివ్‌గా ఉంది",bgImageTypeErr:"❌ దయచేసి ఒక ఇమేజ్‌ని ఎంచుకోండి",bgImageSizeErr:"❌ ఫోటో 15MB కంటే తక్కువ ఉండాలి",uploading:"⏳ అప్‌లోడ్ అవుతోంది…",bgImageSaved:"✅ బ్యాక్‌గ్రౌండ్ అప్‌డేట్ అయింది",bgImageReset:"డిఫాల్ట్ బ్యాక్‌గ్రౌండ్‌కి తిరిగి వెళ్ళారు",reduceAnimLabel:"యానిమేషన్లు తగ్గించండి",reduceAnimDesc:"తక్కువ విజువల్ యానిమేషన్లు వాడండి",selectLanguageLabel:"భాషను ఎంచుకోండి",
+passwordLabel:"పాస్‌వర్డ్",passwordDesc:"రీసెట్ లింక్ మీ ఇమెయిల్‌కి పంపబడుతుంది",changeBtn:"మార్చండి",otpLoginLabel:"OTP లాగిన్",otpLoginDesc:"సైన్-ఇన్ కోసం మొబైల్ OTP వాడండి",
+loginAlertsLabel:"లాగిన్ అలర్ట్‌లు",loginAlertsDesc:"కొత్త లాగిన్‌ల గురించి నోటిఫికేషన్ పొందండి",activeSessionsLabel:"యాక్టివ్ సెషన్లు",activeSessionsDesc:"Loveway ఓపెన్‌గా ఉన్న డివైజ్‌లను మేనేజ్ చేయండి",
+viewBtn:"చూడండి",logoutAllBtn:"అన్ని డివైజ్‌ల నుండి లాగ్ అవుట్ చేయండి",helpCenterLabel:"📚 హెల్ప్ సెంటర్",helpCenterDesc:"సాధారణ ప్రశ్నలు మరియు గైడ్‌లు",openBtn:"తెరవండి",
+contactSupportLabel:"💬 సపోర్ట్‌ని సంప్రదించండి",contactSupportDesc:"Loveway సపోర్ట్‌కి మెసేజ్ పంపండి",contactBtn:"సంప్రదించండి",
+reportProblemLabel:"🐞 సమస్యను రిపోర్ట్ చేయండి",reportProblemDesc:"ఒక సమస్య గురించి మాకు చెప్పండి",reportBtn:"రిపోర్ట్ చేయండి",
+requiredFieldsMsg:"పేరు, యూజర్‌నేమ్ మరియు మొబైల్ అవసరం",emailConfirmMsg:"కన్ఫర్మేషన్ లింక్ రెండు ఇమెయిల్‌లకు పంపబడింది",newEmailPrompt:"కొత్త ఇమెయిల్:",emailNotFoundMsg:"ఇమెయిల్ కనిపించలేదు",spotifyLabel:"🎵 Spotify",spotifyChecking:"చెక్ చేస్తోంది…",spotifyNotConnected:"🔴 కనెక్ట్ కాలేదు",spotifyExpired:"🟡 సెషన్ ఎక్స్‌పైర్ అయింది — మళ్లీ కనెక్ట్ చేయండి",spotifyConnectBtn:"కనెక్ట్",spotifyConnectedAs:"ఈ పేరుతో కనెక్ట్ అయింది",spotifyRecheckBtn:"మళ్లీ చెక్ చేయండి",backBtn:"← డాష్‌బోర్డ్",themeRomanticTitle:"రొమాంటిక్",themeDarkTitle:"డార్క్",themeOceanTitle:"ఓషన్",themeSunsetTitle:"సన్‌సెట్",customColorTitle:"కస్టమ్ కలర్"},
+bn:{accountTab:"অ্যাকাউন্ট",privacyTab:"প্রাইভেসি",notificationTab:"নোটিফিকেশন",appearanceTab:"অ্যাপিয়ারেন্স",languageTab:"ভাষা",securityTab:"সিকিউরিটি",helpTab:"সাহায্য ও সহায়তা",
+accountTitle:"অ্যাকাউন্ট সেটিংস",accountDesc:"আপনার প্রোফাইল ও অ্যাকাউন্টের তথ্য পরিচালনা করুন।",emailLogin:"লগইন ও ইমেইল",save:"পরিবর্তন সংরক্ষণ করুন",
+privacyTitle:"প্রাইভেসি",privacyDesc:"কে আপনার প্রোফাইল ও কার্যকলাপ দেখতে পাবে তা নিয়ন্ত্রণ করুন।",notificationTitle:"নোটিফিকেশন",notificationDesc:"আপনার Loveway নোটিফিকেশন নিয়ন্ত্রণ করুন।",
+appearanceTitle:"অ্যাপিয়ারেন্স",appearanceDesc:"Loveway-র লুক কাস্টমাইজ করুন।",languageTitle:"ভাষা",languageDesc:"আপনার পছন্দের ভাষায় Loveway ব্যবহার করুন।",
+securityTitle:"সিকিউরিটি",securityDesc:"আপনার অ্যাকাউন্ট সুরক্ষিত রাখুন।",helpTitle:"সাহায্য ও সহায়তা",helpDesc:"সাহায্য দরকার? আমাদের সাথে যোগাযোগ করুন।",saved:"সংরক্ষিত হয়েছে! ✨",
+fullNameLabel:"পুরো নাম",usernameLabel:"ইউজারনেম",mobileLabel:"মোবাইল",cityLabel:"শহর",manageBtn:"পরিচালনা করুন",
+profileVisibilityLabel:"প্রোফাইল ভিজিবিলিটি",profileVisibilityDesc:"কে আপনার প্রোফাইল দেখতে পাবে?",visFriends:"বন্ধু",visEveryone:"সবাই",visOnlyMe:"শুধু আমি",
+onlineStatusLabel:"অনলাইন স্ট্যাটাস",onlineStatusDesc:"আপনি অনলাইনে থাকলে তা দেখান",lastSeenLabel:"লাস্ট সিন",lastSeenDesc:"বন্ধুদের আপনার শেষ সক্রিয় সময় দেখতে দিন",
+friendRequestsLabel:"ফ্রেন্ড রিকোয়েস্ট",friendReqDescPrivacy:"মানুষকে রিকোয়েস্ট পাঠাতে দিন",friendReqDescNotif:"নতুন ফ্রেন্ড বা পার্টনার রিকোয়েস্ট",
+blockedUsersLabel:"🚫 ব্লক করা ব্যবহারকারী",blockedLoading:"লোড হচ্ছে…",blockedLoadError:"লোড করা যায়নি।",blockedNone:"কাউকে ব্লক করা হয়নি।",unblockBtn:"আনব্লক করুন",unblockedToast:"আনব্লক করা হয়েছে",
+messagesLabel:"মেসেজ",messagesDesc:"নতুন চ্যাট মেসেজ",birthdaysLabel:"জন্মদিন",birthdaysDesc:"আসন্ন জন্মদিনের রিমাইন্ডার",
+songDedicationsLabel:"গান উৎসর্গ",songDedicationsDesc:"কেউ আপনাকে গান উৎসর্গ করলে",announcementsLabel:"ঘোষণা",announcementsDesc:"গুরুত্বপূর্ণ Loveway আপডেট",
+themeLabel:"থিম",bgPhotoLabel:"🖼️ ফটো ব্যাকগ্রাউন্ড",bgPhotoDesc:"পেজের পেছনে একটি ব্যাকগ্রাউন্ড ছবি দেখান",uploadBgBtn:"📤 কাস্টম ছবি আপলোড করুন",resetBgBtn:"↩ ডিফল্টে ফিরিয়ে দিন",customBgActive:"আপনার কাস্টম ছবি সক্রিয় আছে",bgImageTypeErr:"❌ একটি ছবি বেছে নিন",bgImageSizeErr:"❌ ছবি ১৫MB-র কম হতে হবে",uploading:"⏳ আপলোড হচ্ছে…",bgImageSaved:"✅ ব্যাকগ্রাউন্ড আপডেট হয়েছে",bgImageReset:"ডিফল্ট ব্যাকগ্রাউন্ডে ফিরে গেছে",reduceAnimLabel:"অ্যানিমেশন কমান",reduceAnimDesc:"কম ভিজ্যুয়াল অ্যানিমেশন ব্যবহার করুন",selectLanguageLabel:"ভাষা নির্বাচন করুন",
+passwordLabel:"পাসওয়ার্ড",passwordDesc:"রিসেট লিংক আপনার ইমেইলে পাঠানো হবে",changeBtn:"পরিবর্তন করুন",otpLoginLabel:"OTP লগইন",otpLoginDesc:"সাইন-ইনের জন্য মোবাইল OTP ব্যবহার করুন",
+loginAlertsLabel:"লগইন অ্যালার্ট",loginAlertsDesc:"নতুন লগইন সম্পর্কে নোটিফিকেশন পান",activeSessionsLabel:"সক্রিয় সেশন",activeSessionsDesc:"যেসব ডিভাইসে Loveway খোলা আছে তা পরিচালনা করুন",
+viewBtn:"দেখুন",logoutAllBtn:"সব ডিভাইস থেকে লগ আউট করুন",helpCenterLabel:"📚 হেল্প সেন্টার",helpCenterDesc:"সাধারণ প্রশ্ন ও গাইড",openBtn:"খুলুন",
+contactSupportLabel:"💬 সাপোর্টে যোগাযোগ করুন",contactSupportDesc:"Loveway সাপোর্টে একটি মেসেজ পাঠান",contactBtn:"যোগাযোগ করুন",
+reportProblemLabel:"🐞 সমস্যা রিপোর্ট করুন",reportProblemDesc:"কোনো সমস্যা সম্পর্কে আমাদের জানান",reportBtn:"রিপোর্ট করুন",
+requiredFieldsMsg:"নাম, ইউজারনেম ও মোবাইল আবশ্যক",emailConfirmMsg:"দুটি ইমেইলেই কনফার্মেশন লিংক পাঠানো হয়েছে",newEmailPrompt:"নতুন ইমেইল:",emailNotFoundMsg:"ইমেইল পাওয়া যায়নি",spotifyLabel:"🎵 Spotify",spotifyChecking:"চেক করা হচ্ছে…",spotifyNotConnected:"🔴 কানেক্ট নেই",spotifyExpired:"🟡 সেশনের মেয়াদ শেষ — আবার কানেক্ট করুন",spotifyConnectBtn:"কানেক্ট করুন",spotifyConnectedAs:"কানেক্ট করা আছে এই নামে",spotifyRecheckBtn:"আবার চেক করুন",backBtn:"← ড্যাশবোর্ড",themeRomanticTitle:"রোমান্টিক",themeDarkTitle:"ডার্ক",themeOceanTitle:"ওশান",themeSunsetTitle:"সানসেট",customColorTitle:"কাস্টম রং"},
+pa:{accountTab:"ਖਾਤਾ",privacyTab:"ਪਰਦੇਦਾਰੀ",notificationTab:"ਨੋਟੀਫਿਕੇਸ਼ਨ",appearanceTab:"ਦਿੱਖ",languageTab:"ਭਾਸ਼ਾ",securityTab:"ਸੁਰੱਖਿਆ",helpTab:"ਮਦਦ ਅਤੇ ਸਹਾਇਤਾ",
+accountTitle:"ਖਾਤਾ ਸੈਟਿੰਗਾਂ",accountDesc:"ਆਪਣੀ ਪ੍ਰੋਫਾਈਲ ਅਤੇ ਖਾਤੇ ਦੇ ਵੇਰਵੇ ਪ੍ਰਬੰਧਿਤ ਕਰੋ।",emailLogin:"ਲੌਗਇਨ ਅਤੇ ਈਮੇਲ",save:"ਬਦਲਾਅ ਸੇਵ ਕਰੋ",
+privacyTitle:"ਪਰਦੇਦਾਰੀ",privacyDesc:"ਕੰਟਰੋਲ ਕਰੋ ਕਿ ਤੁਹਾਡੀ ਪ੍ਰੋਫਾਈਲ ਅਤੇ ਗਤੀਵਿਧੀ ਕੌਣ ਦੇਖ ਸਕਦਾ ਹੈ।",notificationTitle:"ਨੋਟੀਫਿਕੇਸ਼ਨ",notificationDesc:"ਆਪਣੇ Loveway ਨੋਟੀਫਿਕੇਸ਼ਨ ਕੰਟਰੋਲ ਕਰੋ।",
+appearanceTitle:"ਦਿੱਖ",appearanceDesc:"Loveway ਦੀ ਦਿੱਖ ਆਪਣੇ ਹਿਸਾਬ ਨਾਲ ਬਦਲੋ।",languageTitle:"ਭਾਸ਼ਾ",languageDesc:"Loveway ਨੂੰ ਆਪਣੀ ਪਸੰਦੀਦਾ ਭਾਸ਼ਾ ਵਿੱਚ ਵਰਤੋ।",
+securityTitle:"ਸੁਰੱਖਿਆ",securityDesc:"ਆਪਣਾ ਖਾਤਾ ਸੁਰੱਖਿਅਤ ਰੱਖੋ।",helpTitle:"ਮਦਦ ਅਤੇ ਸਹਾਇਤਾ",helpDesc:"ਮਦਦ ਚਾਹੀਦੀ ਹੈ? ਸਾਡੇ ਨਾਲ ਸੰਪਰਕ ਕਰੋ।",saved:"ਸੇਵ ਹੋ ਗਿਆ! ✨",
+fullNameLabel:"ਪੂਰਾ ਨਾਮ",usernameLabel:"ਯੂਜ਼ਰਨੇਮ",mobileLabel:"ਮੋਬਾਈਲ",cityLabel:"ਸ਼ਹਿਰ",manageBtn:"ਪ੍ਰਬੰਧਿਤ ਕਰੋ",
+profileVisibilityLabel:"ਪ੍ਰੋਫਾਈਲ ਦਿੱਖਣਯੋਗਤਾ",profileVisibilityDesc:"ਤੁਹਾਡੀ ਪ੍ਰੋਫਾਈਲ ਕੌਣ ਦੇਖ ਸਕਦਾ ਹੈ?",visFriends:"ਦੋਸਤ",visEveryone:"ਸਭ",visOnlyMe:"ਸਿਰਫ਼ ਮੈਂ",
+onlineStatusLabel:"ਔਨਲਾਈਨ ਸਥਿਤੀ",onlineStatusDesc:"ਜਦੋਂ ਤੁਸੀਂ ਔਨਲਾਈਨ ਹੋ ਤਾਂ ਦਿਖਾਓ",lastSeenLabel:"ਆਖਰੀ ਵਾਰ ਦੇਖਿਆ",lastSeenDesc:"ਦੋਸਤਾਂ ਨੂੰ ਤੁਹਾਡਾ ਆਖਰੀ ਸਰਗਰਮ ਸਮਾਂ ਦੇਖਣ ਦਿਓ",
+friendRequestsLabel:"ਦੋਸਤੀ ਬੇਨਤੀਆਂ",friendReqDescPrivacy:"ਲੋਕਾਂ ਨੂੰ ਬੇਨਤੀ ਭੇਜਣ ਦਿਓ",friendReqDescNotif:"ਨਵੀਆਂ ਦੋਸਤੀ ਜਾਂ ਪਾਰਟਨਰ ਬੇਨਤੀਆਂ",
+blockedUsersLabel:"🚫 ਬਲੌਕ ਕੀਤੇ ਯੂਜ਼ਰ",blockedLoading:"ਲੋਡ ਹੋ ਰਿਹਾ ਹੈ…",blockedLoadError:"ਲੋਡ ਨਹੀਂ ਹੋ ਸਕਿਆ।",blockedNone:"ਕੋਈ ਵੀ ਬਲੌਕ ਨਹੀਂ ਹੈ।",unblockBtn:"ਅਨਬਲੌਕ ਕਰੋ",unblockedToast:"ਅਨਬਲੌਕ ਕੀਤਾ ਗਿਆ",
+messagesLabel:"ਸੁਨੇਹੇ",messagesDesc:"ਨਵੇਂ ਚੈਟ ਸੁਨੇਹੇ",birthdaysLabel:"ਜਨਮਦਿਨ",birthdaysDesc:"ਆਉਣ ਵਾਲੇ ਜਨਮਦਿਨ ਦੀ ਯਾਦ-ਦਹਾਨੀ",
+songDedicationsLabel:"ਗੀਤ ਸਮਰਪਣ",songDedicationsDesc:"ਜਦੋਂ ਕੋਈ ਤੁਹਾਨੂੰ ਗੀਤ ਸਮਰਪਿਤ ਕਰਦਾ ਹੈ",announcementsLabel:"ਐਲਾਨ",announcementsDesc:"ਜ਼ਰੂਰੀ Loveway ਅੱਪਡੇਟ",
+themeLabel:"ਥੀਮ",bgPhotoLabel:"🖼️ ਫੋਟੋ ਬੈਕਗ੍ਰਾਊਂਡ",bgPhotoDesc:"ਪੇਜਾਂ ਦੇ ਪਿੱਛੇ ਬੈਕਗ੍ਰਾਊਂਡ ਫੋਟੋ ਦਿਖਾਓ",uploadBgBtn:"📤 ਆਪਣੀ ਤਸਵੀਰ ਅਪਲੋਡ ਕਰੋ",resetBgBtn:"↩ ਡਿਫੌਲਟ 'ਤੇ ਰੀਸੈੱਟ ਕਰੋ",customBgActive:"ਤੁਹਾਡੀ ਆਪਣੀ ਤਸਵੀਰ ਸਰਗਰਮ ਹੈ",bgImageTypeErr:"❌ ਕਿਰਪਾ ਕਰਕੇ ਇੱਕ ਤਸਵੀਰ ਚੁਣੋ",bgImageSizeErr:"❌ ਫੋਟੋ 15MB ਤੋਂ ਘੱਟ ਹੋਣੀ ਚਾਹੀਦੀ ਹੈ",uploading:"⏳ ਅਪਲੋਡ ਹੋ ਰਿਹਾ ਹੈ…",bgImageSaved:"✅ ਬੈਕਗ੍ਰਾਊਂਡ ਅੱਪਡੇਟ ਹੋਇਆ",bgImageReset:"ਡਿਫੌਲਟ ਬੈਕਗ੍ਰਾਊਂਡ 'ਤੇ ਵਾਪਸ",reduceAnimLabel:"ਐਨੀਮੇਸ਼ਨ ਘਟਾਓ",reduceAnimDesc:"ਘੱਟ ਵਿਜ਼ੁਅਲ ਐਨੀਮੇਸ਼ਨ ਵਰਤੋ",selectLanguageLabel:"ਭਾਸ਼ਾ ਚੁਣੋ",
+passwordLabel:"ਪਾਸਵਰਡ",passwordDesc:"ਰੀਸੈੱਟ ਲਿੰਕ ਤੁਹਾਨੂੰ ਈਮੇਲ ਕੀਤਾ ਜਾਵੇਗਾ",changeBtn:"ਬਦਲੋ",otpLoginLabel:"OTP ਲੌਗਇਨ",otpLoginDesc:"ਸਾਈਨ-ਇਨ ਲਈ ਮੋਬਾਈਲ OTP ਵਰਤੋ",
+loginAlertsLabel:"ਲੌਗਇਨ ਅਲਰਟ",loginAlertsDesc:"ਨਵੇਂ ਲੌਗਇਨ ਬਾਰੇ ਸੂਚਿਤ ਹੋਵੋ",activeSessionsLabel:"ਸਰਗਰਮ ਸੈਸ਼ਨ",activeSessionsDesc:"ਉਹ ਡਿਵਾਈਸ ਪ੍ਰਬੰਧਿਤ ਕਰੋ ਜਿੱਥੇ Loveway ਖੁੱਲ੍ਹਾ ਹੈ",
+viewBtn:"ਦੇਖੋ",logoutAllBtn:"ਸਾਰੀਆਂ ਡਿਵਾਈਸਾਂ ਤੋਂ ਲੌਗਆਊਟ ਕਰੋ",helpCenterLabel:"📚 ਮਦਦ ਕੇਂਦਰ",helpCenterDesc:"ਆਮ ਸਵਾਲ ਅਤੇ ਗਾਈਡਾਂ",openBtn:"ਖੋਲ੍ਹੋ",
+contactSupportLabel:"💬 ਸਹਾਇਤਾ ਨਾਲ ਸੰਪਰਕ ਕਰੋ",contactSupportDesc:"Loveway ਸਹਾਇਤਾ ਨੂੰ ਸੁਨੇਹਾ ਭੇਜੋ",contactBtn:"ਸੰਪਰਕ ਕਰੋ",
+reportProblemLabel:"🐞 ਸਮੱਸਿਆ ਦੱਸੋ",reportProblemDesc:"ਸਾਨੂੰ ਕਿਸੇ ਸਮੱਸਿਆ ਬਾਰੇ ਦੱਸੋ",reportBtn:"ਰਿਪੋਰਟ ਕਰੋ",
+requiredFieldsMsg:"ਨਾਮ, ਯੂਜ਼ਰਨੇਮ ਅਤੇ ਮੋਬਾਈਲ ਲੋੜੀਂਦੇ ਹਨ",emailConfirmMsg:"ਪੁਸ਼ਟੀਕਰਨ ਲਿੰਕ ਦੋਹਾਂ ਈਮੇਲਾਂ 'ਤੇ ਭੇਜਿਆ ਗਿਆ",newEmailPrompt:"ਨਵੀਂ ਈਮੇਲ:",emailNotFoundMsg:"ਈਮੇਲ ਨਹੀਂ ਮਿਲੀ",spotifyLabel:"🎵 Spotify",spotifyChecking:"ਚੈੱਕ ਹੋ ਰਿਹਾ ਹੈ…",spotifyNotConnected:"🔴 ਕਨੈਕਟ ਨਹੀਂ",spotifyExpired:"🟡 ਸੈਸ਼ਨ ਖ਼ਤਮ ਹੋਇਆ — ਦੁਬਾਰਾ ਕਨੈਕਟ ਕਰੋ",spotifyConnectBtn:"ਕਨੈਕਟ ਕਰੋ",spotifyConnectedAs:"ਇਸ ਵਜੋਂ ਕਨੈਕਟ ਹੈ",spotifyRecheckBtn:"ਦੁਬਾਰਾ ਚੈੱਕ ਕਰੋ",backBtn:"← ਡੈਸ਼ਬੋਰਡ",themeRomanticTitle:"ਰੋਮਾਂਟਿਕ",themeDarkTitle:"ਡਾਰਕ",themeOceanTitle:"ਓਸ਼ੀਅਨ",themeSunsetTitle:"ਸਨਸੈੱਟ",customColorTitle:"ਕਸਟਮ ਰੰਗ"},
+gu:{accountTab:"એકાઉન્ટ",privacyTab:"પ્રાઈવસી",notificationTab:"નોટિફિકેશન",appearanceTab:"દેખાવ",languageTab:"ભાષા",securityTab:"સુરક્ષા",helpTab:"મદદ અને સપોર્ટ",
+accountTitle:"એકાઉન્ટ સેટિંગ્સ",accountDesc:"તમારી પ્રોફાઇલ અને એકાઉન્ટ વિગતો મેનેજ કરો.",emailLogin:"લોગિન અને ઈમેલ",save:"ફેરફારો સેવ કરો",
+privacyTitle:"પ્રાઈવસી",privacyDesc:"તમારી પ્રોફાઇલ અને પ્રવૃત્તિ કોણ જોઈ શકે તે નિયંત્રિત કરો.",notificationTitle:"નોટિફિકેશન",notificationDesc:"તમારા Loveway નોટિફિકેશન નિયંત્રિત કરો.",
+appearanceTitle:"દેખાવ",appearanceDesc:"Loveway નો દેખાવ કસ્ટમાઇઝ કરો.",languageTitle:"ભાષા",languageDesc:"તમારી પસંદગીની ભાષામાં Loveway નો ઉપયોગ કરો.",
+securityTitle:"સુરક્ષા",securityDesc:"તમારું એકાઉન્ટ સુરક્ષિત રાખો.",helpTitle:"મદદ અને સપોર્ટ",helpDesc:"મદદ જોઈએ છે? અમારો સંપર્ક કરો.",saved:"સેવ થયું! ✨",
+fullNameLabel:"પૂરું નામ",usernameLabel:"યુઝરનેમ",mobileLabel:"મોબાઈલ",cityLabel:"શહેર",manageBtn:"મેનેજ કરો",
+profileVisibilityLabel:"પ્રોફાઇલ વિઝિબિલિટી",profileVisibilityDesc:"તમારી પ્રોફાઇલ કોણ જોઈ શકે?",visFriends:"મિત્રો",visEveryone:"બધા",visOnlyMe:"ફક્ત હું",
+onlineStatusLabel:"ઓનલાઈન સ્ટેટસ",onlineStatusDesc:"તમે ઓનલાઈન છો ત્યારે બતાવો",lastSeenLabel:"છેલ્લે જોયું",lastSeenDesc:"મિત્રોને તમારો છેલ્લો સક્રિય સમય જોવાની મંજૂરી આપો",
+friendRequestsLabel:"મિત્ર વિનંતીઓ",friendReqDescPrivacy:"લોકોને વિનંતી મોકલવાની મંજૂરી આપો",friendReqDescNotif:"નવી મિત્ર અથવા પાર્ટનર વિનંતીઓ",
+blockedUsersLabel:"🚫 બ્લોક કરેલા યુઝર્સ",blockedLoading:"લોડ થઈ રહ્યું છે…",blockedLoadError:"લોડ ન થઈ શક્યું.",blockedNone:"કોઈને બ્લોક કર્યું નથી.",unblockBtn:"અનબ્લોક કરો",unblockedToast:"અનબ્લોક કર્યું",
+messagesLabel:"સંદેશા",messagesDesc:"નવા ચેટ સંદેશા",birthdaysLabel:"જન્મદિવસો",birthdaysDesc:"આગામી જન્મદિવસ રિમાઇન્ડર",
+songDedicationsLabel:"ગીત સમર્પણ",songDedicationsDesc:"જ્યારે કોઈ તમને ગીત સમર્પિત કરે",announcementsLabel:"જાહેરાતો",announcementsDesc:"મહત્વપૂર્ણ Loveway અપડેટ્સ",
+themeLabel:"થીમ",bgPhotoLabel:"🖼️ ફોટો બેકગ્રાઉન્ડ",bgPhotoDesc:"પેજની પાછળ બેકગ્રાઉન્ડ ફોટો બતાવો",uploadBgBtn:"📤 કસ્ટમ ઈમેજ અપલોડ કરો",resetBgBtn:"↩ ડિફોલ્ટ પર રીસેટ કરો",customBgActive:"તમારી કસ્ટમ ઈમેજ સક્રિય છે",bgImageTypeErr:"❌ કૃપા કરીને ઈમેજ પસંદ કરો",bgImageSizeErr:"❌ ફોટો 15MB કરતાં ઓછો હોવો જોઈએ",uploading:"⏳ અપલોડ થઈ રહ્યું છે…",bgImageSaved:"✅ બેકગ્રાઉન્ડ અપડેટ થયું",bgImageReset:"ડિફોલ્ટ બેકગ્રાઉન્ડ પર પાછા",reduceAnimLabel:"એનિમેશન ઘટાડો",reduceAnimDesc:"ઓછા વિઝ્યુઅલ એનિમેશનનો ઉપયોગ કરો",selectLanguageLabel:"ભાષા પસંદ કરો",
+passwordLabel:"પાસવર્ડ",passwordDesc:"રીસેટ લિંક તમને ઈમેલ કરવામાં આવશે",changeBtn:"બદલો",otpLoginLabel:"OTP લોગિન",otpLoginDesc:"સાઇન-ઈન માટે મોબાઈલ OTP નો ઉપયોગ કરો",
+loginAlertsLabel:"લોગિન એલર્ટ",loginAlertsDesc:"નવા લોગિન વિશે નોટિફિકેશન મેળવો",activeSessionsLabel:"સક્રિય સેશન",activeSessionsDesc:"Loveway ખુલ્લું હોય તેવા ડિવાઈસ મેનેજ કરો",
+viewBtn:"જુઓ",logoutAllBtn:"બધા ડિવાઈસમાંથી લોગ આઉટ કરો",helpCenterLabel:"📚 હેલ્પ સેન્ટર",helpCenterDesc:"સામાન્ય પ્રશ્નો અને માર્ગદર્શિકાઓ",openBtn:"ખોલો",
+contactSupportLabel:"💬 સપોર્ટનો સંપર્ક કરો",contactSupportDesc:"Loveway સપોર્ટને સંદેશ મોકલો",contactBtn:"સંપર્ક કરો",
+reportProblemLabel:"🐞 સમસ્યાની જાણ કરો",reportProblemDesc:"અમને સમસ્યા વિશે જણાવો",reportBtn:"જાણ કરો",
+requiredFieldsMsg:"નામ, યુઝરનેમ અને મોબાઈલ જરૂરી છે",emailConfirmMsg:"કન્ફર્મેશન લિંક બંને ઈમેલ પર મોકલાઈ",newEmailPrompt:"નવો ઈમેલ:",emailNotFoundMsg:"ઈમેલ મળ્યો નથી",spotifyLabel:"🎵 Spotify",spotifyChecking:"તપાસ થઈ રહી છે…",spotifyNotConnected:"🔴 કનેક્ટ નથી",spotifyExpired:"🟡 સેશન સમાપ્ત થયું — ફરી કનેક્ટ કરો",spotifyConnectBtn:"કનેક્ટ કરો",spotifyConnectedAs:"આ રીતે કનેક્ટેડ",spotifyRecheckBtn:"ફરી તપાસો",backBtn:"← ડેશબોર્ડ",themeRomanticTitle:"રોમેન્ટિક",themeDarkTitle:"ડાર્ક",themeOceanTitle:"ઓશન",themeSunsetTitle:"સનસેટ",customColorTitle:"કસ્ટમ કલર"}
+};
+
+function tl(key){ return (translations[getLang()]||translations.en)[key] || key; }
+
+function getLang(){return (window.LW_CURRENT||"en")}
+function applyLang(){
+ const l=translations[getLang()]||translations.en;
+ document.querySelectorAll("[data-i18n]").forEach(e=>{if(l[e.dataset.i18n])e.textContent=l[e.dataset.i18n]});
+ // theme swatch titles ke liye — inki keys sirf is page ke local dict mein hain (LW_LANG mein nahi),
+ // isliye global applyLanguage() ke bharose nahi reh sakte; yahin se set karte hain
+ document.querySelectorAll("[data-i18n-title]").forEach(e=>{if(l[e.dataset.i18nTitle])e.title=l[e.dataset.i18nTitle]});
+ document.getElementById("languageQuick").value=getLang();
+ document.getElementById("languageMain").value=getLang();
+ if(document.getElementById("languageQuick")._refresh) document.getElementById("languageQuick")._refresh();
+ if(document.getElementById("languageMain")._refresh) document.getElementById("languageMain")._refresh();
+ if(window.LW_ME){ loadBlockedSettings(); checkSpotify(); }   // in dono ka text data-i18n se nahi, JS se banta hai
+}
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.style.display="block";clearTimeout(window.tt);window.tt=setTimeout(()=>t.style.display="none",2200)}
+var uTimer;
+function onUsernameInput(){
+ const input=document.getElementById("usernameField");
+ const hint=document.getElementById("uHint");
+ const v=input.value.trim();
+ hint.className="hint"; hint.textContent="";
+ clearTimeout(uTimer);
+ if(v.length<3) return;
+ uTimer=setTimeout(async()=>{
+   const me=window.LW_ME;
+   if(me && v.toLowerCase()===String(me.username||"").toLowerCase()){ hint.className="hint ok"; hint.textContent="✓"; return; }
+   const {data}=await LW.sb.rpc("lw_username_available",{p_username:v});
+   if(data===false){ hint.className="hint bad"; hint.textContent=window.t("userTaken"); }
+   else { hint.className="hint ok"; hint.textContent="✓"; }
+ },400);
+}
+
+async function save(){
+ const me=window.LW_ME; if(!me) return;
+ const patch={
+   full_name:document.getElementById("name").value.trim(),
+   username:document.getElementById("usernameField").value.trim(),
+   mobile:LW.normalizeMobile(document.getElementById("mobileField").value.trim()),
+   city:document.getElementById("cityField").value.trim()
+ };
+ if(!patch.full_name||!patch.username||!patch.mobile){toast(tl("requiredFieldsMsg"));return}
+ const {error}=await LW.sb.from("profiles").update(patch).eq("id",me.id);
+ if(error){
+   const dup=String(error.message||"").toLowerCase().includes("duplicate");
+   toast("❌ "+(dup?window.t("userTaken"):LW.errText(error)));
+   return;
+ }
+ Object.assign(me,patch); paintMe(me);
+ toast((translations[getLang()]||translations.en).saved);
+}
+
+async function onAvatarPicked(e){
+ const file=e.target.files&&e.target.files[0];
+ e.target.value="";
+ if(!file) return;
+ if(file.type.indexOf("image/")!==0){toast(window.t("onlyImageErr"));return}
+ if(file.size>5*1024*1024){toast(window.t("avatarSizeErr"));return}
+ toast(window.t("uploadingPhotoMsg"));
+ try{
+   const url=await LWApp.uploadAvatar(file);
+   const r=await LWApp.saveProfile({avatar_url:url});
+   if(r.error){toast("❌ "+LW.errText(r.error));return}
+   const me=window.LW_ME; me.avatar_url=url; if(window.LW) window.LW.profile=me;
+   paintMe(me);
+   toast(window.t("avatarUpdatedMsg"));
+ }catch(er){
+   toast("❌ "+LW.errText(er));
+ }
+}
+
+function paintMe(p){
+ const av=document.getElementById("meAvatar");
+ if(p.avatar_url) av.innerHTML='<img alt="" src="'+LW.escapeHtml(p.avatar_url)+'">';
+ else av.textContent=(p.full_name||p.username||"?").trim().charAt(0).toUpperCase();
+ document.getElementById("meName").textContent=p.full_name||p.username||"—";
+ document.getElementById("meMeta").textContent="@"+(p.username||"—")+" · "+(p.mobile||"—");
+ const badge=document.getElementById("meStatus");
+ badge.textContent=(p.status==="rejected"?"✕ ":"✓ ")+t(p.status);
+ document.getElementById("meEmail").textContent=p.email||"—";
+ document.getElementById("name").value=p.full_name||"";
+ document.getElementById("usernameField").value=p.username||"";
+ document.getElementById("mobileField").value=p.mobile||"";
+ document.getElementById("cityField").value=p.city||"";
+}
+
+async function changeEmail(){
+ const next=prompt(tl("newEmailPrompt"),(window.LW_ME||{}).email||"");
+ if(!next) return;
+ const {error}=await LW.sb.auth.updateUser({email:next.trim()});
+ toast(error?("❌ "+LW.errText(error)):tl("emailConfirmMsg"));
+}
+
+async function changePassword(){
+ const email=(window.LW_ME||{}).email;
+ if(!email){toast(tl("emailNotFoundMsg"));return}
+ const {error}=await LW.sb.auth.resetPasswordForEmail(email,{redirectTo:LW.pageUrl("login.html")});
+ toast(error?("❌ "+LW.errText(error)):t("resetSent"));
+}
+
+async function logoutAll(){
+ await LW.sb.auth.signOut({scope:"global"});
+ LW.logout();
+}
+
+// koi bhi chat khole bina — Spotify login abhi kaam kar raha hai ya nahi, yahin se pata chale
+async function checkSpotify(){
+ const statusEl=document.getElementById("spotifyStatus");
+ const btn=document.getElementById("spotifyBtn");
+ statusEl.textContent=tl("spotifyChecking");
+ btn.disabled=true;
+ const r=await LW.spotifyApi("/me");
+ btn.disabled=false;
+ if(r.error){
+  statusEl.textContent=r.error==="no-token"?tl("spotifyNotConnected"):tl("spotifyExpired");
+  btn.textContent=tl("spotifyConnectBtn");
+  btn.onclick=()=>LW.spotify();
+ } else {
+  statusEl.textContent="✅ "+tl("spotifyConnectedAs")+" "+(r.data.display_name||r.data.email||r.data.id);
+  btn.textContent=tl("spotifyRecheckBtn");
+  btn.onclick=checkSpotify;
+ }
+}
+
+// native <select> ka dropdown popup style nahi ho sakta (OS/browser control karta hai) —
+// isliye ek chhota custom button+list widget bana dete hain. Asli select chhupa rehta hai
+// (form-value/onchange ke liye), bas dikhta custom trigger hai.
+function enhanceSelect(sel){
+ if(!sel||sel.dataset.enhanced) return;
+ sel.dataset.enhanced="1";
+ sel.style.display="none";
+ const wrap=document.createElement("span"); wrap.className="s-dd";
+ const trigger=document.createElement("button"); trigger.type="button"; trigger.className="s-dd-trigger";
+ const menu=document.createElement("div"); menu.className="s-dd-menu";
+ function refresh(){
+  const opt=sel.options[sel.selectedIndex];
+  trigger.textContent=opt?opt.textContent:"";
+  Array.prototype.forEach.call(menu.children,(item,i)=>item.classList.toggle("selected",i===sel.selectedIndex));
+ }
+ Array.prototype.forEach.call(sel.options,(opt,i)=>{
+  const item=document.createElement("div"); item.className="s-dd-item"; item.textContent=opt.textContent;
+  item.addEventListener("click",()=>{
+   sel.selectedIndex=i; menu.classList.remove("open"); refresh();
+   sel.dispatchEvent(new Event("change",{bubbles:true}));
+  });
+  menu.appendChild(item);
+ });
+ refresh();
+ sel._refresh=refresh;
+ sel.addEventListener("change",refresh);
+ trigger.addEventListener("click",(ev)=>{
+  ev.stopPropagation();
+  document.querySelectorAll(".s-dd-menu.open").forEach(m=>{if(m!==menu)m.classList.remove("open")});
+  menu.classList.toggle("open");
+ });
+ wrap.appendChild(trigger); wrap.appendChild(menu);
+ sel.parentNode.insertBefore(wrap,sel.nextSibling);
+}
+document.addEventListener("click",()=>document.querySelectorAll(".s-dd-menu.open").forEach(m=>m.classList.remove("open")));
+
+async function loadBlockedSettings(){
+ const me=window.LW_ME; if(!me) return;
+ const box=document.getElementById("blockedList");
+ const {data,error}=await LW.sb.from("friendships").select("id, requester_id, addressee_id")
+  .eq("status","blocked").or("requester_id.eq."+me.id+",addressee_id.eq."+me.id);
+ if(error){box.innerHTML='<small style="color:var(--muted)">'+tl("blockedLoadError")+'</small>';return}
+ if(!data||!data.length){box.innerHTML='<small style="color:var(--muted)">'+tl("blockedNone")+'</small>';return}
+ const others=data.map(r=>r.requester_id===me.id?r.addressee_id:r.requester_id);
+ const {data:profs}=await LW.sb.from("lw_public_profiles").select("id, full_name, username").in("id",others);
+ const by={}; (profs||[]).forEach(p=>by[p.id]=p);
+ box.innerHTML=data.map(r=>{
+  const oid=r.requester_id===me.id?r.addressee_id:r.requester_id;
+  const p=by[oid]||{};
+  return '<div class="blocked-row"><div><strong>'+LW.escapeHtml(p.full_name||p.username||window.t("someoneLabel"))+
+   '</strong><br><small style="color:var(--muted)">@'+LW.escapeHtml(p.username||"—")+'</small></div>'+
+   '<button class="btn secondary" onclick="unblockSettings('+r.id+')">'+tl("unblockBtn")+'</button></div>';
+ }).join("");
+}
+
+async function unblockSettings(friendshipId){
+ const {error}=await LW.sb.from("friendships").delete().eq("id",friendshipId);
+ if(error){toast("❌ "+LW.errText(error));return}
+ toast(tl("unblockedToast"));
+ loadBlockedSettings();
+}
+
+document.addEventListener("DOMContentLoaded",async()=>{
+ const p=await LW.requireAuth({allowBlocked:true});
+ if(!p) return;
+ window.LW_ME=p; paintMe(p);
+ loadBlockedSettings();
+ checkSpotify();
+ enhanceSelect(document.getElementById("languageQuick"));
+ enhanceSelect(document.getElementById("languageMain"));
+});
+function saveLanguage(){setLanguage(document.getElementById("languageMain").value);toast((translations[getLang()]||translations.en).saved)}
+document.getElementById("languageQuick").addEventListener("change",e=>setLanguage(e.target.value));
+
+document.querySelectorAll(".menu button").forEach(btn=>{
+ btn.addEventListener("click",()=>{
+  document.querySelectorAll(".menu button").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".section").forEach(x=>x.classList.remove("active"));
+  btn.classList.add("active");document.getElementById(btn.dataset.tab).classList.add("active");
+  history.replaceState(null,"","#"+btn.dataset.tab);
+ });
+});
+const hash=location.hash.slice(1);
+if(hash&&document.getElementById(hash)){
+ document.querySelector(`[data-tab="${hash}"]`)?.click();
+}
+
+const THEME_VARS=["--bg","--bg2","--card","--primary","--soft","--accent","--text","--muted","--border","--shadow","--grad"];
+
+function setTheme(theme){
+ THEME_VARS.forEach(v=>document.documentElement.style.removeProperty(v));   // custom color override hatao
+ document.body.dataset.theme=theme;
+ // 'loveway_theme' (underscore) hi poore app mein shared key hai — hyphen wali purani
+ // key alag storage slot thi, isliye theme yahan aur baaki pages mein sync nahi hoti thi
+ localStorage.setItem("loveway_theme",theme);
+ localStorage.removeItem("loveway_custom_color");
+ document.querySelectorAll(".theme[data-theme]").forEach(x=>x.classList.toggle("active",x.dataset.theme===theme));
+ document.getElementById("customColorDot").classList.remove("active");
+}
+document.querySelectorAll(".theme[data-theme]").forEach(x=>x.addEventListener("click",()=>setTheme(x.dataset.theme)));
+
+// user apna accent color chunta hai — baaki (bg/text/border) ek safe neutral scaffold
+// se aate hain taaki koi bhi color pick karo, UI hamesha padhne layak rahe
+function hexToRgb(hex){
+ const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex||"");
+ return m?{r:parseInt(m[1],16),g:parseInt(m[2],16),b:parseInt(m[3],16)}:{r:233,g:30,b:99};
+}
+function shade(hex,amt){
+ const c=hexToRgb(hex);
+ const adj=v=>Math.max(0,Math.min(255,Math.round(v+(amt>0?(255-v)*amt:v*amt))));
+ return "rgb("+adj(c.r)+","+adj(c.g)+","+adj(c.b)+")";
+}
+function setCustomColorSettings(hex){
+ const root=document.documentElement;
+ const accent=shade(hex,.25);
+ root.style.setProperty("--primary",hex);
+ root.style.setProperty("--accent",accent);
+ root.style.setProperty("--soft",shade(hex,.85));
+ root.style.setProperty("--grad","linear-gradient(135deg,"+accent+","+hex+")");
+ root.style.setProperty("--bg","#f7f7fa");
+ root.style.setProperty("--bg2","#eeeef4");
+ root.style.setProperty("--card","#ffffff");
+ root.style.setProperty("--text","#242430");
+ root.style.setProperty("--muted","#82829a");
+ root.style.setProperty("--border","#e3e3ec");
+ root.style.setProperty("--shadow","0 8px 30px rgba(0,0,0,.10)");
+ document.body.dataset.theme="custom";
+ localStorage.setItem("loveway_theme","custom");
+ localStorage.setItem("loveway_custom_color",hex);
+ document.querySelectorAll(".theme[data-theme]").forEach(x=>x.classList.remove("active"));
+ document.getElementById("customColorDot").classList.add("active");
+}
+function onCustomColorPick(hex){
+ document.getElementById("customColorDot").style.background=hex;
+ setCustomColorSettings(hex);
+}
+
+// default hamesha auth-bg.jpg hai (lw-app.css/CSS class se); user apni image
+// upload kare to wahi uski jagah dikhti hai — dono halat "loveway_bg_photo" ke
+// saath localStorage mein rehti hain taaki baaki pages par bhi wahi dikhe
+function applyBgPhotoPreview(){
+ const on=localStorage.getItem("loveway_bg_photo")!=="0";
+ const customUrl=localStorage.getItem("loveway_bg_custom_url");
+ document.body.classList.toggle("bg-photo",on);
+ if(on&&customUrl){
+  const dark=document.body.dataset.theme==="dark";
+  const overlay=dark?"linear-gradient(rgba(18,18,26,.86),rgba(18,18,26,.86))":"linear-gradient(rgba(255,255,255,.82),rgba(255,255,255,.82))";
+  document.body.style.backgroundImage=overlay+', url("'+customUrl+'")';
+ } else {
+  document.body.style.backgroundImage="";
+ }
+ document.getElementById("resetBgBtn").style.display=customUrl?"":"none";
+ document.getElementById("bgImageStatus").textContent=customUrl?tl("customBgActive"):"";
+}
+
+function toggleBgPhotoSettings(on){
+ localStorage.setItem("loveway_bg_photo",on?"1":"0");
+ applyBgPhotoPreview();
+}
+
+async function onBgImagePicked(e){
+ const file=e.target.files&&e.target.files[0];
+ e.target.value="";
+ if(!file) return;
+ if(file.type.indexOf("image/")!==0){toast(tl("bgImageTypeErr"));return}
+ if(file.size>15*1024*1024){toast(tl("bgImageSizeErr"));return}
+ const me=window.LW_ME; if(!me) return;
+
+ toast(tl("uploading"));
+ const safe=(file.name||"file").replace(/[^a-zA-Z0-9._-]/g,"_");
+ const path=me.id+"/"+Date.now()+"-"+safe;
+ const {error}=await LW.sb.storage.from("backgrounds").upload(path,file,{contentType:file.type||undefined});
+ if(error){toast("❌ "+LW.errText(error));return}
+ const {data}=LW.sb.storage.from("backgrounds").getPublicUrl(path);
+ localStorage.setItem("loveway_bg_custom_url",data.publicUrl);
+ localStorage.setItem("loveway_bg_photo","1");
+ document.getElementById("bgPhotoCheck").checked=true;
+ applyBgPhotoPreview();
+ toast(tl("bgImageSaved"));
+}
+
+function resetBgImage(){
+ localStorage.removeItem("loveway_bg_custom_url");
+ applyBgPhotoPreview();
+ toast(tl("bgImageReset"));
+}
+
+function restoreAppearance(){
+ const saved=localStorage.getItem("loveway_theme")||localStorage.getItem("loveway-theme")||"ocean";
+ const customColor=localStorage.getItem("loveway_custom_color");
+ if(saved==="custom"&&customColor){
+  document.getElementById("customColorInput").value=customColor;
+  document.getElementById("customColorDot").style.background=customColor;
+  setCustomColorSettings(customColor);
+ } else {
+  setTheme(saved);
+ }
+ document.getElementById("bgPhotoCheck").checked=localStorage.getItem("loveway_bg_photo")!=="0";
+ applyBgPhotoPreview();
+}
+restoreAppearance();
+applyLang();
+</script>
+</body>
+</html>

@@ -1,0 +1,256 @@
+﻿<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Life Chain — Loveway</title>
+<link rel="stylesheet" href="lw-app.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="lw-core.js?v=2"></script>
+<script src="lw-app.js?v=2"></script>
+</head>
+<body data-theme="ocean">
+
+<header>
+  <h1>💕 Loveway</h1>
+  <div class="header-tools">
+    <a class="header-action" href="dashboard.html" data-icon="home" title="Home"></a>
+    <a class="header-action" href="profile.html" data-icon="profile" title="Profile"></a>
+    <button class="header-action" onclick="LW.logout()" data-icon="logout" title="Log out"></button>
+  </div>
+</header>
+
+<div class="container">
+  <div id="alertBox" class="alert"></div>
+
+  <div class="page-head">
+    <h2 data-i18n="journeyPageTitle">⛓️ Life Chain — Hamari Journey</h2>
+    <span class="spacer"></span>
+    <button class="btn primary" onclick="openEntryForm()" data-i18n="addMemoryBtn">+ Memory jodo</button>
+  </div>
+  <p class="muted" style="margin:-8px 0 16px" data-i18n="journeySubtitle">Tum aur tumhare partner — dono ki daali hui memories ek hi chain mein judti hain.</p>
+
+  <div class="journey-chain" id="journeyList"><div class="spinner" data-i18n="loading">Load ho raha hai…</div></div>
+</div>
+
+<!-- add memory modal -->
+<div class="modal-bg" id="jmodal" onclick="if(event.target===this)closeEntryForm()">
+  <div class="modal">
+    <h3 data-i18n="newMemoryModalTitle">⛓️ Nayi memory jodo</h3>
+
+    <label class="fl" data-i18n="photoFieldLabel">Photo</label>
+    <div id="jPreviewWrap" style="display:none;margin-bottom:8px;max-width:220px">
+      <img id="jPreview" src="" alt="" style="max-width:100%;border-radius:12px;display:block">
+    </div>
+    <button type="button" class="btn" onclick="document.getElementById('jFile').click()" data-i18n="uploadImageBtn">📷 Upload Image</button>
+    <input type="file" id="jFile" accept="image/*" style="display:none" onchange="onJourneyFilePicked(event)">
+
+    <label class="fl" data-i18n="titleFieldLabel">Title</label>
+    <input type="text" id="jTitle" placeholder="Hamari pehli date…" data-i18n-placeholder="journeyTitlePh">
+
+    <label class="fl" data-i18n="quoteFieldLabel">Quote / kahani</label>
+    <textarea id="jQuote" rows="3" placeholder="Us din kya hua tha, kaisa laga…" data-i18n-placeholder="journeyQuotePh"></textarea>
+
+    <div class="row-2">
+      <div><label class="fl" data-i18n="dateFieldLabel">Date</label><input type="date" id="jDate"></div>
+      <div>
+        <label class="fl" data-i18n="locationFieldLabel">📍 Location</label>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="jLocation" placeholder="Goa, Marine Drive… (ya map se chuno)" style="flex:1" data-i18n-placeholder="journeyLocationPh">
+          <button type="button" class="btn" onclick="pickJourneyLocation()" title="Map se chuno" data-i18n-title="pickFromMapTitle">🗺️</button>
+        </div>
+        <input type="hidden" id="jLat"><input type="hidden" id="jLng">
+      </div>
+    </div>
+
+    <label style="display:flex;align-items:center;gap:8px;margin-top:16px;cursor:pointer">
+      <input type="checkbox" id="jImportant" style="width:auto">
+      <span data-i18n="importantMilestoneLabel">⭐ Important milestone</span>
+    </label>
+
+    <div class="foot">
+      <button class="btn" onclick="closeEntryForm()" data-i18n="cancelBtn">Cancel</button>
+      <button class="btn primary" id="jSaveBtn" onclick="saveJourneyEntry()" data-i18n="saveBtn">Save karo</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var me = null, journeyImageUrl = null;
+
+function openEntryForm() {
+  document.getElementById('jTitle').value = '';
+  document.getElementById('jQuote').value = '';
+  document.getElementById('jLocation').value = '';
+  document.getElementById('jLat').value = '';
+  document.getElementById('jLng').value = '';
+  document.getElementById('jImportant').checked = false;
+  document.getElementById('jDate').value = new Date().toISOString().slice(0, 10); // aaj ki date auto
+  journeyImageUrl = null;
+  document.getElementById('jPreview').src = '';
+  document.getElementById('jPreviewWrap').style.display = 'none';
+  document.getElementById('jmodal').classList.add('open');
+}
+function closeEntryForm() { document.getElementById('jmodal').classList.remove('open'); }
+
+async function onJourneyFilePicked(e) {
+  var file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  if (file.type.indexOf('image/') !== 0) { LWApp.toast(window.t('onlyImageErr'), 'error'); return; }
+  if (file.size > 15 * 1024 * 1024) { LWApp.toast(window.t('photoSizeErr'), 'error'); return; }
+
+  LWApp.toast(window.t('uploadingPhotoMsg'));
+  try {
+    journeyImageUrl = await LWApp.uploadJourneyMedia(file);
+    document.getElementById('jPreview').src = journeyImageUrl;
+    document.getElementById('jPreviewWrap').style.display = '';
+    LWApp.toast(window.t('photoReadyMsg'));
+  } catch (er) {
+    LWApp.toast('❌ ' + LWApp.err(er), 'error');
+  }
+}
+
+function pickJourneyLocation() {
+  LWApp.openLocationPicker(function (loc) {
+    document.getElementById('jLocation').value = loc.name;
+    document.getElementById('jLat').value = loc.lat;
+    document.getElementById('jLng').value = loc.lng;
+  });
+}
+
+async function saveJourneyEntry() {
+  var title = document.getElementById('jTitle').value.trim();
+  var quote = document.getElementById('jQuote').value.trim();
+  var loc   = document.getElementById('jLocation').value.trim();
+  var lat   = document.getElementById('jLat').value;
+  var lng   = document.getElementById('jLng').value;
+  var date  = document.getElementById('jDate').value;
+  var important = document.getElementById('jImportant').checked;
+
+  if (!title && !quote && !journeyImageUrl) {
+    LWApp.toast(window.t('journeyMinFieldsErr'), 'error');
+    return;
+  }
+
+  var btn = document.getElementById('jSaveBtn');
+  btn.disabled = true; btn.textContent = window.t('savingMsg');
+
+  var r = await LWApp.createJourneyEntry({
+    title: title || null,
+    quote: quote || null,
+    image_url: journeyImageUrl,
+    location_name: loc || null,
+    latitude: lat ? parseFloat(lat) : null,
+    longitude: lng ? parseFloat(lng) : null,
+    entry_date: date || new Date().toISOString().slice(0, 10),
+    is_important: important
+  });
+
+  btn.disabled = false; btn.textContent = window.t('saveBtn');
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+
+  LWApp.toast(window.t('memoryAddedMsg'));
+  closeEntryForm();
+  loadJourney();
+}
+
+function locationLinkHtml(e) {
+  if (e.latitude != null && e.longitude != null) {
+    return '<a href="https://www.openstreetmap.org/?mlat=' + e.latitude + '&mlon=' + e.longitude +
+      '&zoom=15" target="_blank" rel="noopener">📍 ' + LWApp.esc(e.location_name) + '</a>';
+  }
+  return '📍 ' + LWApp.esc(e.location_name);
+}
+
+// language switch par date bhi usi bhaasha ke script mein dikhe (Devanagari ke liye 'hi-IN', warna 'en-IN')
+var DATE_LOCALE = { en: 'en-IN', hi: 'hi-IN', braj: 'hi-IN', raj: 'hi-IN', bho: 'hi-IN', hyd: 'hi-IN', mr: 'mr-IN', ta: 'ta-IN', te: 'te-IN', bn: 'bn-IN', pa: 'pa-IN', gu: 'gu-IN' };
+
+function entryHtml(e) {
+  var mine = e.author_id === me.id;
+  var locale = DATE_LOCALE[window.LW_CURRENT] || 'en-IN';
+  var dateLabel = new Date(e.entry_date).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+
+  return '<div class="journey-node' + (e.is_important ? ' important' : '') + '">' +
+    '<div class="journey-dot"></div>' +
+    '<div class="journey-card">' +
+      '<div class="journey-card-head">' + LWApp.avatarHtml(e.author, 'sm') +
+        '<div style="flex:1;min-width:0"><b>' + LWApp.esc(e.author.full_name || e.author.username || '—') + '</b>' +
+        '<small class="muted">' + LWApp.esc(dateLabel) + (e.location_name ? ' · ' + locationLinkHtml(e) : '') + '</small></div>' +
+        (e.is_important ? '<span class="badge-pill gold">' + LWApp.esc(window.t('importantBadge')) + '</span>' : '') +
+        (mine ? '<button class="icon-btn" onclick="removeJourneyEntry(' + e.id + ')" title="' + LWApp.esc(window.t('deleteTitle')) + '">🗑</button>' : '') +
+      '</div>' +
+      (e.title ? '<h3 style="margin:10px 0 4px;font-size:1.05rem">' + LWApp.esc(e.title) + '</h3>' : '') +
+      (e.image_url ? '<div class="journey-media"><img src="' + LWApp.esc(e.image_url) + '" alt="" loading="lazy"></div>' : '') +
+      (e.quote ? '<div class="journey-quote">"' + LWApp.esc(e.quote) + '"</div>' : '') +
+      '<div class="journey-actions" onclick="toggleUpdates(' + e.id + ')">💬 <span>' + LWApp.esc(window.t('viewAddUpdatesLabel').replace(/^💬\s*/, '')) + '</span></div>' +
+      '<div class="journey-updates" id="jup-' + e.id + '" style="display:none"></div>' +
+    '</div>' +
+  '</div>';
+}
+
+async function loadJourney() {
+  var rows = await LWApp.journeyEntries();
+  var el = document.getElementById('journeyList');
+  el.innerHTML = rows.length
+    ? rows.map(entryHtml).join('')
+    : '<div class="empty"><span class="ic">⛓️</span>' + LWApp.esc(window.t('journeyEmptyTitle')) + '<br>' + LWApp.esc(window.t('journeyEmptySub')) + '</div>';
+}
+
+async function toggleUpdates(id) {
+  var box = document.getElementById('jup-' + id);
+  if (box.style.display !== 'none') { box.style.display = 'none'; return; }
+
+  box.style.display = 'block';
+  box.innerHTML = '<div class="spinner">' + LWApp.esc(window.t('loading')) + '</div>';
+  var ups = await LWApp.journeyUpdates(id);
+  box.innerHTML =
+    (ups.length
+      ? ups.map(function (u) {
+          return '<div class="comment">' + LWApp.avatarHtml(u.author, 'sm') +
+            '<div class="bubble"><b style="font-size:.8rem">' + LWApp.esc(u.author.full_name || u.author.username || '—') + '</b><br>' +
+            (u.content ? LWApp.esc(u.content) : '') +
+            (u.image_url ? '<br><img src="' + LWApp.esc(u.image_url) + '" style="max-width:180px;border-radius:10px;margin-top:6px">' : '') +
+            '</div></div>';
+        }).join('')
+      : '<div class="muted" style="padding:6px 0">' + LWApp.esc(window.t('noUpdatesYet')) + '</div>') +
+    '<div style="display:flex;gap:8px;margin-top:10px">' +
+      '<input type="text" id="jUpInput-' + id + '" placeholder="' + LWApp.esc(window.t('updatePh')) + '" onkeydown="if(event.key===\'Enter\')sendJourneyUpdate(' + id + ')">' +
+      '<button class="btn primary sm" onclick="sendJourneyUpdate(' + id + ')">' + LWApp.esc(window.t('sendBtn')) + '</button>' +
+    '</div>';
+}
+
+async function sendJourneyUpdate(id) {
+  var inp = document.getElementById('jUpInput-' + id);
+  var text = inp.value.trim();
+  if (!text) return;
+  inp.value = '';
+  var r = await LWApp.addJourneyUpdate(id, text, null);
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  document.getElementById('jup-' + id).style.display = 'none';
+  toggleUpdates(id);
+}
+
+async function removeJourneyEntry(id) {
+  if (!confirm(window.t('deleteMemoryConfirm'))) return;
+  var r = await LWApp.deleteJourneyEntry(id);
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  LWApp.toast(window.t('memoryDeletedMsg'));
+  loadJourney();
+}
+
+document.addEventListener('lw:language', function () {
+  if (me) loadJourney();
+});
+
+document.addEventListener('DOMContentLoaded', async function () {
+  if (!LW.configOk) { LWApp.toast('config.js me Supabase keys daalo.', 'error'); return; }
+  me = await LW.requireAuth();
+  if (!me) return;
+  LWApp.shell('journey');
+  loadJourney();
+});
+</script>
+</body>
+</html>

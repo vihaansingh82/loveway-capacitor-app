@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>How it Works — Loveway</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&amp;family=DM+Sans:wght@300;400;500&amp;family=Dancing+Script:wght@700&amp;display=swap" rel="stylesheet"><style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --pink: #FF4F7B; --pink-light: #FF85A1; --pink-pale: #FFD6E0;
+    --dark: #1A0A14; --dark2: #2D1525; --dark3: #3D1E30;
+    --gold: #FFB347; --white: #FFF5F8; --text-muted: #C4849A;
+  }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(--white); overflow-x: hidden; }
+
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 60px;
+    background: rgba(26,10,20,0.9); backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255,79,123,0.15);
+  }
+  nav ul { list-style: none; display: flex; gap: 32px; }
+  nav ul li a { font-size:.875rem; letter-spacing:.04em; text-transform:uppercase; color:var(--text-muted); text-decoration:none; transition:color .3s; }
+  nav ul li a:hover, nav ul li a.active { color:var(--pink); }
+  .nav-actions { display:flex; gap:12px; align-items:center; }
+  .btn-ghost { padding:9px 22px; border-radius:50px; border:1px solid rgba(255,79,123,0.5); color:var(--pink); background:transparent; font-size:.875rem; cursor:pointer; transition:all .3s; text-decoration:none; display:inline-block; }
+  .btn-ghost:hover { background:rgba(255,79,123,0.1); }
+  .btn-primary { padding:9px 22px; border-radius:50px; background:var(--pink); color:#fff; border:none; font-size:.875rem; font-weight:500; cursor:pointer; transition:all .3s; text-decoration:none; display:inline-block; }
+  .btn-primary:hover { background:#e03565; transform:translateY(-1px); }
+
+  footer {
+    background: var(--dark2); border-top:1px solid rgba(255,79,123,0.1);
+    padding: 60px 60px 0; display:flex; flex-wrap:wrap; gap:40px; position:relative;
+  }
+  .footer-col { display:flex; flex-direction:column; gap:10px; min-width:140px; }
+  .footer-col h4 { font-size:.75rem; letter-spacing:.1em; text-transform:uppercase; color:var(--pink); margin-bottom:4px; }
+  .footer-col a { font-size:.85rem; color:var(--text-muted); text-decoration:none; transition:color .3s; }
+  .footer-col a:hover { color:var(--pink); }
+  .footer-bottom { width:100%; border-top:1px solid rgba(255,79,123,0.1); padding:20px 0; font-size:.8rem; color:var(--text-muted); text-align:center; margin-top:20px; }
+
+  .section-tag { display:inline-flex; align-items:center; gap:8px; color:var(--pink); font-size:.8rem; letter-spacing:.1em; text-transform:uppercase; margin-bottom:16px; }
+  .section-tag::before { content:''; display:block; width:30px; height:1px; background:var(--pink); }
+  .page-hero { padding: 140px 60px 80px; min-height: 50vh; position:relative; display:flex; align-items:center; }
+  .page-hero-bg { position:absolute; inset:0; background: radial-gradient(ellipse 70% 60% at 30% 50%, rgba(255,79,123,0.14) 0%, transparent 65%), linear-gradient(160deg, #1A0A14 0%, #2D1525 50%, #1A0A14 100%); }
+  .page-hero-content { position:relative; z-index:2; max-width:620px; }
+  .page-hero h1 { font-family:'Playfair Display',serif; font-size:clamp(2.8rem,5vw,4.2rem); line-height:1.1; margin-bottom:20px; }
+  .page-hero h1 em { color:var(--pink); font-style:italic; }
+  .page-hero p { color:var(--text-muted); font-size:1.05rem; line-height:1.75; max-width:480px; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);} }
+  .fade { animation: fadeUp .8s ease both; }
+  .fade-1 { animation-delay:.1s; } .fade-2 { animation-delay:.2s; } .fade-3 { animation-delay:.3s; } .fade-4 { animation-delay:.4s; }
+  .btn-hero { padding:14px 32px; border-radius:50px; font-size:1rem; font-weight:500; cursor:pointer; transition:all .3s; display:inline-flex; align-items:center; gap:8px; text-decoration:none; font-family:'DM Sans',sans-serif; }
+  .btn-hero.pink { background:var(--pink); color:#fff; border:none; box-shadow:0 8px 30px rgba(255,79,123,0.4); }
+  .btn-hero.pink:hover { transform:translateY(-3px); box-shadow:0 12px 40px rgba(255,79,123,0.5); }
+  .btn-hero.outline { background:transparent; color:var(--white); border:1px solid rgba(255,255,255,0.25); }
+  .btn-hero.outline:hover { border-color:var(--pink); color:var(--pink); }
+  input, textarea, select { width:100%; padding:13px 18px; background:var(--dark3); border:1px solid rgba(255,79,123,0.2); border-radius:12px; color:var(--white); font-family:'DM Sans',sans-serif; font-size:.95rem; outline:none; transition:border .3s; }
+  input:focus, textarea:focus, select:focus { border-color:var(--pink); }
+  input::placeholder, textarea::placeholder { color:var(--text-muted); }
+  label { font-size:.85rem; color:var(--text-muted); margin-bottom:6px; display:block; }
+</style>
+<style>
+  .hiw-hero{padding:160px 60px 80px;text-align:center;position:relative;overflow:hidden;}
+  .hiw-hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 40%,rgba(255,79,123,0.15) 0%,transparent 65%),linear-gradient(160deg,#1A0A14 0%,#2D1525 50%,#1A0A14 100%);}
+  .hiw-hero h1{font-family:'Playfair Display',serif;font-size:clamp(3rem,5vw,4.5rem);position:relative;z-index:2;line-height:1.1;}
+  .hiw-hero h1 em{color:var(--pink);font-style:italic;}
+  .hiw-hero p{color:var(--text-muted);font-size:1.05rem;max-width:480px;margin:20px auto 0;line-height:1.75;position:relative;z-index:2;}
+  .section-tag{position:relative;z-index:2;}
+  .steps-section{padding:80px 60px;}
+  .big-step{display:flex;gap:60px;align-items:center;margin-bottom:80px;padding-bottom:80px;border-bottom:1px solid rgba(255,79,123,0.1);}
+  .big-step:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+  .big-step.reverse{flex-direction:row-reverse;}
+  .step-left{flex:1;}
+  .step-num-big{font-family:'Playfair Display',serif;font-size:6rem;color:rgba(255,79,123,0.15);line-height:1;margin-bottom:-10px;}
+  .step-left h2{font-family:'Playfair Display',serif;font-size:clamp(1.8rem,3vw,2.5rem);margin-bottom:14px;line-height:1.2;}
+  .step-left h2 em{color:var(--pink);font-style:italic;}
+  .step-left p{color:var(--text-muted);line-height:1.75;margin-bottom:16px;}
+  .step-detail{background:var(--dark2);border:1px solid rgba(255,79,123,0.12);border-radius:14px;padding:16px 20px;display:flex;align-items:center;gap:12px;margin-top:20px;font-size:.875rem;color:var(--text-muted);}
+  .step-detail .sd-icon{font-size:1.4rem;flex-shrink:0;}
+  .step-right{flex:1;display:flex;justify-content:center;}
+  .step-card{background:var(--dark2);border:1px solid rgba(255,79,123,0.15);border-radius:24px;padding:32px;max-width:320px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,0.3);}
+  .form-row{margin-bottom:16px;}
+  .form-row label{font-size:.8rem;color:var(--text-muted);margin-bottom:6px;display:block;}
+  .form-field{background:var(--dark);border:1px solid rgba(255,79,123,0.2);border-radius:10px;padding:11px 16px;font-size:.875rem;color:var(--white);width:100%;}
+  .otp-boxes{display:flex;gap:10px;margin-top:10px;}
+  .otp-box{flex:1;background:var(--dark);border:1px solid rgba(255,79,123,0.3);border-radius:10px;padding:14px 0;text-align:center;font-size:1.2rem;font-weight:700;color:var(--pink);}
+  .btn-full{width:100%;padding:13px;border-radius:12px;background:var(--pink);color:#fff;border:none;font-size:1rem;font-weight:500;cursor:pointer;margin-top:16px;font-family:'DM Sans',sans-serif;}
+  .timeline-section{background:var(--dark2);padding:80px 60px;}
+  .timeline{max-width:700px;margin:50px auto 0;position:relative;}
+  .timeline::before{content:'';position:absolute;left:24px;top:0;bottom:0;width:1px;background:linear-gradient(180deg,transparent,var(--pink),transparent);}
+  .tl-item{display:flex;gap:30px;margin-bottom:40px;align-items:flex-start;}
+  .tl-dot{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--pink),var(--gold));display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;box-shadow:0 0 20px rgba(255,79,123,0.3);}
+  .tl-content h3{font-size:1rem;margin-bottom:6px;}
+  .tl-content p{font-size:.875rem;color:var(--text-muted);line-height:1.6;}
+  .tl-time{font-size:.75rem;color:var(--pink);margin-top:6px;}
+  .faq-section{padding:80px 60px;}
+  .faq-list{max-width:700px;margin:50px auto 0;}
+  .faq-item{border:1px solid rgba(255,79,123,0.1);border-radius:16px;margin-bottom:14px;overflow:hidden;}
+  .faq-q{padding:20px 24px;font-size:.95rem;font-weight:500;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:background .3s;}
+  .faq-q:hover{background:rgba(255,79,123,0.05);}
+  .faq-q span{color:var(--pink);font-size:1.2rem;}
+  .faq-a{padding:0 24px 20px;font-size:.875rem;color:var(--text-muted);line-height:1.7;}
+
+/* Modern responsive enhancements */
+.lang-switcher{display:flex;align-items:center;gap:6px;margin-left:4px}
+.lang-switcher select{width:auto;padding:8px 12px;border-radius:999px;background:rgba(45,21,37,.9);border:1px solid rgba(255,79,123,.35);color:var(--white);font-size:.8rem;cursor:pointer}
+.lang-switcher select:focus{border-color:var(--pink);outline:none}
+.nav-logo{height:42px!important;width:auto!important;object-fit:contain!important}
+@media(max-width:900px){nav{padding:10px 20px;gap:12px}nav ul{display:none}.nav-actions{gap:7px}.btn-ghost,.btn-primary{padding:8px 14px;font-size:.78rem}.lang-switcher select{padding:7px 9px}.hiw-hero{padding:130px 22px 65px}.steps-section,.faq-section{padding:60px 22px}.timeline-section{padding:60px 22px}.big-step,.big-step.reverse{flex-direction:column;gap:30px;margin-bottom:55px;padding-bottom:55px}.step-left,.step-right{width:100%}.step-right{justify-content:stretch}.step-card{max-width:100%}footer{padding:45px 22px 0;gap:30px}.page-hero{padding:120px 22px 60px}}
+@media(max-width:520px){.nav-actions .btn-ghost{display:none}.nav-logo{height:36px!important}.lang-switcher select{max-width:100px}.hiw-hero h1{font-size:2.65rem}.step-num-big{font-size:4.5rem}.otp-boxes{gap:6px}.faq-q{padding:17px}.faq-a{padding:0 17px 17px}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="lw-core.js?v=2"></script>
+<link rel="stylesheet" href="lw-site.css"></head>
+<body>
+<nav>
+  <a href="index.html" class="lw-brand" aria-label="Loveway home">
+    <img class="nav-logo" src="logo.png" alt="Loveway" width="340" height="185">
+  </a>
+  <ul>
+    <li><a href="index.html">Home</a></li>
+    <li><a href="about.html">About</a></li>
+    <li><a href="features.html">Features</a></li>
+    <li><a href="how-it-works.html" class="active">How it Works</a></li>
+    <li><a href="contact.html">Contact</a></li>
+    <li><a href="app.html">App</a></li>
+  </ul>
+  <div class="nav-actions">
+    <div class="lw-lang" aria-label="Language selector">
+      <span aria-hidden="true">🌐</span>
+      <select id="siteLanguage" class="lw-lang-select" aria-label="Language"><option value="en">English</option><option value="hi">हिंदी</option><option value="braj">ब्रज</option><option value="raj">राजस्थानी</option><option value="bho">भोजपुरी</option><option value="hyd">हैदराबादी</option><option value="mr">मराठी</option></select>
+    </div>
+    <a href="login.html" class="btn-ghost" data-lw-when="out">Login</a>
+    <a href="signup.html" class="btn-primary" data-lw-when="out">Sign Up</a>
+    <a href="dashboard.html" class="btn-ghost" data-lw-when="in" data-lw-target="" style="display:none">Dashboard</a>
+    <a href="#" class="btn-primary" data-lw-when="in" onclick="LW.logout();return false" style="display:none">Log out</a>
+    <button type="button" class="lw-nav-toggle" aria-label="Menu" aria-expanded="false" onclick="LWSite.toggleNav()">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<section class="hiw-hero">
+  <div class="hiw-hero-bg"></div>
+  <div class="section-tag fade fade-1">How it Works</div>
+  <h1 class="fade fade-2">Simple steps to your<br><em>प्यारी दुनिया</em></h1>
+  <p class="fade fade-3">Getting started on Loveway is quick, safe and completely free. Here's everything you need to know.</p>
+</section>
+
+<section class="steps-section">
+
+  <div class="big-step">
+    <div class="step-left">
+      <div class="step-num-big">01</div>
+      <h2>Create your <em>account</em></h2>
+      <p>Fill in your full name, choose a unique username, add your mobile number and a few personal details. Your profile is what makes you — so make it count!</p>
+      <p style="color:var(--text-muted);line-height:1.75;">We ask for basic details to ensure everyone on Loveway is a real person. Your information is never shared with third parties.</p>
+      <div class="step-detail"><div class="sd-icon">🔒</div><div>Your data is encrypted and stored securely on Indian servers.</div></div>
+    </div>
+    <div class="step-right">
+      <div class="step-card">
+        <div style="font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--pink);margin-bottom:20px;">Create Your Account</div>
+        <div class="form-row"><label>Full Name</label><div class="form-field">Vinay Vyas</div></div>
+        <div class="form-row"><label>Username</label><div class="form-field">vihaansingh82</div></div>
+        <div class="form-row"><label>Mobile Number</label><div class="form-field">+91 8368655079</div></div>
+        <div class="form-row"><label>Date of Birth</label><div class="form-field">12/05/2000</div></div>
+        <div class="form-row"><label>Gender</label><div class="form-field" style="color:var(--text-muted);">Male ▾</div></div>
+        <button class="btn-full">Send OTP ❤</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="big-step reverse">
+    <div class="step-left">
+      <div class="step-num-big">02</div>
+      <h2>Verify your <em>mobile number</em></h2>
+      <p>We send a 6-digit OTP to your mobile number. Enter it to confirm that you're the real owner of the number. This keeps fake accounts off Loveway.</p>
+      <div class="step-detail"><div class="sd-icon">📱</div><div>OTP expires in 5 minutes. You can resend if needed.</div></div>
+    </div>
+    <div class="step-right">
+      <div class="step-card" style="text-align:center;">
+        <div style="font-size:3rem;margin-bottom:12px;">📱</div>
+        <div style="font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--pink);margin-bottom:8px;">OTP Verification</div>
+        <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:20px;">Enter the 6-digit code sent to<br><strong style="color:var(--white);">+91 8368655079</strong></p>
+        <div class="otp-boxes">
+          <div class="otp-box">1</div><div class="otp-box">2</div><div class="otp-box">3</div>
+          <div class="otp-box">4</div><div class="otp-box">5</div><div class="otp-box">6</div>
+        </div>
+        <button class="btn-full">Verify OTP ✓</button>
+        <div style="margin-top:12px;font-size:.8rem;color:var(--text-muted);">Resend in <span style="color:var(--pink);">00:25</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="big-step">
+    <div class="step-left">
+      <div class="step-num-big">03</div>
+      <h2>Complete your <em>profile</em></h2>
+      <p>Add your name, a username and your mobile number. That's it — your account goes live straight away, no waiting for anyone to approve it.</p>
+      <p style="color:var(--text-muted);line-height:1.75;">Loveway stays genuine through OTP verification and active moderation: admins can block any fake or abusive account at any time.</p>
+      <div class="step-detail"><div class="sd-icon">⚡</div><div>Instant access — you're in as soon as you verify.</div></div>
+    </div>
+    <div class="step-right">
+      <div class="step-card" style="text-align:center;">
+        <div style="font-size:3.5rem;margin-bottom:16px;">🔐</div>
+        <h3 style="font-size:1.1rem;margin-bottom:10px;">Profile Ready</h3>
+        <p style="font-size:.85rem;color:var(--text-muted);line-height:1.7;margin-bottom:20px;">Name, username and mobile saved. Your account is active immediately.</p>
+        <div style="background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.2);border-radius:12px;padding:14px;font-size:.8rem;color:#4CAF50;">✅ Active — Welcome to Loveway!</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="big-step reverse">
+    <div class="step-left">
+      <div class="step-num-big">04</div>
+      <h2>Connect, dedicate &amp; <em>love</em></h2>
+      <p>From here Loveway is all yours. Chat privately, dedicate songs, post announcements, build your friend list, and express your heart freely.</p>
+      <div class="step-detail"><div class="sd-icon">❤</div><div>Your dashboard shows chats, dedications, announcements and friends — all in one place.</div></div>
+    </div>
+    <div class="step-right">
+      <div class="step-card">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid rgba(255,79,123,0.1);">
+          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--pink),var(--gold));display:flex;align-items:center;justify-content:center;">❤</div>
+          <div><div style="font-size:.85rem;font-weight:500;">Loveway Dashboard</div><div style="font-size:.7rem;color:#4CAF50;">● Active</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div style="background:var(--dark);border:1px solid rgba(255,79,123,0.15);border-radius:10px;padding:12px;text-align:center;"><div style="font-size:1.2rem;">💬</div><div style="font-size:.7rem;color:var(--text-muted);margin-top:4px;">5 New Chats</div></div>
+          <div style="background:var(--dark);border:1px solid rgba(255,79,123,0.15);border-radius:10px;padding:12px;text-align:center;"><div style="font-size:1.2rem;">🎵</div><div style="font-size:.7rem;color:var(--text-muted);margin-top:4px;">3 Dedications</div></div>
+          <div style="background:var(--dark);border:1px solid rgba(255,79,123,0.15);border-radius:10px;padding:12px;text-align:center;"><div style="font-size:1.2rem;">📢</div><div style="font-size:.7rem;color:var(--text-muted);margin-top:4px;">2 Approvals</div></div>
+          <div style="background:var(--dark);border:1px solid rgba(255,79,123,0.15);border-radius:10px;padding:12px;text-align:center;"><div style="font-size:1.2rem;">🔔</div><div style="font-size:.7rem;color:var(--text-muted);margin-top:4px;">1 Notification</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<section class="faq-section">
+  <div class="section-tag" style="justify-content:center;">FAQs</div>
+  <h2 style="font-family:'Playfair Display',serif;font-size:clamp(2rem,3vw,2.8rem);text-align:center;margin-bottom:0;">Common <em style="color:var(--pink);font-style:italic;">questions</em></h2>
+  <div class="faq-list">
+    <div class="faq-item"><div class="faq-q">Is Loveway free to use? <span>+</span></div><div class="faq-a">Yes! Loveway is completely free. Every feature — private chat, song dedication, announcements — is available at no cost.</div></div>
+    <div class="faq-item"><div class="faq-q">Do I have to wait for approval? <span>+</span></div><div class="faq-a">No. Once you verify your OTP and complete your profile, your account is active right away. Admins moderate afterwards and can block any account that breaks the rules.</div></div>
+    <div class="faq-item"><div class="faq-q">Is my data safe? <span>+</span></div><div class="faq-a">Absolutely. Your personal information is encrypted and never shared with advertisers or third parties. Privacy is at our core.</div></div>
+    <div class="faq-item"><div class="faq-q">Can I delete my account? <span>+</span></div><div class="faq-a">Yes, you can delete your account at any time from Settings. All your data including messages and dedications will be permanently removed.</div></div>
+    <div class="faq-item"><div class="faq-q">What if I see inappropriate content? <span>+</span></div><div class="faq-a">Use the Report button on any post, message or profile. Our team responds to reports within a few hours and takes action swiftly.</div></div>
+  </div>
+</section>
+
+<section style="padding:80px 60px;text-align:center;background:var(--dark2);">
+  <h2 style="font-family:'Playfair Display',serif;font-size:clamp(2rem,4vw,3.2rem);">Ready to start your<br><em style="color:var(--pink);font-style:italic;">journey?</em></h2>
+  <p style="color:var(--text-muted);margin:20px auto 36px;max-width:400px;line-height:1.7;">Sign up takes less than 2 minutes. Your love story starts here.</p>
+  <div style="display:flex;gap:14px;justify-content:center;">
+    <a href="signup.html" class="btn-hero pink" style="font-size:1rem;padding:15px 36px;">Join Loveway ❤</a>
+    <a href="login.html" class="btn-hero outline" style="font-size:1rem;padding:15px 36px;">Already a Member?</a>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-col">
+    <img src="logo.png" alt="Loveway" width="340" height="185" class="footer-logo">
+    <p style="font-size:.85rem;color:var(--text-muted);max-width:240px;line-height:1.7;">A community where hearts connect, songs express feelings and love spreads.</p>
+  </div>
+  <div class="footer-col">
+    <h4>Pages</h4>
+    <a href="index.html">Home</a>
+    <a href="about.html">About</a>
+    <a href="features.html">Features</a>
+    <a href="how-it-works.html">How it Works</a>
+    <a href="contact.html">Contact</a>
+  </div>
+  <div class="footer-col">
+    <h4>Account</h4>
+    <a href="login.html">Login</a>
+    <a href="signup.html">Sign Up</a>
+  </div>
+  <div class="footer-col">
+    <h4>Connect</h4>
+    <a href="#">Instagram</a>
+    <a href="#">Twitter / X</a>
+    <a href="#">YouTube</a>
+    <a href="contact.html">Contact Us</a>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2025 Loveway — प्यारी दुनिया. Made with ❤ in India</span>
+  </div>
+</footer>
+
+<script src="lw-site.js?v=2"></script></body></html>

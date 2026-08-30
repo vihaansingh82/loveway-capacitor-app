@@ -1,0 +1,902 @@
+﻿<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chat — Loveway</title>
+<link rel="stylesheet" href="lw-app.css">
+<link rel="stylesheet" href="lw-rails.css?v=2">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="lw-core.js?v=2"></script>
+<script src="lw-app.js?v=2"></script>
+<script src="lw-rails.js?v=2"></script>
+<script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
+</head>
+<body data-theme="ocean">
+
+<header>
+  <h1>💕 Loveway</h1>
+  <div class="mini-player" id="miniPlayer">
+    <button type="button" class="mp-btn" onclick="miniPlayerPrev()" title="Previous">⏮</button>
+    <button type="button" class="mp-btn mp-play-btn" id="mpPlayBtn" onclick="miniPlayerToggle()" title="Play">▶</button>
+    <button type="button" class="mp-btn" onclick="miniPlayerNext()" title="Next">⏭</button>
+    <span class="mp-name" id="mpName">🎵 Loveway Radio</span>
+    <a class="mp-fallback-link" href="#" target="_blank" rel="noopener" style="display:none" title="Open in Spotify">🔗</a>
+  </div>
+  <button type="button" class="rail-sheet-trigger" onclick="openRailSheet()" title="Music, spots &amp; more">✨</button>
+  <div class="header-tools">
+    <a class="header-action" href="dashboard.html" data-icon="home" title="Home"></a>
+    <a class="header-action" href="friends.html" data-icon="friends" title="Dost"></a>
+    <button class="header-action" onclick="LW.logout()" data-icon="logout" title="Log out"></button>
+  </div>
+</header>
+
+<aside class="side-rail side-rail-left" id="railLeft">
+  <div class="card">
+    <h3>💑 Aas-paas ke best spots</h3>
+    <div class="spots-body">
+      <div class="muted" style="font-size:.8rem">Location on karke best couple spots dekho.</div>
+      <button class="btn sm" style="margin-top:8px;width:100%" onclick="loadNearbySpots()">📍 Location on karo</button>
+    </div>
+  </div>
+</aside>
+
+<aside class="side-rail side-rail-right" id="railRight">
+  <div class="card">
+    <div class="rail-card-head">
+      <h3>🎵 Aapke liye gaane</h3>
+      <button type="button" class="rail-refresh-btn" onclick="renderSongSuggestions()" title="Naye gaane dikhao">🔄</button>
+    </div>
+    <div class="song-sugg-body"></div>
+  </div>
+  <div class="card">
+    <h3>🎉 Aane wale festival aur birthdays</h3>
+    <div class="upcoming-body"><div class="muted" style="font-size:.8rem">Load ho raha hai…</div></div>
+  </div>
+</aside>
+
+<div class="container">
+  <div id="alertBox" class="alert"></div>
+
+  <div class="page-head">
+    <h2 data-i18n="chatTitle">💬 Chat</h2>
+    <span class="spacer"></span>
+    <button class="btn" id="playlistBtn" onclick="openPlaylist()" disabled data-i18n="playlistBtn">🎧 Playlist</button>
+    <button class="btn" id="songBtn" onclick="openSongForm()" disabled data-i18n="shareSongBtn">🎵 Share song</button>
+    <button class="btn" id="dedicationBtn" onclick="openDedication()">💌 Spotify dedication</button>
+    <button class="btn primary" onclick="openGroupForm()" data-i18n="newGroupBtn">+ Group banao</button>
+  </div>
+
+  <div class="chat-wrap">
+    <div class="chat-list" id="convList"><div class="spinner">Load…</div></div>
+    <div class="chat-main">
+      <div class="chat-head" id="chatHead">
+        <div class="muted" data-i18n="chatPickHint">Left se koi chat chuno</div>
+      </div>
+      <div class="typing-line" id="typingLine" style="display:none">
+        <span id="typingWho"></span> <span id="typingSuffixText" data-i18n="typingSuffix">type kar raha/rahi hai</span>
+        <span class="typing-dots"><span></span><span></span><span></span></span>
+      </div>
+      <div class="now-playing" id="nowPlaying"></div>
+      <div class="chat-msgs" id="msgs">
+        <div class="empty"><span class="ic">💬</span><span data-i18n="chatEmptyHint">Koi chat chuno ya naya group banao.</span></div>
+      </div>
+      <div class="reply-bar" id="replyBar" style="display:none">
+        <div class="reply-bar-info"><b data-i18n="replyLabel">Reply</b><span id="replyBarText"></span></div>
+        <button class="icon-btn" onclick="cancelReply()">✕</button>
+      </div>
+      <div class="chat-input">
+        <button class="btn" id="attachBtn" onclick="toggleAttachMenu()" disabled title="Photo / Video / Music" data-i18n-title="attachTitle">📎</button>
+        <button class="btn" id="stickerBtn" onclick="toggleStickerPanel()" disabled title="Sticker" data-i18n-title="stickerTitle">🧩</button>
+        <button class="btn" id="emojiBtn" onclick="toggleEmojiPanel()" disabled title="Emoji" data-i18n-title="emojiTitle">😊</button>
+        <input type="text" id="msgInput" placeholder="Message likho…" data-i18n-placeholder="msgPh" disabled
+               oninput="handleInputTyping()" onkeydown="if(event.key==='Enter')send()">
+        <button class="btn primary" id="sendBtn" onclick="send()" disabled>➤</button>
+
+        <input type="file" id="mediaInput" accept="image/*,video/*" style="display:none" onchange="onMediaPicked(event)">
+        <input type="file" id="audioInput" accept="audio/*" style="display:none" onchange="onAudioPicked(event)">
+
+        <div class="picker-pop" id="attachMenu">
+          <div class="picker-item" onclick="document.getElementById('mediaInput').click();closeAllPickers()" data-i18n="attachPhotoVideoItem">🖼️🎬 Photo / Video</div>
+          <div class="picker-item" onclick="document.getElementById('audioInput').click();closeAllPickers()" data-i18n="attachMusicItem">🎼 Music / Audio</div>
+        </div>
+        <div class="picker-pop" id="stickerPanel"></div>
+        <div class="picker-pop" id="emojiPanel"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- new group modal -->
+<div class="modal-bg" id="gmodal" onclick="if(event.target===this)closeGroupForm()">
+  <div class="modal">
+    <h3 data-i18n="groupModalTitle">Naya group chat</h3>
+    <label class="fl" data-i18n="groupNameLabel">Group ka naam</label>
+    <input type="text" id="gName" placeholder="Boys group, College dost…" data-i18n-placeholder="groupNamePh">
+    <label class="fl" data-i18n="groupMembersLabel">Kaun kaun hoga?</label>
+    <div id="gFriends" style="max-height:240px;overflow-y:auto;margin-top:6px">
+      <div class="muted" data-i18n="loading">Load ho raha hai…</div>
+    </div>
+    <div class="foot">
+      <button class="btn" onclick="closeGroupForm()" data-i18n="cancelBtn">Cancel</button>
+      <button class="btn primary" id="gBtn" onclick="makeGroup()" data-i18n="createBtn">Banao</button>
+    </div>
+  </div>
+</div>
+
+<!-- share song modal -->
+<div class="modal-bg" id="smodal" onclick="if(event.target===this)closeSongForm()">
+  <div class="modal">
+    <h3 data-i18n="shareSongBtn">🎵 Share song</h3>
+    <label class="fl" data-i18n="songTitlePh">Song name</label>
+    <input type="text" id="sgTitle" placeholder="Tum hi ho…">
+    <label class="fl" data-i18n="songArtistPh">Singer</label>
+    <input type="text" id="sgArtist" placeholder="Arijit Singh">
+    <label class="fl" data-i18n="songUrlPh">Spotify ya audio link (optional)</label>
+    <input type="text" id="sgUrl" placeholder="https://open.spotify.com/track/… ya https://…mp3">
+    <small class="muted" data-i18n="spotifyHint">Spotify song ka link paste karo — chat mein hi bajega.</small>
+    <div class="foot">
+      <button class="btn" onclick="closeSongForm()" data-i18n="cancelBtn">Cancel</button>
+      <button class="btn primary" id="sgBtn" onclick="sendSong()" data-i18n="sendSongBtn">Gaana bhejo</button>
+    </div>
+  </div>
+</div>
+
+<!-- song list / playlist modal -->
+<div class="modal-bg" id="plmodal" onclick="if(event.target===this)closePlaylist()">
+  <div class="modal">
+    <h3 data-i18n="playlistTitle">🎧 Is chat ke gaane</h3>
+    <div id="plList" style="margin:14px 0;max-height:50vh;overflow-y:auto">
+      <div class="spinner" data-i18n="loading">Load ho raha hai…</div>
+    </div>
+    <div class="foot"><button class="btn" onclick="closePlaylist()" data-i18n="closeBtn">Band karo</button></div>
+  </div>
+</div>
+
+<!-- Spotify dedication modal -->
+<div class="modal-bg" id="dedmodal" onclick="if(event.target===this)closeDedication()">
+  <div class="modal">
+    <h3 data-i18n="dedicationModalTitle">💌 Spotify se Dedication</h3>
+    <div id="dedBody" style="margin-top:10px"><div class="spinner" data-i18n="loading">Load ho raha hai…</div></div>
+    <div class="foot"><button class="btn" onclick="closeDedication()" data-i18n="closeBtn">Band karo</button></div>
+  </div>
+</div>
+
+<script>
+var me = null, convs = [], active = null, channel = null;
+var activeIsDirect = false, activeOther = null, otherReadAt = null;
+var msgById = {}, msgReactions = {}, replyingTo = null;
+var typingSendTimer = null, typingHideTimer = null;
+var QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+
+var convStreaks = {};
+
+/* ---------- auto-translate message text on language switch ---------- */
+var contentTransCache = {}, contentTransInFlight = {};
+var lastLoadedRows = [];
+
+function tContent(id, text, onReady) {
+  if (!text) return '';
+  var lang = window.LW_CURRENT;
+  if (LWApp.contentLangMatches(text, lang)) return text;
+  var key = id + '::' + lang;
+  if (contentTransCache[key]) return contentTransCache[key];
+  if (!contentTransInFlight[key]) {
+    contentTransInFlight[key] = true;
+    LWApp.translateText(text, lang).then(function (t) {
+      contentTransCache[key] = t;
+      delete contentTransInFlight[key];
+      onReady();
+    });
+  }
+  return text;
+}
+
+document.addEventListener('lw:language', function () {
+  if (lastLoadedRows.length) renderMsgs(lastLoadedRows);
+});
+
+async function loadConvs(selectId) {
+  convs = await LWApp.myConversations();
+  var el = document.getElementById('convList');
+
+  if (!convs.length) {
+    el.innerHTML = '<div class="empty" style="padding:20px"><span class="ic">💬</span>' +
+                   LWApp.esc(window.t('noChatsTitle')) + '<br>' + LWApp.esc(window.t('noChatsSub')) + '</div>';
+    return;
+  }
+
+  var directs = convs.filter(function (c) { return c.kind === 'direct'; });
+  await Promise.all(directs.map(function (c) {
+    return LWApp.chatStreak(c.id).then(function (n) { convStreaks[c.id] = n; });
+  }));
+
+  el.innerHTML = convs.map(function (c) {
+    var title = c.title || (c.kind === 'community' ? window.t('communityChatTitle') : window.t('chatTitleShort'));
+    var ic = c.kind === 'direct' ? '' : (c.kind === 'community' ? '🏘️ ' : '👥 ');
+    var av = c.kind === 'direct'
+      ? LWApp.avatarHtml(c.other || {}, 'sm')
+      : '<div class="avatar sm">' + (c.kind === 'community' ? '🏘️' : '👥') + '</div>';
+    var streakN = convStreaks[c.id] || 0;
+    var streak = (c.kind === 'direct' && streakN >= 3)
+      ? ' <span class="streak-flame">🔥' + streakN + '</span>' : '';
+    return '<div class="item' + (active === c.id ? ' active' : '') + '" onclick="openConv(' + c.id + ')">' +
+      av + '<div style="min-width:0;flex:1"><b>' + ic + LWApp.esc(title) + streak + '</b>' +
+      '<small>' + LWApp.timeAgo(c.updated_at) + '</small></div>' +
+      '<button type="button" class="icon-btn conv-delete-btn" onclick="event.stopPropagation();deleteConv(' + c.id + ')" title="Chat delete karo">🗑</button></div>';
+  }).join('');
+
+  if (selectId) openConv(selectId);
+}
+
+async function deleteConv(id) {
+  if (!confirm('Ye chat delete karni hai? Aapki taraf se hat jayegi.')) return;
+  const { error } = await LWApp.leaveConversation(id);
+  if (error) { LWApp.toast('❌ ' + LWApp.err(error), 'error'); return; }
+  convs = convs.filter(function (c) { return c.id !== id; });
+  if (active === id) {
+    active = null;
+    document.getElementById('chatHead').innerHTML = '<div class="muted" data-i18n="chatPickHint">' + LWApp.esc(window.t('chatPickHint')) + '</div>';
+    document.getElementById('msgs').innerHTML = '<div class="empty"><span class="ic">💬</span><span>' + LWApp.esc(window.t('chatEmptyHint')) + '</span></div>';
+    document.getElementById('msgInput').disabled = true;
+    document.getElementById('sendBtn').disabled = true;
+    document.getElementById('songBtn').disabled = true;
+    document.getElementById('playlistBtn').disabled = true;
+    document.getElementById('dedicationBtn').disabled = true;
+    document.getElementById('attachBtn').disabled = true;
+    document.getElementById('stickerBtn').disabled = true;
+    document.getElementById('emojiBtn').disabled = true;
+  }
+  await loadConvs();
+  LWApp.toast('🗑 Chat delete ho gayi');
+}
+
+async function openConv(id) {
+  active = id;
+  var c = convs.filter(function (x) { return x.id === id; })[0];
+  if (!c) return;
+
+  activeIsDirect = c.kind === 'direct';
+  activeOther = c.other || null;
+  otherReadAt = null;
+  cancelReply();
+  document.getElementById('typingLine').style.display = 'none';
+
+  document.querySelectorAll('.chat-list .item').forEach(function (el) { el.classList.remove('active'); });
+  loadConvsHighlight();
+
+  var title = c.title || (c.kind === 'community' ? window.t('communityChatTitle') : window.t('chatTitleShort'));
+  var av = c.kind === 'direct'
+    ? LWApp.avatarHtml(c.other || {}, 'sm')
+    : '<div class="avatar sm">' + (c.kind === 'community' ? '🏘️' : '👥') + '</div>';
+  var streakN = convStreaks[id] || 0;
+  document.getElementById('chatHead').innerHTML = av +
+    '<div><b>' + LWApp.esc(title) + (activeIsDirect && streakN >= 3 ? ' <span class="streak-flame">🔥' + streakN + '</span>' : '') +
+    '</b><br><small class="muted" id="chatHeadMeta">' +
+    (c.kind === 'direct' ? LWApp.esc(window.t('privateChatLabel')) : c.members.length + ' ' + LWApp.esc(window.t('peopleCountSuffix'))) + '</small></div>';
+
+  LWApp.conversationMessageCount(id).then(function (n) {
+    if (active !== id) return;
+    var meta = document.getElementById('chatHeadMeta');
+    if (meta) meta.textContent += ' · ' + n + ' ' + window.t('messagesSoFarSuffix');
+  });
+
+  document.getElementById('msgInput').disabled     = false;
+  document.getElementById('sendBtn').disabled      = false;
+  document.getElementById('songBtn').disabled      = false;
+  document.getElementById('playlistBtn').disabled  = false;
+  document.getElementById('dedicationBtn').disabled = false;
+  document.getElementById('attachBtn').disabled    = false;
+  document.getElementById('stickerBtn').disabled   = false;
+  document.getElementById('emojiBtn').disabled     = false;
+  document.getElementById('msgs').innerHTML = '<div class="spinner">' + LWApp.esc(window.t('messagesLoading')) + '</div>';
+
+  var rows = await LWApp.messages(id, 80);
+  msgReactions = await LWApp.messageReactions(rows.map(function (r) { return r.id; }).filter(Boolean));
+
+  if (activeIsDirect) {
+    var states = await LWApp.memberReadStates(id);
+    var otherState = states.filter(function (s) { return s.user_id !== me.id; })[0];
+    otherReadAt = otherState ? otherState.last_read_at : null;
+  }
+
+  renderMsgs(rows);
+  updateNowPlaying(rows);
+  LWApp.markRead(id);
+
+  // realtime — purana channel band karke naya
+  if (channel) { try { LW.sb.removeChannel(channel); } catch (e) {} }
+  channel = LWApp.liveConversation(id, {
+    onMessage: async function (m) {
+      if (m.sender_id === me.id) return;   // apna message pehle hi dikh chuka
+      var one = await LWApp.messages(id, 1);
+      if (one.length) { appendMsg(one[one.length - 1]); updateNowPlaying(one); }
+      LWApp.refreshNotifCount();
+      LWApp.markRead(id);   // chat khuli hai, turant "seen" ho gaya
+    },
+    onReaction: function (payload) {
+      var mid = (payload.new && payload.new.message_id) || (payload.old && payload.old.message_id);
+      if (mid && msgById[mid]) refreshReactionsFor([mid]);
+    },
+    onMemberUpdate: function (row) {
+      if (row.user_id === me.id) return;
+      otherReadAt = row.last_read_at;
+      document.querySelectorAll('.msg.me[id^="msg-"]').forEach(function (el) {
+        var mid = el.id.replace('msg-', '');
+        if (msgById[mid]) el.outerHTML = msgHtml(msgById[mid]);
+      });
+    },
+    onTyping: onTypingReceived
+  });
+}
+
+function loadConvsHighlight() {
+  var items = document.querySelectorAll('.chat-list .item');
+  convs.forEach(function (c, i) {
+    if (items[i]) items[i].classList.toggle('active', c.id === active);
+  });
+}
+
+function spotifyEmbedUrl(url) {
+  var m = /open\.spotify\.com\/(track|album|playlist|episode)\/([a-zA-Z0-9]+)/.exec(url || '');
+  return m ? 'https://open.spotify.com/embed/' + m[1] + '/' + m[2] + '?utm_source=loveway' : null;
+}
+
+function songPlayerHtml(url) {
+  if (!url) return '';
+  var sp = spotifyEmbedUrl(url);
+  return sp
+    ? '<iframe src="' + LWApp.esc(sp) + '" width="100%" height="80" frameborder="0" ' +
+      'allow="encrypted-media" loading="lazy" style="border-radius:12px;margin-top:6px"></iframe>'
+    : '<audio controls preload="none" src="' + LWApp.esc(url) + '"></audio>';
+}
+
+function msgHtml(m) {
+  var mine = m.sender_id === me.id;
+  var body = '';
+  var extraClass = '';
+  var meta = m.meta || {};
+  if (m.kind === 'gift') {
+    body = '🎁 ' + LWApp.esc(m.content || window.t('giftSentDefault'));
+  } else if (m.kind === 'song') {
+    extraClass = ' song';
+    var url = meta.url;
+    body = (meta.dedication ? '<span class="dedication-badge">💌 Dedication</span><br>' : '') +
+           '<div class="msg-song"><span class="ic">🎵</span><div style="min-width:0"><b>' +
+           LWApp.esc(m.content || window.t('songDefaultLabel')) + '</b>' +
+           (meta.artist ? '<br><small style="opacity:.8">' + LWApp.esc(meta.artist) + '</small>' : '') +
+           '</div></div>' + songPlayerHtml(url) +
+           (meta.note ? '<div class="dedication-note">"' + LWApp.esc(meta.note) + '"</div>' : '');
+  } else if (m.kind === 'image') {
+    extraClass = ' media';
+    body = '<img src="' + LWApp.esc(meta.url || '') + '" alt="" loading="lazy" onclick="window.open(this.src,\'_blank\')">';
+  } else if (m.kind === 'video') {
+    extraClass = ' media';
+    body = '<video controls preload="metadata" src="' + LWApp.esc(meta.url || '') + '"></video>';
+  } else if (m.kind === 'audio') {
+    extraClass = ' media';
+    body = '<div class="msg-song"><span class="ic">🎼</span><b>' + LWApp.esc(m.content || window.t('audioDefaultLabel')) + '</b></div>' +
+           '<audio controls preload="none" src="' + LWApp.esc(meta.url || '') + '"></audio>';
+  } else if (m.kind === 'sticker') {
+    extraClass = ' sticker';
+    body = LWApp.esc(m.content || '🙂');
+  } else {
+    body = LWApp.esc(m.id ? tContent('msg' + m.id, m.content, function () { patchMsgDom(m); }) : (m.content || ''));
+  }
+
+  var sender = (!mine && m.sender)
+    ? '<span class="sender">' + LWApp.esc(m.sender.full_name || m.sender.username || '') + '</span>'
+    : '';
+
+  var replyHtml = meta.reply_to
+    ? '<div class="reply-quote"><b>' + LWApp.esc(meta.reply_to.sender_name || '') + '</b>' +
+      LWApp.esc((meta.reply_to.content || '').slice(0, 80)) + '</div>'
+    : '';
+
+  var reactList = (m.id && msgReactions[m.id]) || [];
+  var counts = {}, mineEmoji = null;
+  reactList.forEach(function (x) {
+    counts[x.emoji] = (counts[x.emoji] || 0) + 1;
+    if (x.user_id === me.id) mineEmoji = x.emoji;
+  });
+  var reactHtml = Object.keys(counts).length
+    ? '<div class="msg-reactions">' + Object.keys(counts).map(function (e) {
+        return '<span class="react-pill' + (mineEmoji === e ? ' mine' : '') + '" onclick="reactMsg(' + m.id + ',\'' + e + '\')">' +
+          e + ' ' + counts[e] + '</span>';
+      }).join('') + '</div>'
+    : '';
+
+  var toolsHtml = (m.id && m.kind !== 'system')
+    ? '<div class="msg-tools">' +
+        '<span onclick="toggleQuickReact(' + m.id + ',this)" title="' + LWApp.esc(window.t('reactTitle')) + '">😊</span>' +
+        '<span onclick="setReplyTo(' + m.id + ')" title="' + LWApp.esc(window.t('replyLabel')) + '">↩</span>' +
+      '</div>'
+    : '';
+
+  var tickHtml = '';
+  if (mine && activeIsDirect && m.created_at) {
+    var seen = otherReadAt && new Date(otherReadAt) >= new Date(m.created_at);
+    tickHtml = '<span class="msg-tick' + (seen ? ' seen' : '') + '">' + (seen ? '✓✓' : '✓') + '</span>';
+  }
+
+  return '<div class="msg ' + (mine ? 'me' : 'them') + extraClass + '"' + (m.id ? ' id="msg-' + m.id + '"' : '') + '>' +
+    toolsHtml + sender + replyHtml + body + tickHtml + reactHtml + '</div>';
+}
+
+function updateNowPlaying(rows) {
+  var bar = document.getElementById('nowPlaying');
+  var last = null;
+  for (var i = rows.length - 1; i >= 0; i--) {
+    if (rows[i].kind === 'song' && rows[i].meta && rows[i].meta.url) { last = rows[i]; break; }
+  }
+  if (!last) { bar.classList.remove('show'); bar.innerHTML = ''; return; }
+  bar.innerHTML = '<span class="ic">🎧</span><b>' + LWApp.esc(window.t('nowPlaying')) + '</b>' +
+    '<span class="muted">— ' + LWApp.esc(last.content || '') + '</span>' +
+    songPlayerHtml(last.meta.url);
+  bar.classList.add('show');
+}
+
+function openSongForm() {
+  if (!active) return;
+  document.getElementById('smodal').classList.add('open');
+}
+function closeSongForm() { document.getElementById('smodal').classList.remove('open'); }
+
+async function openPlaylist() {
+  if (!active) return;
+  document.getElementById('plmodal').classList.add('open');
+  var box = document.getElementById('plList');
+  box.innerHTML = '<div class="spinner">' + LWApp.esc(window.t('loading')) + '</div>';
+
+  var songs = await LWApp.songMessages(active);
+  box.innerHTML = songs.length
+    ? songs.map(function (s) {
+        return '<div class="msg-song" style="padding:10px 0;border-bottom:1px solid var(--border)">' +
+          '<span class="ic">🎵</span><div style="min-width:0;flex:1"><b>' + LWApp.esc(s.content || window.t('songDefaultLabel')) + '</b>' +
+          (s.meta && s.meta.artist ? '<br><small class="muted">' + LWApp.esc(s.meta.artist) + '</small>' : '') +
+          '</div></div>' + (s.meta && s.meta.url ? songPlayerHtml(s.meta.url) : '');
+      }).join('')
+    : '<div class="empty"><span class="ic">🎧</span><span data-i18n="noSongs">Abhi is chat mein koi gaana share nahi hua.</span></div>';
+  if (typeof window.applyLanguage === 'function') window.applyLanguage();
+}
+
+function closePlaylist() { document.getElementById('plmodal').classList.remove('open'); }
+
+/* ---------- attach / emoji / sticker pickers ---------- */
+var EMOJIS = ['😀','😁','😂','🤣','😊','🙂','😉','😍','😘','😜','🤔','😎','🥳','😭','😡','👍','👎','🙏',
+  '👏','💪','🔥','✨','❤️','🧡','💛','💚','💙','💜','🖤','🤍','💕','💞','💓','💗','💖','💘','💝','💌',
+  '😴','🤗','😇','🙄','😅','😆','😋','😏','😔','😢','😱','🥰'];
+var STICKERS = ['😍','🥰','😘','😻','💐','🌹','🌷','💍','🎉','🎊','🎂','🍫','🍩','☕','🍷','🥂',
+  '🌙','⭐','🌈','☀️','💯','👑','🐻','🐰','🐱','🐶','🦋','🌺','💋','🤝'];
+
+function closeAllPickers() {
+  document.getElementById('attachMenu').classList.remove('open');
+  document.getElementById('emojiPanel').classList.remove('open');
+  document.getElementById('stickerPanel').classList.remove('open');
+}
+
+function toggleAttachMenu() {
+  var el = document.getElementById('attachMenu');
+  var wasOpen = el.classList.contains('open');
+  closeAllPickers();
+  if (!wasOpen) el.classList.add('open');
+}
+
+function toggleEmojiPanel() {
+  var el = document.getElementById('emojiPanel');
+  var wasOpen = el.classList.contains('open');
+  closeAllPickers();
+  if (wasOpen) return;
+  if (!el.dataset.filled) {
+    el.innerHTML = '<div class="emoji-grid">' +
+      EMOJIS.map(function (e) { return '<span onclick="insertEmoji(\'' + e + '\')">' + e + '</span>'; }).join('') +
+      '</div>';
+    el.dataset.filled = '1';
+  }
+  el.classList.add('open');
+}
+
+function toggleStickerPanel() {
+  var el = document.getElementById('stickerPanel');
+  var wasOpen = el.classList.contains('open');
+  closeAllPickers();
+  if (wasOpen) return;
+  if (!el.dataset.filled) {
+    el.innerHTML = '<div class="sticker-grid">' +
+      STICKERS.map(function (e) { return '<span onclick="sendSticker(\'' + e + '\')">' + e + '</span>'; }).join('') +
+      '</div>';
+    el.dataset.filled = '1';
+  }
+  el.classList.add('open');
+}
+
+function insertEmoji(e) {
+  var inp = document.getElementById('msgInput');
+  inp.value += e;
+  closeAllPickers();
+  inp.focus();
+}
+
+async function sendSticker(emoji) {
+  closeAllPickers();
+  if (!active) return;
+  var meta = consumeReplyMeta();
+  var temp = { sender_id: me.id, content: emoji, kind: 'sticker', meta: meta };
+  var el = appendMsg(temp);
+  var r = await LWApp.sendMessage(active, emoji, 'sticker', meta);
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  patchSentId(el, temp, r);
+}
+
+var MAX_MEDIA_MB = 25;
+
+async function onMediaPicked(e) {
+  var file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file || !active) return;
+  if (file.size > MAX_MEDIA_MB * 1024 * 1024) { LWApp.toast('❌ ' + LWApp.esc(window.t('fileSizeErr')), 'error'); return; }
+  var kind = file.type.indexOf('video/') === 0 ? 'video' : 'image';
+
+  cancelReply();
+  LWApp.toast('⏳ ' + LWApp.esc(window.t('uploadingMsg')));
+  try {
+    var meta = await LWApp.uploadChatMedia(active, file);
+    var temp = { sender_id: me.id, content: file.name || '', kind: kind, meta: meta };
+    var el = appendMsg(temp);
+    var r = await LWApp.sendMessage(active, file.name || '', kind, meta);
+    if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+    patchSentId(el, temp, r);
+    LWApp.toast('✅ ' + LWApp.esc(window.t('sentMsg')));
+  } catch (er) {
+    LWApp.toast('❌ ' + LWApp.err(er), 'error');
+  }
+}
+
+async function onAudioPicked(e) {
+  var file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file || !active) return;
+  if (file.size > MAX_MEDIA_MB * 1024 * 1024) { LWApp.toast('❌ ' + LWApp.esc(window.t('fileSizeErr')), 'error'); return; }
+
+  cancelReply();
+  LWApp.toast('⏳ ' + LWApp.esc(window.t('uploadingMsg')));
+  try {
+    var meta = await LWApp.uploadChatMedia(active, file);
+    var temp = { sender_id: me.id, content: file.name || '', kind: 'audio', meta: meta };
+    var el = appendMsg(temp);
+    var r = await LWApp.sendMessage(active, file.name || '', 'audio', meta);
+    if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+    patchSentId(el, temp, r);
+    LWApp.toast('✅ ' + LWApp.esc(window.t('sentMsg')));
+  } catch (er) {
+    LWApp.toast('❌ ' + LWApp.err(er), 'error');
+  }
+}
+
+/* ---------- Spotify dedication ---------- */
+async function openDedication() {
+  // koi chat select na ho tab bhi Spotify browse/connect karne diya jaaye —
+  // sirf bhejne (sendDedication) ke waqt chat chuni honi zaroori hai
+  document.getElementById('dedmodal').classList.add('open');
+  var box = document.getElementById('dedBody');
+  box.innerHTML = '<div class="spinner">' + LWApp.esc(window.t('spotifyConnectingMsg')) + '</div>';
+
+  var r = await LW.spotifyApi('/me/playlists?limit=50');
+  if (r.error) {
+    box.innerHTML =
+      '<div class="empty"><span class="ic">🎧</span>' +
+      (r.error === 'no-token'
+        ? LWApp.esc(window.t('noTokenMsg'))
+        : LWApp.esc(window.t('tokenExpiredMsg'))) +
+      '<br><small class="muted">' + LWApp.esc(window.t('devModeHint')) + '</small>' +
+      '<br><br><button class="btn primary" onclick="LW.spotify()">🎵 ' + LWApp.esc(window.t('connectSpotifyBtn')) + '</button> ' +
+      '<button class="btn" onclick="closeDedication();openSongForm()">🎵 ' + LWApp.esc(window.t('shareSongInsteadBtn')) + '</button></div>';
+    return;
+  }
+  renderPlaylists((r.data && r.data.items) || []);
+}
+
+function renderPlaylists(items) {
+  var box = document.getElementById('dedBody');
+  if (!items.length) {
+    box.innerHTML = '<div class="empty"><span class="ic">🎧</span>' + LWApp.esc(window.t('noPlaylistsFound')) + '</div>';
+    return;
+  }
+  box.innerHTML = items.map(function (p) {
+    var img = (p.images && p.images[0] && p.images[0].url) || '';
+    var safeName = LWApp.esc(String(p.name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+    return '<div class="sp-item" onclick="openPlaylistTracks(\'' + p.id + '\',\'' + safeName + '\')">' +
+      (img ? '<img src="' + LWApp.esc(img) + '">' : '<div class="avatar sm">🎵</div>') +
+      '<div style="min-width:0"><b>' + LWApp.esc(p.name) + '</b><br><small class="muted">' +
+      (p.tracks ? p.tracks.total : 0) + ' ' + LWApp.esc(window.t('songsCountSuffix')) + '</small></div></div>';
+  }).join('');
+}
+
+async function openPlaylistTracks(playlistId, name) {
+  var box = document.getElementById('dedBody');
+  box.innerHTML = '<div class="spinner">"' + LWApp.esc(name) + '" ' + LWApp.esc(window.t('loading')) + '</div>';
+  var r = await LW.spotifyApi('/playlists/' + encodeURIComponent(playlistId) + '/tracks?limit=50');
+  if (r.error) { box.innerHTML = '<div class="empty"><span class="ic">🎧</span>' + LWApp.esc(window.t('loadFailedMsg')) + '</div>'; return; }
+
+  var tracks = ((r.data && r.data.items) || []).map(function (it) { return it.track; }).filter(Boolean);
+  if (!tracks.length) {
+    box.innerHTML = '<div class="empty"><span class="ic">🎧</span>' + LWApp.esc(window.t('noTracksInPlaylist')) + '</div>' +
+      '<div class="foot" style="justify-content:flex-start"><button class="btn" onclick="openDedication()">' + LWApp.esc(window.t('backToPlaylists')) + '</button></div>';
+    return;
+  }
+  box.innerHTML =
+    '<div class="foot" style="justify-content:flex-start;margin:0 0 8px">' +
+    '<button class="btn" onclick="openDedication()">' + LWApp.esc(window.t('backToPlaylists')) + '</button></div>' +
+    tracks.map(function (t) {
+      var img = (t.album && t.album.images && t.album.images[t.album.images.length - 1] && t.album.images[t.album.images.length - 1].url) || '';
+      var artists = (t.artists || []).map(function (a) { return a.name; }).join(', ');
+      return '<div class="sp-item" onclick="pickDedicationTrack(' + JSON.stringify({
+          title: t.name, artist: artists, url: (t.external_urls && t.external_urls.spotify) || ''
+        }).replace(/"/g, '&quot;') + ')">' +
+        (img ? '<img src="' + LWApp.esc(img) + '">' : '<div class="avatar sm">🎵</div>') +
+        '<div style="min-width:0"><b>' + LWApp.esc(t.name) + '</b><br><small class="muted">' + LWApp.esc(artists) + '</small></div></div>';
+    }).join('');
+}
+
+function pickDedicationTrack(track) {
+  var box = document.getElementById('dedBody');
+  box.innerHTML =
+    '<div class="sp-item" style="cursor:default"><div class="avatar sm">🎵</div>' +
+    '<div><b>' + LWApp.esc(track.title) + '</b><br><small class="muted">' + LWApp.esc(track.artist) + '</small></div></div>' +
+    '<label class="fl">' + LWApp.esc(window.t('dedicationNoteLabel')) + '</label>' +
+    '<input type="text" id="dedNote" placeholder="' + LWApp.esc(window.t('dedicationNotePh')) + '">' +
+    '<div class="foot"><button class="btn primary" onclick="sendDedication(' +
+      JSON.stringify(track).replace(/"/g, '&quot;') + ')">' + LWApp.esc(window.t('sendDedicationBtn')) + '</button></div>';
+}
+
+async function sendDedication(track) {
+  if (!active) {
+    LWApp.toast('❌ ' + LWApp.esc(window.t('pickChatFirstErr')), 'error');
+    return;
+  }
+  var note = (document.getElementById('dedNote') || {}).value || '';
+  var meta = { url: track.url, artist: track.artist, dedication: true };
+  if (note.trim()) meta.note = note.trim();
+
+  cancelReply();
+  var temp = { sender_id: me.id, content: track.title, kind: 'song', meta: meta };
+  var el = appendMsg(temp);
+  updateNowPlaying([temp]);
+  closeDedication();
+
+  var r = await LWApp.sendMessage(active, track.title, 'song', meta);
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  patchSentId(el, temp, r);
+  LWApp.toast(LWApp.esc(window.t('dedicationSentMsg')));
+}
+
+function closeDedication() { document.getElementById('dedmodal').classList.remove('open'); }
+
+async function sendSong() {
+  var title  = document.getElementById('sgTitle').value.trim();
+  var artist = document.getElementById('sgArtist').value.trim();
+  var url    = document.getElementById('sgUrl').value.trim();
+  if (!title || !active) { LWApp.toast(LWApp.esc(window.t('songNameRequiredErr')), 'error'); return; }
+
+  var btn = document.getElementById('sgBtn');
+  btn.disabled = true;
+
+  var meta = {}; if (artist) meta.artist = artist; if (url) meta.url = url;
+  var replyMeta = consumeReplyMeta();
+  if (replyMeta.reply_to) meta.reply_to = replyMeta.reply_to;
+  var msg = { sender_id: me.id, content: title, kind: 'song', meta: meta };
+  var el = appendMsg(msg);
+  if (url) updateNowPlaying([msg]);
+
+  var r = await LWApp.sendMessage(active, title, 'song', meta);
+  btn.disabled = false;
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  patchSentId(el, msg, r);
+
+  document.getElementById('sgTitle').value = '';
+  document.getElementById('sgArtist').value = '';
+  document.getElementById('sgUrl').value = '';
+  closeSongForm();
+  LWApp.toast(LWApp.esc(window.t('songSentMsg')));
+}
+
+function renderMsgs(rows) {
+  msgById = {};
+  rows.forEach(function (r) { if (r.id) msgById[r.id] = r; });
+  lastLoadedRows = rows;
+  var box = document.getElementById('msgs');
+  box.innerHTML = rows.length
+    ? rows.map(msgHtml).join('')
+    : '<div class="empty"><span class="ic">👋</span>' + LWApp.esc(window.t('noMessagesYet')) + '</div>';
+  box.scrollTop = box.scrollHeight;
+}
+
+// ek hi message ka translation aane par poori list re-render kiye bina
+// sirf usi bubble ko update karo (scroll/flicker na ho)
+function patchMsgDom(m) {
+  var el = m.id && document.getElementById('msg-' + m.id);
+  if (el) el.outerHTML = msgHtml(m);
+}
+
+function appendMsg(m) {
+  if (m.id) msgById[m.id] = m;
+  lastLoadedRows.push(m);
+  var box = document.getElementById('msgs');
+  var e = box.querySelector('.empty');
+  if (e) box.innerHTML = '';
+  box.insertAdjacentHTML('beforeend', msgHtml(m));
+  box.scrollTop = box.scrollHeight;
+  return box.lastElementChild;
+}
+
+// bhejne ke turant baad DOM bubble ko asli DB id mil jaaye (reactions/reply ke liye)
+function patchSentId(el, temp, r) {
+  if (el && r && r.data) {
+    temp.id = r.data.id;
+    temp.created_at = r.data.created_at;
+    msgById[r.data.id] = temp;
+    el.id = 'msg-' + r.data.id;
+  }
+}
+
+/* ---------- reactions ---------- */
+async function reactMsg(id, emoji) {
+  var pop = document.querySelector('.quick-react-pop');
+  if (pop) pop.remove();
+  var r = await LWApp.reactToMessage(id, emoji);
+  if (r && r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  await refreshReactionsFor([id]);
+}
+
+async function refreshReactionsFor(ids) {
+  var map = await LWApp.messageReactions(ids);
+  ids.forEach(function (id) {
+    msgReactions[id] = map[id] || [];
+    var el = document.getElementById('msg-' + id);
+    if (el && msgById[id]) el.outerHTML = msgHtml(msgById[id]);
+  });
+}
+
+function toggleQuickReact(id, btn) {
+  var existing = document.querySelector('.quick-react-pop');
+  var wasFor = existing ? existing.dataset.for : null;
+  if (existing) existing.remove();
+  if (String(wasFor) === String(id)) return;
+
+  var pop = document.createElement('div');
+  pop.className = 'quick-react-pop';
+  pop.dataset.for = id;
+  pop.innerHTML = QUICK_EMOJIS.map(function (e) {
+    return '<span onclick="reactMsg(' + id + ',\'' + e + '\')">' + e + '</span>';
+  }).join('');
+  btn.parentElement.appendChild(pop);
+}
+
+// touch devices par hover nahi hota — message tap karke tools (react/reply) dikhao
+document.addEventListener('click', function (e) {
+  var pop = document.querySelector('.quick-react-pop');
+  if (pop && !e.target.closest('.msg-tools') && !e.target.closest('.quick-react-pop')) pop.remove();
+
+  var msg = e.target.closest('.msg');
+  var onInteractive = e.target.closest('.msg-tools, .quick-react-pop, a, button, video, audio, img');
+  if (msg && !onInteractive) {
+    var already = msg.classList.contains('tools-visible');
+    document.querySelectorAll('.msg.tools-visible').forEach(function (m) { m.classList.remove('tools-visible'); });
+    if (!already) msg.classList.add('tools-visible');
+  } else if (!msg) {
+    document.querySelectorAll('.msg.tools-visible').forEach(function (m) { m.classList.remove('tools-visible'); });
+  }
+});
+
+/* ---------- reply / quote ---------- */
+function setReplyTo(id) {
+  var m = msgById[id];
+  if (!m) return;
+  var senderName = m.sender_id === me.id ? window.t('youLabel') : ((m.sender && (m.sender.full_name || m.sender.username)) || (activeOther && (activeOther.full_name || activeOther.username)) || window.t('unknownLabel'));
+  var snippet = m.content || { image: window.t('photoLabel'), video: window.t('videoLabel'), audio: window.t('audioLabel'), sticker: m.content, song: '🎵 ' + (m.content || window.t('songDefaultLabel')), gift: window.t('giftLabel') }[m.kind] || '';
+  replyingTo = { id: id, sender_name: senderName, content: snippet };
+  document.getElementById('replyBarText').textContent = senderName + ': ' + String(snippet).slice(0, 60);
+  document.getElementById('replyBar').style.display = 'flex';
+  document.getElementById('msgInput').focus();
+}
+
+function cancelReply() {
+  replyingTo = null;
+  var bar = document.getElementById('replyBar');
+  if (bar) bar.style.display = 'none';
+}
+
+function consumeReplyMeta() {
+  if (!replyingTo) return {};
+  var meta = { reply_to: replyingTo };
+  cancelReply();
+  return meta;
+}
+
+/* ---------- typing indicator ---------- */
+function handleInputTyping() {
+  if (!channel || !active || typingSendTimer) return;
+  LWApp.sendTyping(channel);
+  typingSendTimer = setTimeout(function () { typingSendTimer = null; }, 2000);
+}
+
+function onTypingReceived(payload) {
+  if (!payload || payload.user_id === me.id) return;
+  var who = (activeOther && (activeOther.full_name || activeOther.username)) || window.t('someoneLabel');
+  document.getElementById('typingWho').textContent = who;
+  document.getElementById('typingLine').style.display = 'flex';
+  clearTimeout(typingHideTimer);
+  typingHideTimer = setTimeout(function () { document.getElementById('typingLine').style.display = 'none'; }, 3000);
+}
+
+async function send() {
+  var input = document.getElementById('msgInput');
+  var text = input.value.trim();
+  if (!text || !active) return;
+  input.value = '';
+  clearTimeout(typingSendTimer); typingSendTimer = null;
+
+  var meta = consumeReplyMeta();
+  var temp = { sender_id: me.id, content: text, kind: 'text', meta: meta };
+  var el = appendMsg(temp);
+
+  var r = await LWApp.sendMessage(active, text, 'text', meta);
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  patchSentId(el, temp, r);
+}
+
+/* ---------- group ---------- */
+async function openGroupForm() {
+  document.getElementById('gmodal').classList.add('open');
+  var f = await LWApp.myFriends();
+  document.getElementById('gFriends').innerHTML = f.length
+    ? f.map(function (x) {
+        return '<label class="person" style="cursor:pointer">' +
+          '<input type="checkbox" value="' + x.id + '" style="width:auto">' +
+          LWApp.avatarHtml(x, 'sm') +
+          '<div class="who"><b>' + LWApp.esc(x.full_name || x.username) + '</b></div></label>';
+      }).join('')
+    : '<div class="muted">' + LWApp.esc(window.t('makeFriendsFirstMsg')) + '</div>';
+}
+
+function closeGroupForm() { document.getElementById('gmodal').classList.remove('open'); }
+
+async function makeGroup() {
+  var name = document.getElementById('gName').value.trim();
+  if (!name) { LWApp.toast(LWApp.esc(window.t('groupNameRequiredErr')), 'error'); return; }
+
+  var picked = Array.prototype.slice
+    .call(document.querySelectorAll('#gFriends input:checked'))
+    .map(function (i) { return i.value; });
+
+  if (!picked.length) { LWApp.toast(LWApp.esc(window.t('pickFriendErr')), 'error'); return; }
+
+  var btn = document.getElementById('gBtn');
+  btn.disabled = true; btn.textContent = window.t('creatingMsg');
+  try {
+    var cid = await LWApp.createGroup(name, picked, 'group');
+    LWApp.toast(LWApp.esc(window.t('groupCreatedMsg')));
+    closeGroupForm();
+    document.getElementById('gName').value = '';
+    await loadConvs(cid);
+  } catch (e) {
+    LWApp.toast('❌ ' + LWApp.err(e), 'error');
+  }
+  btn.disabled = false; btn.textContent = window.t('createBtn');
+}
+
+document.addEventListener('DOMContentLoaded', async function () {
+  if (!LW.configOk) { LWApp.toast('config.js me Supabase keys daalo.', 'error'); return; }
+  me = await LW.requireAuth();
+  if (!me) return;
+  LWApp.shell('chat');
+
+  var want = new URLSearchParams(location.search).get('c');
+  await loadConvs(want ? parseInt(want, 10) : null);
+  initSideRails();
+  initMiniPlayer();
+});
+</script>
+</body>
+</html>

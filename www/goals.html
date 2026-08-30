@@ -1,0 +1,290 @@
+﻿<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Goals & Gifts — Loveway</title>
+<link rel="stylesheet" href="lw-app.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="lw-core.js?v=2"></script>
+<script src="lw-app.js?v=2"></script>
+</head>
+<body data-theme="ocean">
+
+<header>
+  <h1>💕 Loveway</h1>
+  <div class="header-tools">
+    <a class="header-action" href="dashboard.html" data-icon="home" title="Home"></a>
+    <a class="header-action" href="friends.html" data-icon="friends" title="Dost"></a>
+    <button class="header-action" onclick="LW.logout()" data-icon="logout" title="Log out"></button>
+  </div>
+</header>
+
+<div class="container">
+  <div id="alertBox" class="alert"></div>
+
+  <div class="page-head">
+    <h2 data-i18n="goalsPageTitle">🎯 Goals &amp; Gifts</h2>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="tabs">
+        <div class="tab active" onclick="showTab('goals',this)" data-i18n="goalsTabLabel">🎯 Goals</div>
+        <div class="tab" onclick="showTab('gifts',this)" data-i18n="giftsTabLabel">🎁 Gifts</div>
+      </div>
+
+      <!-- goals -->
+      <div id="tab-goals">
+        <div class="card">
+          <h3 data-i18n="goalsNewGoalHeading">➕ Naya goal</h3>
+          <input type="text" id="gTitle" placeholder="Roz 30 min padhna, gym jaana…" data-i18n-placeholder="goalsTitlePh">
+          <div class="row-2" style="margin-top:12px">
+            <select id="gKind">
+              <option value="daily" data-i18n="goalsDaily">Rozana</option>
+              <option value="weekly" data-i18n="goalsWeekly">Hafte mein</option>
+              <option value="once" data-i18n="goalsOnce">Ek baar</option>
+            </select>
+            <input type="date" id="gDate" title="Target date" data-i18n-title="goalsTargetDateTitle">
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.86rem">
+            <input type="checkbox" id="gPublic" style="width:auto"> <span data-i18n="goalsPublicLabel">Doston ko dikhe</span>
+          </label>
+          <button class="btn primary" id="gBtn" onclick="addGoal()" style="margin-top:14px" data-i18n="goalsAddBtn">Goal jodo</button>
+        </div>
+
+        <div class="card" id="goalList"><div class="spinner" data-i18n="loading">Load…</div></div>
+      </div>
+
+      <!-- gifts -->
+      <div id="tab-gifts" style="display:none">
+        <div class="card">
+          <h3 data-i18n="goalsSendGiftHeading">🎁 Gift bhejo</h3>
+          <label class="fl" data-i18n="goalsToWhomLabel">Kisko?</label>
+          <select id="giftTo"><option value="" data-i18n="goalsPickFriendOption">— dost chuno —</option></select>
+          <div class="row-2" style="margin-top:12px">
+            <select id="giftKind">
+              <option value="gift" data-i18n="goalsKindGift">🎁 Gift</option>
+              <option value="restaurant" data-i18n="goalsKindRestaurant">🍽️ Restaurant / outing</option>
+              <option value="song" data-i18n="goalsKindSong">🎵 Gaana</option>
+              <option value="flower" data-i18n="goalsKindFlower">🌹 Phool</option>
+              <option value="card" data-i18n="goalsKindCard">💌 Card</option>
+            </select>
+            <input type="text" id="giftTitle" placeholder="Kya bhej rahe ho" data-i18n-placeholder="goalsGiftTitlePh">
+          </div>
+          <label class="fl" data-i18n="goalsMessageLabel">Message</label>
+          <textarea id="giftMsg" rows="2" placeholder="Kuch pyaara likho…" data-i18n-placeholder="goalsGiftMsgPh"></textarea>
+          <button class="btn primary" id="giftBtn" onclick="send()" style="margin-top:14px" data-i18n="sendBtn">Bhejo</button>
+        </div>
+
+        <div class="card" id="giftList"><div class="spinner" data-i18n="loading">Load…</div></div>
+      </div>
+    </div>
+
+    <!-- streak sidebar -->
+    <div>
+      <div class="card">
+        <h3 data-i18n="goalsMyStreakHeading">🔥 Meri chain</h3>
+        <div class="streak-big" id="stNow">0</div>
+        <div class="streak-lbl" data-i18n="goalsStreakDaysLabel">din ki chain chal rahi hai</div>
+        <div class="stats">
+          <div><b id="stBest">0</b><span data-i18n="goalsLongestLabel">Sabse lambi</span></div>
+          <div><b id="stLast">—</b><span data-i18n="goalsLastDayLabel">Aakhri din</span></div>
+        </div>
+        <div class="muted" style="margin-top:14px;line-height:1.7">
+          <span data-i18n="goalsStreakInfoPre">Chain roz badhti hai jab tum</span> <b data-i18n="goalsStreakInfoAction1">post karte ho</b> <span data-i18n="or">ya</span> <b data-i18n="goalsStreakInfoAction2">koi goal check-in karte ho</b><span data-i18n="goalsStreakInfoPost">.
+          Ek din chhoot gaya to wapas 1 se shuru.</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 data-i18n="goalsTodayHeading">📅 Aaj ka hisaab</h3>
+        <div id="todayBox" class="muted" data-i18n="loading">Load…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var me = null, allGoals = [], friends = [];
+
+function showTab(name, el) {
+  document.getElementById('tab-goals').style.display = (name === 'goals') ? '' : 'none';
+  document.getElementById('tab-gifts').style.display = (name === 'gifts') ? '' : 'none';
+  document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+  el.classList.add('active');
+  if (name === 'gifts') loadGifts();
+}
+
+async function loadGoals() {
+  allGoals = await LWApp.goals();
+  var active = allGoals.filter(function (g) { return g.status === 'active'; });
+  var done   = allGoals.filter(function (g) { return g.status !== 'active'; });
+
+  var html = '';
+  if (active.length) {
+    html += '<h3>' + window.t('goalsActiveHeading') + '</h3>' + active.map(goalHtml).join('');
+  }
+  if (done.length) {
+    html += '<h3 style="margin-top:20px">' + window.t('goalsCompletedHeading') + '</h3>' + done.map(goalHtml).join('');
+  }
+  document.getElementById('goalList').innerHTML = html ||
+    '<div class="empty"><span class="ic">🎯</span>' + window.t('goalsEmptyMsg') + '</div>';
+
+  var pending = active.filter(function (g) { return !g.done_today; }).length;
+  document.getElementById('todayBox').innerHTML = active.length
+    ? (pending
+        ? '⏳ <b>' + pending + '</b>' + window.t('goalsPendingSuffix') + '<br><span class="muted">' + window.t('goalsPendingHint') + '</span>'
+        : window.t('goalsAllDoneMsg'))
+    : window.t('goalsNoActiveMsg');
+}
+
+function goalHtml(g) {
+  var acts = '';
+  if (g.status === 'active') {
+    acts += g.done_today
+      ? '<span class="chip">' + window.t('doneTodayLabel') + '</span>'
+      : '<button class="btn sm primary" onclick="checkin(' + g.id + ')">' + window.t('goalsCheckinBtn') + '</button>';
+    acts += '<button class="btn sm" onclick="finish(' + g.id + ')">' + window.t('goalsFinishBtn') + '</button>';
+  }
+  acts += '<button class="btn sm danger" onclick="removeGoal(' + g.id + ')">🗑</button>';
+
+  return '<div class="person"><div class="who"><b>' +
+    (g.status === 'done' ? '✅ ' : '🎯 ') + LWApp.esc(g.title) + '</b>' +
+    '<small>' + g.kind + ' · ' + g.checkin_count + window.t('goalsCheckinSuffix') +
+    (g.target_date ? ' · 🗓 ' + g.target_date : '') +
+    (g.is_public ? ' · 👁 ' + window.t('goalsPublicSuffix') : '') + '</small></div>' +
+    '<div class="acts">' + acts + '</div></div>';
+}
+
+async function addGoal() {
+  var title = document.getElementById('gTitle').value.trim();
+  if (title.length < 2) { LWApp.toast(window.t('goalsWriteGoalErr'), 'error'); return; }
+
+  var btn = document.getElementById('gBtn');
+  btn.disabled = true;
+
+  var r = await LWApp.createGoal({
+    title: title,
+    kind: document.getElementById('gKind').value,
+    target_date: document.getElementById('gDate').value || null,
+    is_public: document.getElementById('gPublic').checked
+  });
+
+  btn.disabled = false;
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+
+  document.getElementById('gTitle').value = '';
+  LWApp.toast(window.t('goalsAddedMsg'));
+  loadGoals();
+}
+
+async function checkin(id) {
+  var r = await LWApp.checkinGoal(id);
+  if (r.error) {
+    var m = LWApp.err(r.error);
+    LWApp.toast(/duplicate|unique/i.test(m) ? window.t('goalsAlreadyCheckedInMsg') : '❌ ' + m, 'warning');
+    return;
+  }
+  LWApp.toast(window.t('goalsCheckinDoneMsg'));
+  loadGoals();
+  loadStreak();
+}
+
+async function finish(id) {
+  var r = await LWApp.updateGoal(id, { status: 'done' });
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  LWApp.toast(window.t('goalsCongratsMsg'));
+  loadGoals();
+}
+
+async function removeGoal(id) {
+  if (!confirm(window.t('goalsDeleteConfirm'))) return;
+  var r = await LWApp.deleteGoal(id);
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  loadGoals();
+}
+
+var DATE_LOCALE = { en: 'en-IN', hi: 'hi-IN', braj: 'hi-IN', raj: 'hi-IN', bho: 'hi-IN', hyd: 'hi-IN', mr: 'mr-IN', ta: 'ta-IN', te: 'te-IN', bn: 'bn-IN', pa: 'pa-IN', gu: 'gu-IN' };
+
+async function loadStreak() {
+  var s = await LWApp.myStreak();
+  document.getElementById('stNow').textContent  = (s.current_count || 0) + ' 🔥';
+  document.getElementById('stBest').textContent = s.longest_count || 0;
+  var locale = DATE_LOCALE[window.LW_CURRENT] || 'en-IN';
+  document.getElementById('stLast').textContent = s.last_day
+    ? new Date(s.last_day).toLocaleDateString(locale, { day: 'numeric', month: 'short' })
+    : '—';
+}
+
+async function loadGifts() {
+  var rows = await LWApp.gifts();
+  var ICON = { gift: '🎁', restaurant: '🍽️', song: '🎵', flower: '🌹', card: '💌' };
+
+  document.getElementById('giftList').innerHTML = rows.length
+    ? rows.map(function (g) {
+        var other = g.incoming ? g.sender : g.receiver;
+        return '<div class="person">' + LWApp.avatarHtml(other, 'sm') +
+          '<div class="who"><b>' + (ICON[g.kind] || '🎁') + ' ' + LWApp.esc(g.title) + '</b>' +
+          '<small>' + (g.incoming ? window.t('goalsFromLabel') : window.t('goalsToLabel')) +
+          LWApp.esc(other.full_name || other.username || '—') + ' · ' +
+          LWApp.timeAgo(g.created_at) + '</small>' +
+          (g.message ? '<div class="muted" style="margin-top:4px">' +
+            LWApp.esc(g.message) + '</div>' : '') + '</div>' +
+          (g.incoming && !g.opened_at
+            ? '<div class="acts"><button class="btn sm primary" onclick="open_(' + g.id + ')">' + window.t('goalsOpenBtn') + '</button></div>'
+            : '') + '</div>';
+      }).join('')
+    : '<div class="empty"><span class="ic">🎁</span>' + window.t('goalsNoGiftsMsg') + '</div>';
+}
+
+async function open_(id) {
+  await LWApp.openGift(id);
+  LWApp.toast(window.t('goalsGiftOpenedMsg'));
+  loadGifts();
+}
+
+async function send() {
+  var to = document.getElementById('giftTo').value;
+  var title = document.getElementById('giftTitle').value.trim();
+  if (!to) { LWApp.toast(window.t('goalsPickRecipientErr'), 'error'); return; }
+  if (!title) { LWApp.toast(window.t('goalsGiftNameErr'), 'error'); return; }
+
+  var btn = document.getElementById('giftBtn');
+  btn.disabled = true;
+
+  var r = await LWApp.sendGift({
+    receiver_id: to,
+    kind: document.getElementById('giftKind').value,
+    title: title,
+    message: document.getElementById('giftMsg').value.trim() || null
+  });
+
+  btn.disabled = false;
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+
+  document.getElementById('giftTitle').value = '';
+  document.getElementById('giftMsg').value = '';
+  LWApp.toast(window.t('goalsGiftSentMsg'));
+  loadGifts();
+}
+
+document.addEventListener('DOMContentLoaded', async function () {
+  if (!LW.configOk) { LWApp.toast('config.js me Supabase keys daalo.', 'error'); return; }
+  me = await LW.requireAuth();
+  if (!me) return;
+  LWApp.shell('profile');
+
+  friends = await LWApp.myFriends();
+  document.getElementById('giftTo').innerHTML = '<option value="">' + window.t('goalsPickFriendOption') + '</option>' +
+    friends.map(function (f) {
+      return '<option value="' + f.id + '">' + LWApp.esc(f.full_name || f.username) + '</option>';
+    }).join('');
+
+  loadGoals();
+  loadStreak();
+});
+</script>
+</body>
+</html>

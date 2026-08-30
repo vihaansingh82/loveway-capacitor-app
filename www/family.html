@@ -1,0 +1,301 @@
+﻿<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Family — Loveway</title>
+<link rel="stylesheet" href="lw-app.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="lw-core.js?v=2"></script>
+<script src="lw-app.js?v=2"></script>
+</head>
+<body data-theme="ocean">
+
+<header>
+  <h1>💕 Loveway</h1>
+  <div class="header-tools">
+    <a class="header-action" href="dashboard.html" data-icon="home" title="Home"></a>
+    <a class="header-action" href="profile.html" data-icon="profile" title="Profile"></a>
+    <button class="header-action" onclick="LW.logout()" data-icon="logout" title="Log out"></button>
+  </div>
+</header>
+
+<div class="container">
+  <div id="alertBox" class="alert"></div>
+
+  <div class="page-head">
+    <h2 data-i18n="familyPageTitle">🌳 Mera parivaar</h2>
+    <span class="spacer"></span>
+    <button class="btn primary" onclick="openForm()" data-i18n="addFamilyMemberBtn">+ Member jodo</button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('chart',this)" data-i18n="familyChartTab">📊 Family Chart</div>
+    <div class="tab" onclick="showTab('list',this)" data-i18n="familyListTab">📋 List</div>
+  </div>
+
+  <div id="tab-chart">
+    <div class="card">
+      <div class="muted" style="margin-bottom:10px" data-i18n="familyChartHint">
+        Chart tabhi banta hai jab members mein "kiska beta/beti" (parent) set ho.
+        Sabse upar wale ko parent mat do — wahi jad (root) ban jaayega.
+      </div>
+      <div class="tree" id="tree"><div class="spinner" data-i18n="loading">Load ho raha hai…</div></div>
+    </div>
+  </div>
+
+  <div id="tab-list" style="display:none">
+    <div class="card" id="memberList"><div class="spinner" data-i18n="loading">Load ho raha hai…</div></div>
+  </div>
+</div>
+
+<!-- add/edit modal -->
+<div class="modal-bg" id="fmodal" onclick="if(event.target===this)closeForm()">
+  <div class="modal">
+    <h3 id="mTitle" data-i18n="addFamilyMemberModalTitle">Family member jodo</h3>
+    <input type="hidden" id="mId">
+
+    <label class="fl" data-i18n="name">Naam</label>
+    <input type="text" id="mName" placeholder="Poora naam" data-i18n-placeholder="familyNamePh">
+
+    <div class="row-2">
+      <div>
+        <label class="fl" data-i18n="familyRelationLabel">Rishta</label>
+        <select id="mRel">
+          <option value="self" data-i18n="familyRelSelf">Main khud</option>
+          <option value="father" data-i18n="familyRelFather">Pita</option>
+          <option value="mother" data-i18n="familyRelMother">Maa</option>
+          <option value="brother" data-i18n="familyRelBrother">Bhai</option>
+          <option value="sister" data-i18n="familyRelSister">Behen</option>
+          <option value="spouse" data-i18n="familyRelSpouse">Pati / Patni</option>
+          <option value="son" data-i18n="familyRelSon">Beta</option>
+          <option value="daughter" data-i18n="familyRelDaughter">Beti</option>
+          <option value="grandfather" data-i18n="familyRelGrandfather">Dada / Nana</option>
+          <option value="grandmother" data-i18n="familyRelGrandmother">Dadi / Nani</option>
+          <option value="grandson" data-i18n="familyRelGrandson">Pota / Nawasa</option>
+          <option value="granddaughter" data-i18n="familyRelGranddaughter">Poti / Nawasi</option>
+          <option value="uncle" data-i18n="familyRelUncle">Chacha / Mama</option>
+          <option value="aunt" data-i18n="familyRelAunt">Chachi / Mami</option>
+          <option value="cousin" data-i18n="familyRelCousin">Cousin</option>
+          <option value="nephew" data-i18n="familyRelNephew">Bhatija</option>
+          <option value="niece" data-i18n="familyRelNiece">Bhatiji</option>
+          <option value="father_in_law" data-i18n="familyRelFatherInLaw">Sasur</option>
+          <option value="mother_in_law" data-i18n="familyRelMotherInLaw">Saas</option>
+          <option value="other" data-i18n="familyRelOther">Aur koi</option>
+        </select>
+      </div>
+      <div>
+        <label class="fl" data-i18n="gender">Gender</label>
+        <select id="mGender">
+          <option value="">—</option>
+          <option value="male" data-i18n="familyGenderMale">Purush</option>
+          <option value="female" data-i18n="familyGenderFemale">Mahila</option>
+          <option value="other" data-i18n="familyGenderOther">Anya</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row-2">
+      <div><label class="fl" data-i18n="dob">Janam din</label><input type="date" id="mDob"></div>
+      <div><label class="fl" data-i18n="familyPhotoUrlLabel">Photo URL</label><input type="text" id="mPhoto"></div>
+    </div>
+
+    <label class="fl" data-i18n="familyParentFieldLabel">Kiska beta / beti hai? (chart ke liye)</label>
+    <select id="mParent"><option value="" data-i18n="familyNoParentOption">— koi nahi (sabse upar) —</option></select>
+
+    <label class="fl" data-i18n="familyLovewayUsernameLabel">Loveway par hai? (username)</label>
+    <input type="text" id="mUser" placeholder="@username — optional" data-i18n-placeholder="familyUsernamePh">
+
+    <label class="fl" data-i18n="noteFieldLabel">Note</label>
+    <textarea id="mNotes" rows="2"></textarea>
+
+    <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:.86rem">
+      <input type="checkbox" id="mPublic" style="width:auto"> <span data-i18n="goalsPublicLabel">Doston ko dikhe</span>
+    </label>
+
+    <div class="foot">
+      <button class="btn danger" id="delBtn" style="display:none" onclick="removeMember()" data-i18n="deleteTitle">Delete</button>
+      <button class="btn" onclick="closeForm()" data-i18n="cancelBtn">Cancel</button>
+      <button class="btn primary" id="saveBtn" onclick="save()" data-i18n="saveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var me = null, members = [];
+
+function showTab(name, el) {
+  document.getElementById('tab-chart').style.display = (name === 'chart') ? '' : 'none';
+  document.getElementById('tab-list').style.display  = (name === 'list')  ? '' : 'none';
+  document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+  el.classList.add('active');
+}
+
+var REL_KEY = {
+  self: 'familyRelSelf', father: 'familyRelFather', mother: 'familyRelMother', brother: 'familyRelBrother', sister: 'familyRelSister',
+  spouse: 'familyRelSpouse', son: 'familyRelSon', daughter: 'familyRelDaughter', grandfather: 'familyRelGrandfather',
+  grandmother: 'familyRelGrandmother', grandson: 'familyRelGrandson', granddaughter: 'familyRelGranddaughter',
+  uncle: 'familyRelUncle', aunt: 'familyRelAunt', cousin: 'familyRelCousin', nephew: 'familyRelNephew',
+  niece: 'familyRelNiece', father_in_law: 'familyRelFatherInLaw', mother_in_law: 'familyRelMotherInLaw', other: 'familyRelOther'
+};
+function relLabel(rel) {
+  return (REL_KEY[rel] && window.t(REL_KEY[rel])) || rel;
+}
+
+function nodeIcon(m) {
+  if (m.photo_url) return '<div class="avatar sm"><img src="' + LWApp.esc(m.photo_url) + '" alt=""></div>';
+  var e = m.gender === 'female' ? '👩' : (m.gender === 'male' ? '👨' : '🧑');
+  return '<div style="font-size:1.5rem">' + e + '</div>';
+}
+
+// nested <ul> tree banao
+function buildTree(rows) {
+  var byId = {}, roots = [];
+  rows.forEach(function (r) { byId[r.id] = Object.assign({}, r, { kids: [] }); });
+  rows.forEach(function (r) {
+    if (r.parent_id && byId[r.parent_id]) byId[r.parent_id].kids.push(byId[r.id]);
+    else roots.push(byId[r.id]);
+  });
+
+  function node(n) {
+    var h = '<li><div class="tree-node" onclick="editById(' + n.id + ')">' +
+            nodeIcon(n) + '<b>' + LWApp.esc(n.name || '—') + '</b>' +
+            '<small>' + LWApp.esc(relLabel(n.relation)) + '</small></div>';
+    if (n.kids.length) {
+      h += '<ul>' + n.kids.map(node).join('') + '</ul>';
+    }
+    return h + '</li>';
+  }
+
+  if (!roots.length) return '';
+  return '<ul>' + roots.map(node).join('') + '</ul>';
+}
+
+// language switch par date bhi usi bhaasha ke script mein dikhe (Devanagari ke liye 'hi-IN', warna 'en-IN')
+var DATE_LOCALE = { en: 'en-IN', hi: 'hi-IN', braj: 'hi-IN', raj: 'hi-IN', bho: 'hi-IN', hyd: 'hi-IN', mr: 'mr-IN', ta: 'ta-IN', te: 'te-IN', bn: 'bn-IN', pa: 'pa-IN', gu: 'gu-IN' };
+
+async function load() {
+  members = await LWApp.familyList();
+  var locale = DATE_LOCALE[window.LW_CURRENT] || 'en-IN';
+
+  // chart
+  var tree = await LWApp.familyTree();
+  var html = buildTree(tree);
+  document.getElementById('tree').innerHTML = html ||
+    '<div class="empty"><span class="ic">🌳</span>' + LWApp.esc(window.t('familyTreeEmptyTitle')) + '<br>' +
+    LWApp.esc(window.t('familyTreeEmptySub')) + '</div>';
+
+  // list
+  document.getElementById('memberList').innerHTML = members.length
+    ? members.map(function (m) {
+        return '<div class="person">' + nodeIcon(m) +
+          '<div class="who"><b>' + LWApp.esc(m.full_name || '—') + '</b>' +
+          '<small>' + LWApp.esc(relLabel(m.relation)) +
+          (m.dob ? ' · 🎂 ' + new Date(m.dob).toLocaleDateString(locale, { day: 'numeric', month: 'short' }) : '') +
+          (m.is_public ? ' · ' + window.t('familyPublicChip') : '') + '</small></div>' +
+          '<div class="acts"><button class="btn sm" onclick="editById(' + m.id + ')">' + LWApp.esc(window.t('familyEditBtn')) + '</button></div></div>';
+      }).join('')
+    : '<div class="empty"><span class="ic">📋</span>' + LWApp.esc(window.t('familyListEmpty')) + '</div>';
+
+  // parent dropdown
+  var sel = document.getElementById('mParent');
+  sel.innerHTML = '<option value="">' + LWApp.esc(window.t('familyNoParentOption')) + '</option>' +
+    members.map(function (m) {
+      return '<option value="' + m.id + '">' + LWApp.esc(m.full_name || '—') +
+             ' (' + LWApp.esc(relLabel(m.relation)) + ')</option>';
+    }).join('');
+}
+
+function openForm(m) {
+  document.getElementById('mTitle').textContent = m ? window.t('familyEditModalTitle') : window.t('addFamilyMemberModalTitle');
+  document.getElementById('mId').value     = m ? m.id : '';
+  document.getElementById('mName').value   = m ? (m.full_name || '') : '';
+  document.getElementById('mRel').value    = m ? m.relation : 'father';
+  document.getElementById('mGender').value = m ? (m.gender || '') : '';
+  document.getElementById('mDob').value    = m ? (m.dob || '') : '';
+  document.getElementById('mPhoto').value  = m ? (m.photo_url || '') : '';
+  document.getElementById('mNotes').value  = m ? (m.notes || '') : '';
+  document.getElementById('mPublic').checked = m ? !!m.is_public : false;
+  document.getElementById('mUser').value   = '';
+  document.getElementById('delBtn').style.display = m ? '' : 'none';
+
+  // apne aap ko parent nahi bana sakte
+  var sel = document.getElementById('mParent');
+  Array.prototype.forEach.call(sel.options, function (o) {
+    o.disabled = m && String(m.id) === o.value;
+  });
+  sel.value = m && m.parent_id ? String(m.parent_id) : '';
+
+  document.getElementById('fmodal').classList.add('open');
+}
+
+function editById(id) {
+  var m = members.filter(function (x) { return x.id === id; })[0];
+  if (m) openForm(m);
+}
+
+function closeForm() { document.getElementById('fmodal').classList.remove('open'); }
+
+async function save() {
+  var name = document.getElementById('mName').value.trim();
+  if (!name) { LWApp.toast(window.t('familyNameRequiredErr'), 'error'); return; }
+
+  var btn = document.getElementById('saveBtn');
+  btn.disabled = true; btn.textContent = window.t('savingMsg');
+
+  var m = {
+    full_name: name,
+    relation:  document.getElementById('mRel').value,
+    gender:    document.getElementById('mGender').value || null,
+    dob:       document.getElementById('mDob').value || null,
+    photo_url: document.getElementById('mPhoto').value.trim() || null,
+    notes:     document.getElementById('mNotes').value.trim() || null,
+    parent_id: document.getElementById('mParent').value || null,
+    is_public: document.getElementById('mPublic').checked
+  };
+  if (m.parent_id) m.parent_id = parseInt(m.parent_id, 10);
+
+  var id = document.getElementById('mId').value;
+  if (id) m.id = parseInt(id, 10);
+
+  var uname = document.getElementById('mUser').value.trim().replace(/^@/, '');
+  if (uname) {
+    var o = await LWApp.publicProfile(uname);
+    if (o) m.profile_id = o.id;
+    else LWApp.toast('"' + uname + window.t('familyUserNotFoundWarnSuffix'), 'warning');
+  }
+
+  var r = await LWApp.saveFamilyMember(m);
+  btn.disabled = false; btn.textContent = window.t('saveBtn');
+
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  LWApp.toast(window.t('familyMemberSavedMsg'));
+  closeForm();
+  load();
+}
+
+async function removeMember() {
+  var id = document.getElementById('mId').value;
+  if (!id || !confirm(window.t('familyDeleteConfirm'))) return;
+  var r = await LWApp.deleteFamilyMember(parseInt(id, 10));
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  LWApp.toast(window.t('familyMemberRemovedMsg'));
+  closeForm();
+  load();
+}
+
+document.addEventListener('DOMContentLoaded', async function () {
+  if (!LW.configOk) { LWApp.toast('config.js me Supabase keys daalo.', 'error'); return; }
+  me = await LW.requireAuth();
+  if (!me) return;
+  LWApp.shell('profile');
+  load();
+});
+
+document.addEventListener('lw:language', function () {
+  if (me) load();
+});
+</script>
+</body>
+</html>

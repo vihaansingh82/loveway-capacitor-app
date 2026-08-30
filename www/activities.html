@@ -1,0 +1,230 @@
+﻿<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activity Board — Loveway</title>
+<link rel="stylesheet" href="lw-app.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="lw-core.js?v=2"></script>
+<script src="lw-app.js?v=2"></script>
+</head>
+<body data-theme="ocean">
+
+<header>
+  <h1>💕 Loveway</h1>
+  <div class="header-tools">
+    <a class="header-action" href="dashboard.html" data-icon="home" title="Home"></a>
+    <a class="header-action" href="community.html" data-icon="community" title="Community"></a>
+    <button class="header-action" onclick="LW.logout()" data-icon="logout" title="Log out"></button>
+  </div>
+</header>
+
+<div class="container">
+  <div id="alertBox" class="alert"></div>
+
+  <div class="page-head">
+    <h2 data-i18n="activitiesPageTitle">📌 Activity Board</h2>
+    <span class="spacer"></span>
+    <button class="btn primary" onclick="openForm()" data-i18n="activitiesNewBtn">+ Activity post karo</button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="setTab('upcoming',this)" data-i18n="activitiesTabUpcoming">🗓️ Aane wali</div>
+    <div class="tab" onclick="setTab('going',this)" data-i18n="activitiesTabGoing">✅ Main ja raha hoon</div>
+    <div class="tab" onclick="setTab('mine',this)" data-i18n="activitiesTabMine">🎤 Meri banayi</div>
+    <div class="tab" onclick="setTab('all',this)" data-i18n="tabAll">Sab</div>
+  </div>
+
+  <div class="grid-3" id="list"><div class="spinner" data-i18n="loading">Load ho raha hai…</div></div>
+</div>
+
+<!-- create modal -->
+<div class="modal-bg" id="amodal" onclick="if(event.target===this)closeForm()">
+  <div class="modal">
+    <h3 data-i18n="activitiesNewModalTitle">Nayi activity</h3>
+
+    <label class="fl" data-i18n="activitiesWhatLabel">Kya kar rahe ho?</label>
+    <input type="text" id="aTitle" placeholder="Sunday cricket, Chai meetup, Dinner…" data-i18n-placeholder="activitiesTitlePh">
+
+    <label class="fl" data-i18n="activitiesDetailLabel">Detail</label>
+    <textarea id="aDesc" rows="3" placeholder="Kis liye, kya laana hai, kitna kharcha…" data-i18n-placeholder="activitiesDescPh"></textarea>
+
+    <div class="row-2">
+      <div><label class="fl" data-i18n="locationFieldLabel">Jagah</label><input type="text" id="aLoc" placeholder="Park, cafe ka naam" data-i18n-placeholder="activitiesLocPh"></div>
+      <div><label class="fl" data-i18n="activitiesCityLabel">Shehar</label><input type="text" id="aCity"></div>
+    </div>
+
+    <div class="row-2">
+      <div><label class="fl" data-i18n="activitiesStartLabel">Kab shuru</label><input type="datetime-local" id="aStart"></div>
+      <div><label class="fl" data-i18n="activitiesCapLabel">Kitne log (optional)</label><input type="number" id="aCap" min="1"></div>
+    </div>
+
+    <label class="fl" data-i18n="activitiesCommLabel">Community (optional)</label>
+    <select id="aComm"><option value="" data-i18n="activitiesNoCommOpt">— koi nahi, sabke liye —</option></select>
+
+    <div class="foot">
+      <button class="btn" onclick="closeForm()" data-i18n="cancelBtn">Cancel</button>
+      <button class="btn primary" id="aBtn" onclick="create()" data-i18n="postSubmit">Post karo</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var me = null, rows = [], tab = 'upcoming', commNames = {};
+
+function setTab(t, el) {
+  tab = t;
+  document.querySelectorAll('.tab').forEach(function (x) { x.classList.remove('active'); });
+  el.classList.add('active');
+  render();
+}
+
+var DATE_LOCALE = { en: 'en-IN', hi: 'hi-IN', braj: 'hi-IN', raj: 'hi-IN', bho: 'hi-IN', hyd: 'hi-IN', mr: 'mr-IN', ta: 'ta-IN', te: 'te-IN', bn: 'bn-IN', pa: 'pa-IN', gu: 'gu-IN' };
+
+function when(a) {
+  if (!a.starts_at) return window.t('activitiesNoTimeMsg');
+  var d = new Date(a.starts_at);
+  var locale = DATE_LOCALE[window.LW_CURRENT] || 'en-IN';
+  return d.toLocaleString(locale, {
+    weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+  });
+}
+
+function render() {
+  var list = rows.filter(function (a) {
+    if (tab === 'all')   return true;
+    if (tab === 'mine')  return a.host_id === me.id;
+    if (tab === 'going') return a.my_status === 'going';
+    return !a.starts_at || new Date(a.starts_at) >= new Date();
+  });
+
+  var el = document.getElementById('list');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty" style="grid-column:1/-1"><span class="ic">📌</span>' +
+      LWApp.esc(window.t('activitiesEmptyTitle')) + '<br>' + LWApp.esc(window.t('activitiesEmptySub')) + '</div>';
+    return;
+  }
+
+  el.innerHTML = list.map(function (a) {
+    var full = a.capacity && a.going_count >= a.capacity;
+    var mine = a.host_id === me.id;
+    var going = a.my_status === 'going';
+
+    var btn = mine
+      ? '<span class="chip">' + LWApp.esc(window.t('activitiesYourChip')) + '</span>'
+      : (going
+          ? '<button class="btn sm danger" onclick="leaveA(' + a.id + ')">' + LWApp.esc(window.t('cancelBtn')) + '</button>'
+          : (full
+              ? '<span class="chip">' + LWApp.esc(window.t('activitiesFullChip')) + '</span>'
+              : '<button class="btn sm primary" onclick="joinA(' + a.id + ')">' + LWApp.esc(window.t('activitiesJoinBtn')) + '</button>'));
+
+    return '<div class="card" style="margin:0">' +
+      '<h3>📌 ' + LWApp.esc(a.title) + '</h3>' +
+      '<div class="muted">🗓️ ' + when(a) + '</div>' +
+      (a.location ? '<div class="muted">📍 ' + LWApp.esc(a.location) +
+        (a.city ? ', ' + LWApp.esc(a.city) : '') + '</div>' : '') +
+      (a.community_id && commNames[a.community_id]
+        ? '<div class="muted">🏘️ ' + LWApp.esc(commNames[a.community_id]) + '</div>' : '') +
+      '<div class="muted" style="margin:9px 0;min-height:32px">' +
+      LWApp.esc((a.description || '').slice(0, 100)) + '</div>' +
+      '<div class="muted" style="font-size:.8rem">👤 ' +
+      LWApp.esc(a.host.full_name || a.host.username || '—') + ' · ✅ ' +
+      a.going_count + (a.capacity ? '/' + a.capacity : '') + ' ' + LWApp.esc(window.t('activitiesGoingSuffix')) + '</div>' +
+      '<div style="margin-top:11px;display:flex;gap:8px;flex-wrap:wrap">' + btn +
+      (mine ? '' : '<button class="btn sm" onclick="interested(' + a.id + ')">' + LWApp.esc(window.t('activitiesMaybeBtn')) + '</button>') +
+      '</div></div>';
+  }).join('');
+}
+
+async function load() {
+  rows = await LWApp.activities({});
+  render();
+}
+
+async function joinA(id) {
+  var r = await LWApp.joinActivity(id, 'going');
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  LWApp.toast(window.t('activitiesJoinedMsg'));
+  load();
+}
+
+async function interested(id) {
+  var r = await LWApp.joinActivity(id, 'interested');
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  LWApp.toast(window.t('activitiesNotedMsg'));
+  load();
+}
+
+async function leaveA(id) {
+  var r = await LWApp.leaveActivity(id);
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  LWApp.toast(window.t('activitiesCancelledMsg'));
+  load();
+}
+
+function openForm()  { document.getElementById('amodal').classList.add('open'); }
+function closeForm() { document.getElementById('amodal').classList.remove('open'); }
+
+async function create() {
+  var title = document.getElementById('aTitle').value.trim();
+  if (title.length < 3) { LWApp.toast(window.t('activitiesTitleShortErr'), 'error'); return; }
+
+  var btn = document.getElementById('aBtn');
+  btn.disabled = true; btn.textContent = window.t('postingMsg');
+
+  var start = document.getElementById('aStart').value;
+  var cap   = document.getElementById('aCap').value;
+  var comm  = document.getElementById('aComm').value;
+
+  var r = await LWApp.createActivity({
+    title: title,
+    description: document.getElementById('aDesc').value.trim() || null,
+    location: document.getElementById('aLoc').value.trim() || null,
+    city: document.getElementById('aCity').value.trim() || null,
+    starts_at: start ? new Date(start).toISOString() : null,
+    capacity: cap ? parseInt(cap, 10) : null,
+    community_id: comm ? parseInt(comm, 10) : null
+  });
+
+  btn.disabled = false; btn.textContent = window.t('postSubmit');
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+
+  LWApp.toast(window.t('activitiesPostedMsg'));
+  closeForm();
+  document.getElementById('aTitle').value = '';
+  document.getElementById('aDesc').value = '';
+  // host apne aap going
+  await LWApp.joinActivity(r.data.id, 'going');
+  load();
+}
+
+document.addEventListener('DOMContentLoaded', async function () {
+  if (!LW.configOk) { LWApp.toast('config.js me Supabase keys daalo.', 'error'); return; }
+  me = await LW.requireAuth();
+  if (!me) return;
+  LWApp.shell('activities');
+
+  if (me.city) document.getElementById('aCity').value = me.city;
+
+  // sirf apni communities dropdown mein
+  var ids = await LWApp.myCommunityIds();
+  if (ids.length) {
+    var all = await LWApp.communities();
+    var set = {};
+    ids.forEach(function (x) { set[x.community_id] = true; });
+    var mine = all.filter(function (c) { return set[c.id]; });
+    mine.forEach(function (c) { commNames[c.id] = c.name; });
+    document.getElementById('aComm').innerHTML =
+      '<option value="">' + LWApp.esc(window.t('activitiesNoCommOpt')) + '</option>' +
+      mine.map(function (c) {
+        return '<option value="' + c.id + '">' + LWApp.esc(c.name) + '</option>';
+      }).join('');
+  }
+
+  load();
+});
+</script>
+</body>
+</html>

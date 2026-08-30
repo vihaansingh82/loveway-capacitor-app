@@ -1,0 +1,285 @@
+﻿<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dost — Loveway</title>
+<link rel="stylesheet" href="lw-app.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="lw-core.js?v=2"></script>
+<script src="lw-app.js?v=2"></script>
+</head>
+<body data-theme="ocean">
+
+<header>
+  <h1>💕 Loveway</h1>
+  <div class="header-tools">
+    <a class="header-action" href="dashboard.html" data-icon="home" title="Home"></a>
+    <a class="header-action" href="profile.html" data-icon="profile" title="Profile"></a>
+    <button class="header-action" onclick="LW.logout()" data-icon="logout" title="Log out"></button>
+  </div>
+</header>
+
+<div class="container">
+  <div id="alertBox" class="alert"></div>
+
+  <div class="page-head">
+    <h2 data-i18n="friendsTitle">👥 Dost</h2>
+    <span class="spacer"></span>
+    <span class="muted" id="counts"></span>
+  </div>
+
+  <!-- area-wise nearby people (pehle inhe dikhao) -->
+  <div class="card" id="nearbyCard" style="display:none">
+    <h3 data-i18n="nearbyAreaTitle">📍 Aapke area ke log</h3>
+    <div class="suggest-row" id="nearbyRow"></div>
+  </div>
+  <div class="card" id="setLocationCard" style="display:none">
+    <div class="row" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div><strong data-i18n="setLocationTitle">📍 Apni location set karo</strong><br><small class="muted" data-i18n="setLocationSub">Taaki apne area ke log dikh sakein</small></div>
+      <a class="btn sm primary" href="profile.html" data-i18n="setLocationBtn">Set karo</a>
+    </div>
+  </div>
+
+  <!-- suggested for you -->
+  <div class="card" id="suggestCard" style="display:none">
+    <h3 data-i18n="suggestedTitle">✨ Aapke liye suggested</h3>
+    <div class="suggest-row" id="suggestRow"></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('list',this)" data-i18n="tabMyList">Meri list</div>
+    <div class="tab" onclick="showTab('requests',this)"><span data-i18n="tabRequests">📨 Requests</span> <span id="reqDot"></span></div>
+    <div class="tab" onclick="showTab('find',this)" data-i18n="tabFind">🔎 Log khojo</div>
+  </div>
+
+  <!-- friend list -->
+  <div id="tab-list">
+    <div class="card" id="friendList"><div class="spinner" data-i18n="loading">Load ho raha hai…</div></div>
+  </div>
+
+  <!-- requests -->
+  <div id="tab-requests" style="display:none">
+    <div class="card">
+      <h3 data-i18n="requestsRecvd">📨 Tumhe aayi requests</h3>
+      <div id="reqList"><div class="spinner" data-i18n="loading">Load ho raha hai…</div></div>
+    </div>
+  </div>
+
+  <!-- find people -->
+  <div id="tab-find" style="display:none">
+    <div class="card">
+      <h3 data-i18n="findPeopleTitle">🔎 Naye log khojo</h3>
+      <input type="search" id="q" placeholder="Naam ya username likho (kam se kam 2 akshar)…" data-i18n-placeholder="searchPh"
+             oninput="debouncedSearch()">
+      <div id="results" style="margin-top:14px">
+        <div class="muted" data-i18n="searchHint">Naam likhna shuru karo.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var me = null, friends = [], sentIds = {}, friendIds = {}, blockedIds = {}, timer = null;
+
+async function loadBlocked() {
+  var rows = await LWApp.blockedUsers();
+  blockedIds = {};
+  rows.forEach(function (b) { blockedIds[b.person.id] = true; });
+}
+
+function showTab(name, el) {
+  ['list', 'requests', 'find'].forEach(function (t) {
+    document.getElementById('tab-' + t).style.display = (t === name) ? '' : 'none';
+  });
+  document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+  el.classList.add('active');
+}
+
+function debouncedSearch() {
+  clearTimeout(timer);
+  timer = setTimeout(search, 350);
+}
+
+function jsAttr(s) {
+  return LWApp.esc(String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+}
+
+async function loadFriends() {
+  friends = await LWApp.myFriends();
+  friendIds = {};
+  friends.forEach(function (f) { friendIds[f.id] = true; });
+
+  document.getElementById('friendList').innerHTML = friends.length
+    ? friends.map(function (f) {
+        return '<div class="person">' + LWApp.avatarHtml(f) +
+          '<div class="who"><b>' + LWApp.esc(f.full_name || f.username) + '</b>' +
+          '<small>@' + LWApp.esc(f.username || '—') +
+          (f.city ? ' · 📍 ' + LWApp.esc(f.city) : '') + '</small></div>' +
+          '<div class="acts">' +
+          '<button class="btn sm" onclick="msg(\'' + f.id + '\')">💬</button>' +
+          '<a class="btn sm" href="profile.html?u=' + encodeURIComponent(f.username || '') + '">' + LWApp.esc(window.t('viewProfileBtn')) + '</a>' +
+          '<button class="btn sm" onclick="blockPerson(\'' + f.id + '\',\'' + jsAttr(f.full_name || f.username) + '\')" title="' + LWApp.esc(window.t('blockTitle')) + '">🚫</button>' +
+          '<button class="btn sm danger" onclick="unfriend(\'' + f.id + '\')">' + LWApp.esc(window.t('removeBtn')) + '</button>' +
+          '</div></div>';
+      }).join('')
+    : '<div class="empty"><span class="ic">👥</span>' + LWApp.esc(window.t('noFriendsTitle')) + '<br>' +
+      LWApp.esc(window.t('noFriendsSub')) + '</div>';
+
+  document.getElementById('counts').textContent = friends.length + ' ' + window.t('friendsCountSuffix');
+}
+
+async function loadRequests() {
+  var reqs = await LWApp.pendingRequests();
+  document.getElementById('reqDot').textContent = reqs.length ? '(' + reqs.length + ')' : '';
+  document.getElementById('reqList').innerHTML = reqs.length
+    ? reqs.map(function (r) {
+        return '<div class="person">' + LWApp.avatarHtml(r.person) +
+          '<div class="who"><b>' + LWApp.esc(r.person.full_name || r.person.username || '—') + '</b>' +
+          '<small>@' + LWApp.esc(r.person.username || '—') + ' · ' + LWApp.timeAgo(r.created_at) + '</small></div>' +
+          '<div class="acts">' +
+          '<button class="btn sm primary" onclick="answer(' + r.req_id + ',true)">' + LWApp.esc(window.t('acceptBtn')) + '</button>' +
+          '<button class="btn sm" onclick="answer(' + r.req_id + ',false)">' + LWApp.esc(window.t('declineBtn')) + '</button>' +
+          '</div></div>';
+      }).join('')
+    : '<div class="empty"><span class="ic">📨</span>' + LWApp.esc(window.t('noRequestsMsg')) + '</div>';
+}
+
+async function loadSent() {
+  var s = await LWApp.sentRequests();
+  sentIds = {};
+  s.forEach(function (x) { sentIds[x.addressee_id] = x.status; });
+}
+
+// area-wise log — friend request bhejne ke liye pehle inhe dikhao
+async function loadNearby() {
+  if (me.latitude == null || me.longitude == null) {
+    document.getElementById('setLocationCard').style.display = '';
+    return;
+  }
+
+  var rows = await LWApp.nearbyPeople(me.latitude, me.longitude, 10);
+  rows = rows.filter(function (r) {
+    return r.id !== me.id && !friendIds[r.id] && !blockedIds[r.id] && sentIds[r.id] !== 'pending';
+  });
+
+  var card = document.getElementById('nearbyCard');
+  if (!rows.length) { card.style.display = 'none'; return; }
+  card.style.display = '';
+
+  document.getElementById('nearbyRow').innerHTML = rows.map(function (r) {
+    var dist = r.distance_km < 1 ? window.t('lessThan1kmLabel') : Math.round(r.distance_km) + ' km';
+    return '<div class="suggest-card">' + LWApp.avatarHtml(r) +
+      '<b>' + LWApp.esc(r.full_name || r.username) + '</b>' +
+      '<small>📍 ' + dist + ' ' + LWApp.esc(window.t('awaySuffix')) + (r.city ? ' · ' + LWApp.esc(r.city) : '') + '</small>' +
+      '<button class="btn sm primary" onclick="request(\'' + r.id + '\',this)">' + LWApp.esc(window.t('addFriendBtn')) + '</button>' +
+      '</div>';
+  }).join('');
+}
+
+async function loadSuggestions() {
+  var rows = await LWApp.suggestedPeople(8);
+  rows = rows.filter(function (r) {
+    return r.id !== me.id && !friendIds[r.id] && !blockedIds[r.id] && sentIds[r.id] !== 'pending';
+  });
+
+  var card = document.getElementById('suggestCard');
+  if (!rows.length) { card.style.display = 'none'; return; }
+  card.style.display = '';
+
+  document.getElementById('suggestRow').innerHTML = rows.map(function (r) {
+    return '<div class="suggest-card">' + LWApp.avatarHtml(r) +
+      '<b>' + LWApp.esc(r.full_name || r.username) + '</b>' +
+      '<small>' + (r.city ? '📍 ' + LWApp.esc(r.city) : '@' + LWApp.esc(r.username || '—')) + '</small>' +
+      '<button class="btn sm primary" onclick="request(\'' + r.id + '\',this)">' + LWApp.esc(window.t('addFriendBtn')) + '</button>' +
+      '</div>';
+  }).join('');
+}
+
+async function search() {
+  var term = document.getElementById('q').value.trim();
+  var box = document.getElementById('results');
+  if (term.length < 2) { box.innerHTML = '<div class="muted">' + LWApp.esc(window.t('minCharsMsg')) + '</div>'; return; }
+
+  box.innerHTML = '<div class="spinner">' + LWApp.esc(window.t('searchingMsg')) + '</div>';
+  var rows = await LWApp.searchPeople(term);
+  rows = rows.filter(function (r) { return r.id !== me.id && !blockedIds[r.id]; });
+
+  box.innerHTML = rows.length
+    ? rows.map(function (r) {
+        var btn;
+        if (friendIds[r.id])            btn = '<span class="chip">' + LWApp.esc(window.t('alreadyFriendsMsg')) + '</span>';
+        else if (sentIds[r.id] === 'pending') btn = '<span class="chip">' + LWApp.esc(window.t('requestPendingMsg')) + '</span>';
+        else btn = '<button class="btn sm primary" onclick="request(\'' + r.id + '\',this)">' + LWApp.esc(window.t('addFriendBtn')) + '</button>';
+
+        return '<div class="person">' + LWApp.avatarHtml(r) +
+          '<div class="who"><b>' + LWApp.esc(r.full_name || r.username) + '</b>' +
+          '<small>@' + LWApp.esc(r.username || '—') +
+          (r.city ? ' · 📍 ' + LWApp.esc(r.city) : '') + '</small></div>' +
+          '<div class="acts">' + btn +
+          '<a class="btn sm" href="add-friend.html?u=' + encodeURIComponent(r.username || '') + '">' + LWApp.esc(window.t('viewProfileBtn')) + '</a>' +
+          '</div></div>';
+      }).join('')
+    : '<div class="empty"><span class="ic">🔎</span>' + LWApp.esc(window.t('noResultsMsg')) + '</div>';
+}
+
+async function request(id, btn) {
+  btn.disabled = true; btn.textContent = '…';
+  var r = await LWApp.addFriend(id);
+  if (r.error) {
+    LWApp.toast('❌ ' + LWApp.err(r.error), 'error');
+    btn.disabled = false; btn.textContent = window.t('addFriendBtn');
+    return;
+  }
+  sentIds[id] = 'pending';
+  btn.outerHTML = '<span class="chip">' + LWApp.esc(window.t('requestPendingMsg')) + '</span>';
+  LWApp.toast(window.t('requestSentToast'));
+}
+
+async function answer(reqId, accept) {
+  var r = await LWApp.answerRequest(reqId, accept);
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  LWApp.toast(accept ? window.t('nowFriendsToast') : window.t('requestDeclinedToast'));
+  loadRequests(); loadFriends();
+}
+
+async function blockPerson(id, name) {
+  if (!confirm((name || window.t('someoneLabel')) + window.t('blockConfirmSuffix'))) return;
+  var r = await LWApp.blockUser(id);
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  LWApp.toast(window.t('blockedToast'));
+  loadFriends();
+}
+
+async function unfriend(id) {
+  if (!confirm(window.t('unfriendConfirm'))) return;
+  var r = await LWApp.removeFriend(id);
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  LWApp.toast(window.t('removedToast'));
+  loadFriends();
+}
+
+async function msg(id) {
+  try {
+    var cid = await LWApp.openDirect(id);
+    window.location.href = 'messages.html?c=' + cid;
+  } catch (e) { LWApp.toast('❌ ' + LWApp.err(e), 'error'); }
+}
+
+document.addEventListener('DOMContentLoaded', async function () {
+  if (!LW.configOk) { LWApp.toast('config.js me Supabase keys daalo.', 'error'); return; }
+  me = await LW.requireAuth();
+  if (!me) return;
+  LWApp.shell('profile');
+
+  await loadFriends();
+  await loadSent();
+  await loadBlocked();
+  await loadRequests();
+  await loadNearby();
+  await loadSuggestions();
+});
+</script>
+</body>
+</html>

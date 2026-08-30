@@ -1,0 +1,84 @@
+﻿<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notifications — Loveway</title>
+<link rel="stylesheet" href="lw-app.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="lw-core.js?v=2"></script>
+<script src="lw-app.js?v=2"></script>
+</head>
+<body data-theme="ocean">
+
+<header>
+  <h1>💕 Loveway</h1>
+  <div class="header-tools">
+    <a class="header-action" href="dashboard.html" data-icon="home" title="Home"></a>
+    <button class="header-action" onclick="LW.logout()" data-icon="logout" title="Log out"></button>
+  </div>
+</header>
+
+<div class="container">
+  <div id="alertBox" class="alert"></div>
+
+  <div class="page-head">
+    <h2 data-i18n="notifPageTitle">🔔 Notifications</h2>
+    <span class="spacer"></span>
+    <button class="btn" onclick="readAll()" data-i18n="notifMarkAllReadBtn">Sab padha hua mark karo</button>
+  </div>
+
+  <div class="card" id="list"><div class="spinner" data-i18n="loading">Load ho raha hai…</div></div>
+</div>
+
+<script>
+var me = null;
+
+var ICON = {
+  friend_request: '🤝', friend_accepted: '✅', post_reaction: '❤️',
+  post_comment: '💬', message: '✉️', gift: '🎁', activity_join: '📌'
+};
+
+async function load() {
+  var rows = await LWApp.notifications(60);
+  document.getElementById('list').innerHTML = rows.length
+    ? rows.map(function (n) {
+        var who = n.actor ? (n.actor.full_name || n.actor.username || '') : '';
+        return '<div class="notif' + (n.is_read ? '' : ' unread') + '" onclick="go(' +
+          n.id + ',\'' + (n.link || '') + '\')" style="cursor:pointer">' +
+          (n.actor_id ? LWApp.avatarHtml(n.actor, 'sm')
+                      : '<div class="avatar sm">' + (ICON[n.kind] || '🔔') + '</div>') +
+          '<div class="txt"><b>' + (ICON[n.kind] || '🔔') + ' ' + LWApp.esc(n.title) + '</b>' +
+          '<small>' + (who ? LWApp.esc(who) + ' · ' : '') + LWApp.timeAgo(n.created_at) + '</small>' +
+          (n.body ? '<div class="muted" style="margin-top:3px">' + LWApp.esc(n.body) + '</div>' : '') +
+          '</div></div>';
+      }).join('')
+    : '<div class="empty"><span class="ic">🔔</span>' + LWApp.esc(window.t('notifEmptyMsg')) + '</div>';
+}
+
+async function go(id, link) {
+  await LWApp.markNotifRead(id);
+  LWApp.refreshNotifCount();
+  if (link) window.location.href = link;
+  else load();
+}
+
+async function readAll() {
+  var r = await LWApp.markAllNotifRead();
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  LWApp.toast(window.t('notifAllReadMsg'));
+  LWApp.refreshNotifCount();
+  load();
+}
+
+document.addEventListener('DOMContentLoaded', async function () {
+  if (!LW.configOk) { LWApp.toast('config.js me Supabase keys daalo.', 'error'); return; }
+  me = await LW.requireAuth();
+  if (!me) return;
+  LWApp.shell('');
+  load();
+});
+</script>
+</body>
+</html>

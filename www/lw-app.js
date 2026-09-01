@@ -421,8 +421,20 @@
     }
 
     restoreTheme();
+    restoreSidebarCollapsed();
     refreshNotifCount();
     if (typeof window.applyLanguage === 'function') window.applyLanguage();
+  }
+
+  // desktop sidebar ka open/close button — state localStorage me yaad rehta hai
+  function toggleSidebar() {
+    var collapsed = document.body.classList.toggle('sidebar-collapsed');
+    try { localStorage.setItem('loveway_sidebar_collapsed', collapsed ? '1' : '0'); } catch (e) {}
+  }
+  function restoreSidebarCollapsed() {
+    var collapsed = false;
+    try { collapsed = localStorage.getItem('loveway_sidebar_collapsed') === '1'; } catch (e) {}
+    document.body.classList.toggle('sidebar-collapsed', collapsed);
   }
 
   /* ---------- Left sidebar nav (desktop) — JS-injected once, same list on
@@ -445,7 +457,12 @@
     var sidebar = document.createElement('aside');
     sidebar.className = 'app-sidebar';
     sidebar.innerHTML =
-      '<a href="dashboard.html" class="app-sidebar-brand"><img src="logo.png" alt="Loveway" class="lw-logo-icon"></a>' +
+      '<div class="app-sidebar-brand">' +
+        '<a href="dashboard.html"><img src="logo.png" alt="Loveway" class="lw-logo-icon"></a>' +
+        '<button type="button" class="app-sidebar-toggle" onclick="LWApp.toggleSidebar()" title="Sidebar collapse/expand">' +
+          icon('chevron', 16) +
+        '</button>' +
+      '</div>' +
       '<div class="app-sidebar-nav" role="navigation">' +
       SIDEBAR_PAGES.map(function (p) {
         return '<a href="' + p.href + '"' + (p.id === active ? ' class="active"' : '') + '>' +
@@ -1771,7 +1788,7 @@
     esc: esc, initials: initials, avatarHtml: avatarHtml, timeAgo: timeAgo, icon: icon,
     toast: toast, err: err, setTheme: setTheme, restoreTheme: restoreTheme, setCustomColor: setCustomColor,
     restoreBgPhoto: restoreBgPhoto,
-    shell: shell, refreshNotifCount: refreshNotifCount, customSelect: customSelect,
+    shell: shell, refreshNotifCount: refreshNotifCount, customSelect: customSelect, toggleSidebar: toggleSidebar,
 
     publicProfile: publicProfile, searchPeople: searchPeople, saveProfile: saveProfile,
     suggestedPeople: suggestedPeople, nearbyPeople: nearbyPeople,

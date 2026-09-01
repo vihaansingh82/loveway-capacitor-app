@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Profile — Loveway</title>
-<link rel="stylesheet" href="lw-app.css">
+<link rel="stylesheet" href="lw-tailwind.css?v=4">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
-<script src="lw-core.js?v=2"></script>
-<script src="lw-app.js?v=2"></script>
+<script src="lw-core.js?v=3"></script>
+<script src="lw-app.js?v=4"></script>
 </head>
 <body data-theme="ocean">
 
@@ -76,6 +76,10 @@
         <div class="card">
           <h3 data-i18n="hobbiesHeading">✨ Hobbies</h3>
           <div id="hobbies"></div>
+        </div>
+        <div class="card" id="pinnedSongCard" style="display:none">
+          <h3>🎵 Pinned Song</h3>
+          <div id="pinnedSongBody"></div>
         </div>
         <div class="card">
           <h3 data-i18n="favsHeading">⭐ Favourites</h3>
@@ -159,13 +163,15 @@
       <label class="fl" data-i18n="hobbiesFieldLabel">Hobbies (comma se alag karo)</label>
       <input type="text" id="fHobbies" placeholder="Music, Travel, Cooking" data-i18n-placeholder="hobbiesPh">
 
+      <label class="fl">🎵 Pinned Song</label>
+      <div id="pinnedSongEditRow" class="row" style="align-items:center;gap:10px;margin-bottom:6px"></div>
+
       <label class="fl" data-i18n="favouritesFieldLabel">Favourites</label>
       <div class="row-2">
-        <input type="text" id="fFavSong"  placeholder="Pasandida gaana" data-i18n-placeholder="favSongPh">
         <input type="text" id="fFavFood"  placeholder="Pasandida khana" data-i18n-placeholder="favFoodPh">
+        <input type="text" id="fFavMovie" placeholder="Pasandida film" data-i18n-placeholder="favMoviePh">
       </div>
       <div class="row-2" style="margin-top:12px">
-        <input type="text" id="fFavMovie" placeholder="Pasandida film" data-i18n-placeholder="favMoviePh">
         <input type="text" id="fFavPlace" placeholder="Pasandida jagah" data-i18n-placeholder="favPlacePh">
       </div>
 
@@ -228,11 +234,36 @@ function paint(p) {
 
   var f = p.favourites || {};
   var fl = [];
-  if (f.song)  fl.push('🎵 ' + LWApp.esc(f.song));
+  // purana free-text f.song sirf tab dikhao jab tak naya structured pinned
+  // song na chuna ho — dono ek saath dikhana confusing hota (same cheez do baar)
+  if (f.song && !p.pinned_spotify_track_id) fl.push('🎵 ' + LWApp.esc(f.song));
   if (f.food)  fl.push('🍲 ' + LWApp.esc(f.food));
   if (f.movie) fl.push('🎬 ' + LWApp.esc(f.movie));
   if (f.place) fl.push('🏞️ ' + LWApp.esc(f.place));
   document.getElementById('favs').innerHTML = fl.length ? fl.join('<br>') : window.t('favsEmptyMsg');
+
+  var pinCard = document.getElementById('pinnedSongCard');
+  if (p.pinned_song_title) {
+    pinCard.style.display = '';
+    document.getElementById('pinnedSongBody').innerHTML =
+      '<div class="song-card" style="cursor:pointer;margin-top:0" onclick="playPinnedSong()">' +
+        '<span class="spin-ic" style="font-size:1.4rem">🎵</span>' +
+        '<div style="min-width:0;flex:1"><b style="display:block">' + LWApp.esc(p.pinned_song_title) + '</b>' +
+        '<small class="muted">' + LWApp.esc(p.pinned_song_artist || '') + '</small></div>' +
+        '<span class="icon-btn" style="font-size:1.1rem">▶</span>' +
+      '</div>';
+  } else {
+    pinCard.style.display = 'none';
+  }
+}
+
+function playPinnedSong() {
+  if (!viewing || !viewing.pinned_spotify_track_id) return;
+  if (typeof playMusicTrack === 'function') {
+    playMusicTrack({ id: viewing.pinned_spotify_track_id, title: viewing.pinned_song_title, artist: viewing.pinned_song_artist });
+  } else if (viewing.pinned_song_url) {
+    window.open(viewing.pinned_song_url, '_blank', 'noopener');
+  }
 }
 
 function fillForm(p) {
@@ -250,10 +281,10 @@ function fillForm(p) {
   document.getElementById('fHobbies').value = (p.hobbies || []).join(', ');
 
   var f = p.favourites || {};
-  document.getElementById('fFavSong').value  = f.song  || '';
   document.getElementById('fFavFood').value  = f.food  || '';
   document.getElementById('fFavMovie').value = f.movie || '';
   document.getElementById('fFavPlace').value = f.place || '';
+  renderPinnedSongEditRow(p);
 
   if (p.partner_name) {
     document.getElementById('fPartner').value = p.partner_name;
@@ -280,7 +311,9 @@ async function save() {
     hobbies:    document.getElementById('fHobbies').value.split(',')
                   .map(function (x) { return x.trim(); }).filter(Boolean),
     favourites: {
-      song:  document.getElementById('fFavSong').value.trim(),
+      // 'song' ab is form se collect nahi hota (pinned-song picker use hota hai),
+      // lekin purana free-text pehle se hai to save karte time udaana nahi hai
+      song:  (me.favourites || {}).song || '',
       food:  document.getElementById('fFavFood').value.trim(),
       movie: document.getElementById('fFavMovie').value.trim(),
       place: document.getElementById('fFavPlace').value.trim()
@@ -317,6 +350,53 @@ async function save() {
   await hydratePartner(me);
   paint(me);
   showTab('about', document.querySelector('.tab'));
+}
+
+function renderPinnedSongEditRow(p) {
+  var row = document.getElementById('pinnedSongEditRow');
+  if (p.pinned_song_title) {
+    row.innerHTML =
+      '<span class="chip" style="margin:0">🎵 ' + LWApp.esc(p.pinned_song_title) +
+      (p.pinned_song_artist ? ' — ' + LWApp.esc(p.pinned_song_artist) : '') + '</span>' +
+      '<button type="button" class="btn sm" onclick="pickProfilePinnedSong()">🔄 Badlo</button>' +
+      '<button type="button" class="btn sm danger" onclick="removeProfilePinnedSong()">✕ Hatao</button>';
+  } else {
+    row.innerHTML = '<button type="button" class="btn sm primary" onclick="pickProfilePinnedSong()">🎵 Gaana pin karo</button>';
+  }
+}
+
+async function pickProfilePinnedSong() {
+  LWApp.openSpotifyPicker(async function (track) {
+    try {
+      await LWApp.updateProfilePinnedSong(track);
+      me.pinned_spotify_track_id = track.id;
+      me.pinned_song_title = track.title;
+      me.pinned_song_artist = track.artist || null;
+      me.pinned_song_url = track.url || null;
+      LW.profile = me;
+      renderPinnedSongEditRow(me);
+      if (viewing === me) paint(me);
+      LWApp.toast('🎵 Song pin ho gaya');
+    } catch (e) {
+      LWApp.toast('❌ ' + LWApp.err(e), 'error');
+    }
+  });
+}
+
+async function removeProfilePinnedSong() {
+  try {
+    await LWApp.updateProfilePinnedSong(null);
+    me.pinned_spotify_track_id = null;
+    me.pinned_song_title = null;
+    me.pinned_song_artist = null;
+    me.pinned_song_url = null;
+    LW.profile = me;
+    renderPinnedSongEditRow(me);
+    if (viewing === me) paint(me);
+    LWApp.toast('Pin hata diya');
+  } catch (e) {
+    LWApp.toast('❌ ' + LWApp.err(e), 'error');
+  }
 }
 
 function pickProfileLocation() {
@@ -358,12 +438,21 @@ async function hydratePartner(p) {
 async function loadTimeline() {
   var el = document.getElementById('timeline');
   var rows = await LWApp.timeline(viewing.id, 40);
+  var TIMELINE_ICONS = { post: '📝', friend: '🤝', gift: '🎁', goal: '🎯' };
   el.innerHTML = rows.length
-    ? rows.map(function (t) {
-        var ic = { post: '📝', friend: '🤝', gift: '🎁' }[t.kind] || '•';
-        return '<div class="person"><div class="who"><b>' + ic + ' ' + LWApp.esc(t.title) +
-               '</b><small>' + LWApp.timeAgo(t.created_at) + '</small></div></div>';
-      }).join('')
+    ? '<div class="journey-chain">' + rows.map(function (t) {
+        var ic = TIMELINE_ICONS[t.kind] || '•';
+        var important = t.kind === 'gift' || t.kind === 'goal';
+        return '<div class="journey-node' + (important ? ' important' : '') + '">' +
+          '<div class="journey-dot"></div>' +
+          '<div class="journey-card">' +
+            '<div class="journey-card-head"><div style="flex:1;min-width:0">' +
+              '<b>' + ic + ' ' + LWApp.esc(t.title) + '</b>' +
+              '<small>' + LWApp.timeAgo(t.created_at) + '</small>' +
+            '</div></div>' +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div>'
     : '<div class="empty"><span class="ic">📜</span>' + LWApp.esc(window.t('timelineEmptyTitle')) + '<br>' + LWApp.esc(window.t('timelineEmptySub')) + '</div>';
 }
 

@@ -3,80 +3,12 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Loveway — Login</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Sans:wght@300;400;500&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
-<style>
-
-/* Language switcher */
-.lang-switcher{position:fixed;top:18px;right:22px;z-index:9999;display:flex;gap:5px;padding:5px;background:rgba(45,21,37,.88);border:1px solid rgba(255,79,123,.25);border-radius:50px;backdrop-filter:blur(12px);box-shadow:0 8px 25px rgba(0,0,0,.18)}
-.lang-btn{border:0;background:transparent;color:var(--text-muted);padding:7px 10px;border-radius:30px;font:500 .72rem 'DM Sans',sans-serif;cursor:pointer;transition:.25s}
-.lang-btn:hover{color:var(--white)}
-.lang-btn.active{background:var(--pink);color:#fff;box-shadow:0 3px 10px rgba(255,79,123,.3)}
-@media(max-width:600px){.lang-switcher{top:10px;right:10px}.lang-btn{padding:6px 8px;font-size:.68rem}}
-
-  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-  :root{--pink:#FF4F7B;--pink-light:#FF85A1;--dark:#1A0A14;--dark2:#2D1525;--dark3:#3D1E30;--gold:#FFB347;--white:#FFF5F8;--text-muted:#C4849A;}
-  body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--white);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px;position:relative;overflow:hidden;}
-  .auth-bg{position:fixed;inset:0;background-image:url("auth-bg.jpg");background-size:cover;background-position:center;}
-  .auth-bg-overlay{position:fixed;inset:0;background:rgba(26,10,20,0.82);backdrop-filter:blur(2px);}
-  .auth-card{background:rgba(45,21,37,0.97);border:1px solid rgba(255,79,123,0.2);border-radius:28px;padding:44px;max-width:420px;width:100%;position:relative;z-index:2;box-shadow:0 40px 80px rgba(0,0,0,0.5);}
-  .auth-logo{text-align:center;margin-bottom:20px;}
-  .auth-logo img{height:72px;object-fit:contain;filter:drop-shadow(0 4px 16px rgba(255,79,123,0.35));}
-  .auth-title{font-family:'Playfair Display',serif;font-size:1.7rem;text-align:center;margin-bottom:4px;}
-  .auth-sub{text-align:center;font-size:.875rem;color:var(--text-muted);margin-bottom:20px;}
-  .tab-row{display:flex;background:var(--dark);border-radius:12px;padding:4px;margin-bottom:20px;}
-  .tab{flex:1;text-align:center;padding:10px;border-radius:10px;font-size:.875rem;cursor:pointer;transition:all .3s;color:var(--text-muted);}
-  .tab.active{background:var(--pink);color:#fff;}
-  .form-group{margin-bottom:14px;}
-  label{font-size:.82rem;color:var(--text-muted);margin-bottom:6px;display:block;}
-  input,select{width:100%;padding:13px 18px;background:var(--dark3);border:1px solid rgba(255,79,123,0.2);border-radius:12px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:.95rem;outline:none;transition:border .3s;}
-  input:focus{border-color:var(--pink);}
-  input::placeholder{color:var(--text-muted);}
-  .forgot{text-align:right;font-size:.8rem;color:var(--pink);cursor:pointer;margin-top:-6px;margin-bottom:14px;}
-  .remember{display:flex;align-items:center;gap:10px;font-size:.875rem;color:var(--text-muted);margin-bottom:16px;}
-  .remember input{width:auto;accent-color:var(--pink);}
-  .auth-btn{width:100%;padding:14px;border-radius:12px;background:var(--pink);color:#fff;border:none;font-size:1rem;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .3s;box-shadow:0 8px 24px rgba(255,79,123,0.3);}
-  .auth-btn:hover:not(:disabled){background:#e03565;transform:translateY(-2px);}
-  .auth-btn:disabled{opacity:.6;cursor:not-allowed;}
-  .auth-divider{display:flex;align-items:center;gap:14px;margin:18px 0;}
-  .auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:rgba(255,79,123,0.15);}
-  .auth-divider span{font-size:.8rem;color:var(--text-muted);}
-  .social-logins{display:flex;gap:12px;}
-  .social-login-btn{flex:1;padding:12px;background:var(--dark);border:1px solid rgba(255,79,123,0.15);border-radius:12px;text-align:center;font-size:1rem;cursor:pointer;transition:all .3s;color:var(--white);text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;font-size:.85rem;}
-  .social-login-btn:hover{border-color:var(--pink);}
-  .auth-footer-text{text-align:center;font-size:.875rem;color:var(--text-muted);margin-top:16px;}
-  .auth-footer-text a{color:var(--pink);text-decoration:none;}
-  .pw-wrap{position:relative;}
-  .pw-wrap input{padding-right:44px;}
-  .pw-toggle{position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text-muted);background:none;border:none;font-size:1rem;}
-  .alert{padding:12px 16px;border-radius:10px;margin-bottom:14px;font-size:.875rem;display:none;}
-  .alert.error{background:rgba(255,79,79,0.15);border:1px solid rgba(255,79,79,0.3);color:#ff8080;}
-  .alert.success{background:rgba(76,175,80,0.15);border:1px solid rgba(76,175,80,0.3);color:#81c784;}
-  .alert.warning{background:rgba(255,179,71,0.15);border:1px solid rgba(255,179,71,0.3);color:var(--gold);}
-
-  /* 7 bhaashaayein — chhoti screen par pill swipe hoti hai, katati nahi */
-  .lang-switcher{max-width:calc(100vw - 36px);flex-wrap:nowrap;overflow-x:auto;
-    scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch}
-  .lang-switcher::-webkit-scrollbar{display:none}
-  .lang-btn{flex:0 0 auto;white-space:nowrap}
-  @media(max-width:560px){
-    .lang-switcher{left:10px;right:10px;max-width:none;justify-content:flex-start}
-    .lang-btn{padding:6px 9px;font-size:.66rem}
-  }
-</style>
+<link rel="stylesheet" href="lw-tailwind.css?v=4">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
-<script src="lw-core.js?v=2"></script>
-<style>
-/* --- Supabase auth ke baad ke layout fixes --- */
-.tab-row .tab{font-size:.78rem;padding:9px 4px;}
-.social-logins{flex-direction:column;gap:10px;}
-.social-login-btn{width:100%;}
-#spotifyBtn{border-color:rgba(30,215,96,.28);}
-#spotifyBtn:hover{border-color:#1ed760;background:rgba(30,215,96,.08);}
-@media(max-width:420px){.tab-row .tab{font-size:.7rem;padding:8px 2px;}}
-</style>
+<script src="lw-core.js?v=3"></script>
 </head>
-<body>
+<body class="font-sans bg-bg text-text min-h-screen flex items-center justify-center px-5 py-10 relative overflow-hidden">
 <div class="lang-switcher" aria-label="Language selector">
   <button class="lang-btn" data-lang="en" onclick="setLanguage('en')">English</button>
   <button class="lang-btn" data-lang="hi" onclick="setLanguage('hi')">हिंदी</button>
@@ -96,15 +28,9 @@
 
   <div id="alertBox" class="alert"></div>
 
-  <div class="tab-row">
-    <div class="tab active" id="tabEmail" onclick="switchTab('email')" data-i18n="emailTab"></div>
-    <div class="tab" id="tabUser" onclick="switchTab('username')" data-i18n="userTab"></div>
-    <div class="tab" id="tabMobile" onclick="switchTab('mobile')" data-i18n="mobileTab"></div>
-  </div>
-
   <div class="form-group">
-    <label id="loginLabel" data-i18n="email"></label>
-    <input type="email" id="loginInput" autocomplete="username" data-i18n-placeholder="emailPh" placeholder="rahul@example.com">
+    <label data-i18n="loginIdLabel">Email, username ya mobile</label>
+    <input type="text" id="loginInput" autocomplete="username" data-i18n-placeholder="loginIdPh" placeholder="Email, username ya mobile number" autocapitalize="none" autocorrect="off" spellcheck="false">
   </div>
   <div class="form-group">
     <label data-i18n="password"></label>
@@ -113,8 +39,8 @@
       <button type="button" class="pw-toggle" onclick="togglePw()">👁</button>
     </div>
   </div>
-  <div class="forgot" onclick="forgotPassword()" data-i18n="forgot"></div>
-  <div class="remember"><input type="checkbox" id="remember" checked> <label for="remember" style="margin:0;cursor:pointer;" data-i18n="remember"></label></div>
+  <div class="forgot" onclick="LW.go('forgot-password.html')" data-i18n="forgot"></div>
+  <div class="remember"><input type="checkbox" id="remember" checked> <label for="remember" class="m-0 cursor-pointer" data-i18n="remember"></label></div>
 
   <button class="auth-btn" id="loginBtn" onclick="doLogin()" data-i18n="login"></button>
 
@@ -129,30 +55,17 @@
 
 <script>
 /* Login — Supabase Auth (email / username / mobile + password,
-   Google). Koi edge function nahi chahiye. */
-let loginMethod = 'email';
-
-function switchTab(method) {
-  loginMethod = method;
-  document.getElementById('tabEmail').classList.toggle('active', method === 'email');
-  document.getElementById('tabUser').classList.toggle('active', method === 'username');
-  document.getElementById('tabMobile').classList.toggle('active', method === 'mobile');
-  const label = document.getElementById('loginLabel');
-  const input = document.getElementById('loginInput');
-  if (method === 'mobile') {
-    label.textContent = t('mobile');
-    input.type = 'tel';
-    input.placeholder = t('placeholderMobile');
-  } else if (method === 'username') {
-    label.textContent = t('username');
-    input.type = 'text';
-    input.placeholder = t('placeholderUser');
-  } else {
-    label.textContent = t('email');
-    input.type = 'email';
-    input.placeholder = t('emailPh');
-  }
-  input.focus();
+   Google). Koi edge function nahi chahiye.
+   Ek hi field se login: type (email/username/mobile) khud detect
+   ho jaata hai, alag tabs choose karne ki zaroorat nahi — LW.signInPassword
+   pehle se hi resolveEmail() ke zariye username/mobile ko email mein
+   badal deta hai, bas mobile ko normalize karke bhejna padta hai. */
+function detectLoginType(v) {
+  if (v.indexOf('@') > -1) return 'email';
+  var stripped = v.replace(/[\s+\-()]/g, '');
+  var digits = v.replace(/\D/g, '');
+  if (digits.length >= 7 && digits === stripped) return 'mobile';
+  return 'username';
 }
 
 function togglePw() {
@@ -175,7 +88,7 @@ async function doLogin() {
   btn.textContent = t('loginProgress');
   LW.hideAlert();
 
-  const id = loginMethod === 'mobile' ? LW.normalizeMobile(login) : login;
+  const id = detectLoginType(login) === 'mobile' ? LW.normalizeMobile(login) : login;
 
   try {
     const res = await LW.signInPassword(id, pass);
@@ -215,22 +128,11 @@ async function doLogin() {
   }
 }
 
-/* password reset */
-async function forgotPassword() {
-  const email = prompt(t('resetPrompt'), document.getElementById('loginInput').value.trim());
-  if (!email) return;
-  const { error } = await LW.sb.auth.resetPasswordForEmail(email.trim(), {
-    redirectTo: LW.pageUrl('login.html')
-  });
-  showAlert(error ? '❌ ' + LW.errText(error) : '✅ ' + t('resetSent'), error ? 'error' : 'success');
-}
-
 /* Enter dabane par login */
 document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
 /* pehle se logged in ho to seedha aage bhej do */
 document.addEventListener('DOMContentLoaded', async () => {
-  switchTab('email');
   if (!LW.configOk) { showAlert('config.js me SUPABASE_ANON_KEY set nahi hai.', 'error'); return; }
   const session = await LW.getSession();
   if (session) {

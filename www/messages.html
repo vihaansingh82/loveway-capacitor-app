@@ -4,12 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chat — Loveway</title>
-<link rel="stylesheet" href="lw-app.css">
-<link rel="stylesheet" href="lw-rails.css?v=2">
+<link rel="stylesheet" href="lw-tailwind.css?v=4">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
-<script src="lw-core.js?v=2"></script>
-<script src="lw-app.js?v=2"></script>
+<script src="lw-core.js?v=3"></script>
+<script src="lw-app.js?v=4"></script>
 <script src="lw-rails.js?v=2"></script>
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 </head>
@@ -22,6 +21,7 @@
     <button type="button" class="mp-btn mp-play-btn" id="mpPlayBtn" onclick="miniPlayerToggle()" title="Play">▶</button>
     <button type="button" class="mp-btn" onclick="miniPlayerNext()" title="Next">⏭</button>
     <span class="mp-name" id="mpName">🎵 Loveway Radio</span>
+    <button type="button" class="mp-btn" onclick="searchAndPlaySong()" title="Apna gaana khojo">🔍</button>
     <a class="mp-fallback-link" href="#" target="_blank" rel="noopener" style="display:none" title="Open in Spotify">🔗</a>
   </div>
   <button type="button" class="rail-sheet-trigger" onclick="openRailSheet()" title="Music, spots &amp; more">✨</button>
@@ -43,13 +43,7 @@
 </aside>
 
 <aside class="side-rail side-rail-right" id="railRight">
-  <div class="card">
-    <div class="rail-card-head">
-      <h3>🎵 Aapke liye gaane</h3>
-      <button type="button" class="rail-refresh-btn" onclick="renderSongSuggestions()" title="Naye gaane dikhao">🔄</button>
-    </div>
-    <div class="song-sugg-body"></div>
-  </div>
+  <div class="card music-rail-card"></div>
   <div class="card">
     <h3>🎉 Aane wale festival aur birthdays</h3>
     <div class="upcoming-body"><div class="muted" style="font-size:.8rem">Load ho raha hai…</div></div>
@@ -62,11 +56,14 @@
   <div class="page-head">
     <h2 data-i18n="chatTitle">💬 Chat</h2>
     <span class="spacer"></span>
-    <button class="btn" id="playlistBtn" onclick="openPlaylist()" disabled data-i18n="playlistBtn">🎧 Playlist</button>
-    <button class="btn" id="songBtn" onclick="openSongForm()" disabled data-i18n="shareSongBtn">🎵 Share song</button>
-    <button class="btn" id="dedicationBtn" onclick="openDedication()">💌 Spotify dedication</button>
+    <span style="position:relative;display:inline-block">
+      <button class="btn" id="musicMenuBtn" onclick="toggleMusicMenu(event)">🎵 Music <span style="font-size:.7em">▾</span></button>
+    </span>
     <button class="btn primary" onclick="openGroupForm()" data-i18n="newGroupBtn">+ Group banao</button>
   </div>
+  <button class="btn" id="playlistBtn" onclick="openPlaylist()" disabled data-i18n="playlistBtn" style="display:none">🎧 Playlist</button>
+  <button class="btn" id="songBtn" onclick="openSongForm()" disabled data-i18n="shareSongBtn" style="display:none">🎵 Share song</button>
+  <button class="btn" id="dedicationBtn" onclick="openDedication()" style="display:none">💌 Spotify dedication</button>
 
   <div class="chat-wrap">
     <div class="chat-list" id="convList"><div class="spinner">Load…</div></div>
@@ -129,6 +126,7 @@
 <div class="modal-bg" id="smodal" onclick="if(event.target===this)closeSongForm()">
   <div class="modal">
     <h3 data-i18n="shareSongBtn">🎵 Share song</h3>
+    <button type="button" class="btn" style="width:100%;margin-bottom:4px" onclick="searchSongToShare()">🔍 Spotify se gaana khojo</button>
     <label class="fl" data-i18n="songTitlePh">Song name</label>
     <input type="text" id="sgTitle" placeholder="Tum hi ho…">
     <label class="fl" data-i18n="songArtistPh">Singer</label>
@@ -232,6 +230,11 @@ async function loadConvs(selectId) {
 
 async function deleteConv(id) {
   if (!confirm('Ye chat delete karni hai? Aapki taraf se hat jayegi.')) return;
+  await doDeleteConv(id);
+  LWApp.toast('🗑 Chat delete ho gayi');
+}
+
+async function doDeleteConv(id) {
   const { error } = await LWApp.leaveConversation(id);
   if (error) { LWApp.toast('❌ ' + LWApp.err(error), 'error'); return; }
   convs = convs.filter(function (c) { return c.id !== id; });
@@ -249,7 +252,49 @@ async function deleteConv(id) {
     document.getElementById('emojiBtn').disabled = true;
   }
   await loadConvs();
-  LWApp.toast('🗑 Chat delete ho gayi');
+}
+
+/* ---------- chat header "more" menu: profile / block / delete ---------- */
+function toggleChatMenu(e) {
+  if (e) e.stopPropagation();
+  var existing = document.getElementById('chatMenuPop');
+  if (existing) { existing.remove(); return; }
+  if (!active) return;
+
+  var items = [];
+  if (activeIsDirect && activeOther && activeOther.id) {
+    items.push('<div class="picker-item" onclick="closeChatMenu();LW.go(\'profile.html?u=' +
+      encodeURIComponent(activeOther.username || '') + '\')">👤 Profile dekho</div>');
+    items.push('<div class="picker-item danger" onclick="closeChatMenu();blockActiveChat()">🚫 Block karo</div>');
+  }
+  items.push('<div class="picker-item danger" onclick="closeChatMenu();deleteConv(active)">🗑 Chat delete karo</div>');
+
+  var pop = document.createElement('div');
+  pop.className = 'picker-pop chat-menu-pop open';
+  pop.id = 'chatMenuPop';
+  pop.innerHTML = items.join('');
+  document.getElementById('chatHead').appendChild(pop);
+}
+
+function closeChatMenu() {
+  var p = document.getElementById('chatMenuPop');
+  if (p) p.remove();
+}
+
+document.addEventListener('click', function (e) {
+  var pop = document.getElementById('chatMenuPop');
+  if (pop && !e.target.closest('.chat-menu-pop') && !e.target.closest('.chat-menu-btn')) pop.remove();
+});
+
+async function blockActiveChat() {
+  if (!activeOther || !activeOther.id) return;
+  var name = activeOther.full_name || activeOther.username || 'Ye user';
+  if (!confirm(name + ' ko block karna hai? Tum dono ek doosre ko dekh ya message nahi kar paoge.')) return;
+
+  var r = await LWApp.blockUser(activeOther.id);
+  if (r && r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  await doDeleteConv(active);
+  LWApp.toast('🚫 Block kar diya, chat bhi hat gayi');
 }
 
 async function openConv(id) {
@@ -272,9 +317,10 @@ async function openConv(id) {
     : '<div class="avatar sm">' + (c.kind === 'community' ? '🏘️' : '👥') + '</div>';
   var streakN = convStreaks[id] || 0;
   document.getElementById('chatHead').innerHTML = av +
-    '<div><b>' + LWApp.esc(title) + (activeIsDirect && streakN >= 3 ? ' <span class="streak-flame">🔥' + streakN + '</span>' : '') +
+    '<div class="chat-head-info"><b>' + LWApp.esc(title) + (activeIsDirect && streakN >= 3 ? ' <span class="streak-flame">🔥' + streakN + '</span>' : '') +
     '</b><br><small class="muted" id="chatHeadMeta">' +
-    (c.kind === 'direct' ? LWApp.esc(window.t('privateChatLabel')) : c.members.length + ' ' + LWApp.esc(window.t('peopleCountSuffix'))) + '</small></div>';
+    (c.kind === 'direct' ? LWApp.esc(window.t('privateChatLabel')) : c.members.length + ' ' + LWApp.esc(window.t('peopleCountSuffix'))) + '</small></div>' +
+    '<button type="button" class="icon-btn chat-menu-btn" onclick="toggleChatMenu(event)" title="More">⋮</button>';
 
   LWApp.conversationMessageCount(id).then(function (n) {
     if (active !== id) return;
@@ -407,10 +453,14 @@ function msgHtml(m) {
       }).join('') + '</div>'
     : '';
 
+  var deleteToolHtml = (m.id && mine)
+    ? '<span onclick="deleteMsg(' + m.id + ')" title="Delete karo">🗑</span>'
+    : '';
   var toolsHtml = (m.id && m.kind !== 'system')
     ? '<div class="msg-tools">' +
         '<span onclick="toggleQuickReact(' + m.id + ',this)" title="' + LWApp.esc(window.t('reactTitle')) + '">😊</span>' +
         '<span onclick="setReplyTo(' + m.id + ')" title="' + LWApp.esc(window.t('replyLabel')) + '">↩</span>' +
+        deleteToolHtml +
       '</div>'
     : '';
 
@@ -437,11 +487,47 @@ function updateNowPlaying(rows) {
   bar.classList.add('show');
 }
 
+/* ---------- header music menu: playlist / share song / dedication ---------- */
+function toggleMusicMenu(e) {
+  if (e) e.stopPropagation();
+  var existing = document.getElementById('musicMenuPop');
+  if (existing) { existing.remove(); return; }
+
+  var items = [];
+  items.push('<div class="picker-item' + (active ? '' : ' disabled') + '" onclick="' + (active ? "closeMusicMenu();openPlaylist()" : '') + '">🎧 Playlist</div>');
+  items.push('<div class="picker-item' + (active ? '' : ' disabled') + '" onclick="' + (active ? "closeMusicMenu();openSongForm()" : '') + '">🎵 Share song</div>');
+  items.push('<div class="picker-item" onclick="closeMusicMenu();openDedication()">💌 Spotify dedication</div>');
+
+  var pop = document.createElement('div');
+  pop.className = 'picker-pop chat-menu-pop open';
+  pop.id = 'musicMenuPop';
+  pop.innerHTML = items.join('');
+  document.getElementById('musicMenuBtn').parentElement.appendChild(pop);
+}
+
+function closeMusicMenu() {
+  var p = document.getElementById('musicMenuPop');
+  if (p) p.remove();
+}
+
+document.addEventListener('click', function (e) {
+  var pop = document.getElementById('musicMenuPop');
+  if (pop && !e.target.closest('.chat-menu-pop') && !e.target.closest('#musicMenuBtn')) pop.remove();
+});
+
 function openSongForm() {
   if (!active) return;
   document.getElementById('smodal').classList.add('open');
 }
 function closeSongForm() { document.getElementById('smodal').classList.remove('open'); }
+
+function searchSongToShare() {
+  LWApp.openSpotifyPicker(function (track) {
+    document.getElementById('sgTitle').value = track.title;
+    document.getElementById('sgArtist').value = track.artist;
+    document.getElementById('sgUrl').value = track.url;
+  });
+}
 
 async function openPlaylist() {
   if (!active) return;
@@ -737,6 +823,21 @@ function patchSentId(el, temp, r) {
     temp.created_at = r.data.created_at;
     msgById[r.data.id] = temp;
     el.id = 'msg-' + r.data.id;
+  }
+}
+
+/* ---------- delete own message ---------- */
+async function deleteMsg(id) {
+  if (!confirm('Ye message delete karna hai?')) return;
+  var r = await LWApp.deleteMessage(id);
+  if (r && r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  delete msgById[id];
+  lastLoadedRows = lastLoadedRows.filter(function (r) { return r.id !== id; });
+  var el = document.getElementById('msg-' + id);
+  if (el) el.remove();
+  var box = document.getElementById('msgs');
+  if (box && !lastLoadedRows.length) {
+    box.innerHTML = '<div class="empty"><span class="ic">👋</span>' + LWApp.esc(window.t('noMessagesYet')) + '</div>';
   }
 }
 

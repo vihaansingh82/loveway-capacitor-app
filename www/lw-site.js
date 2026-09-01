@@ -2089,4 +2089,51 @@
   });
   // bade screen par resize hote hi mobile menu ki state reset ho jaaye
   window.addEventListener('resize', function () { if (window.innerWidth > 900) closeNav(); });
+
+  /* ---------- scroll-reveal (motion.dev jaisa smooth entrance) ----------
+     Cards/sections screen mein aate hi fade+slide-up ke saath dikhte hain,
+     har ek thoda stagger karke — page ek saath "thud" karke load hone ke
+     bajaye zinda/smooth lagta hai. Koi extra animation library nahi —
+     IntersectionObserver + CSS transition (.lw-reveal ka easeOutExpo curve
+     lw-site.css mein hai) taaki koi CDN version-mismatch se site na toote. */
+  var REVEAL_SELECTOR = '.card, .step, .team-card, .value-item, .mission-card, ' +
+    '.big-feat, .highlight-row, .faq-item, .office-card, .map-card, .visual-card, ' +
+    '.head, .contact-form';
+
+  function initScrollReveal() {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var els = document.querySelectorAll(REVEAL_SELECTOR);
+    if (!els.length) return;
+
+    if (!('IntersectionObserver' in window)) {
+      // purane browser — bas seedha dikha do, kuch todna nahi hai
+      els.forEach(function (el) { el.classList.add('lw-reveal', 'lw-in'); });
+      return;
+    }
+
+    els.forEach(function (el) {
+      if (el.classList.contains('lw-reveal')) return;
+      el.classList.add('lw-reveal');
+      // har parent ke andar apna alag stagger counter, taaki alag-alag
+      // grid/section saath mein shuru ho (ek lambi list mein sab der se na aaye)
+      var parent = el.parentElement;
+      if (!parent._lwStagger) parent._lwStagger = 0;
+      var i = parent._lwStagger++;
+      el.style.transitionDelay = Math.min(i * 90, 450) + 'ms';
+    });
+
+    var io = new IntersectionObserver(function (entries, obs) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('lw-in');
+          obs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+    els.forEach(function (el) { io.observe(el); });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initScrollReveal);
+  else initScrollReveal();
 })();

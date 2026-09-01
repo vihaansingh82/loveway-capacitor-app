@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Goals & Gifts — Loveway</title>
-<link rel="stylesheet" href="lw-app.css">
+<link rel="stylesheet" href="lw-tailwind.css?v=4">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
-<script src="lw-core.js?v=2"></script>
-<script src="lw-app.js?v=2"></script>
+<script src="lw-core.js?v=3"></script>
+<script src="lw-app.js?v=4"></script>
 </head>
 <body data-theme="ocean">
 
@@ -274,7 +274,7 @@ document.addEventListener('DOMContentLoaded', async function () {
   if (!LW.configOk) { LWApp.toast('config.js me Supabase keys daalo.', 'error'); return; }
   me = await LW.requireAuth();
   if (!me) return;
-  LWApp.shell('profile');
+  LWApp.shell('goals');
 
   friends = await LWApp.myFriends();
   document.getElementById('giftTo').innerHTML = '<option value="">' + window.t('goalsPickFriendOption') + '</option>' +

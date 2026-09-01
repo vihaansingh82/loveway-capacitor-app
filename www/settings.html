@@ -4,7 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Loveway — Settings ⚙️</title>
+<link rel="stylesheet" href="lw-tailwind.css?v=4">
 <style>
+/* This page runs its own independent theme-variable set + setTheme()/
+   setCustomColorSettings() implementation (see THEME_VARS below), separate
+   from lw-app.js's canonical --primary-soft/--text-soft naming — kept
+   verbatim and page-local (not merged into the shared Tailwind theme) so
+   its runtime theme switching keeps working unmodified. Loaded after
+   lw-tailwind.css so these page-local rules win on this page only. */
 :root{
   --bg:#fff0f5;--bg2:#ffe4ec;--card:#fff;--primary:#e91e63;
   --soft:#fce4ec;--accent:#ff6b9d;--text:#2d1b2e;--muted:#8a6d7e;
@@ -21,6 +28,12 @@
   --bg:#eef7fb;--bg2:#dff0f7;--card:#fff;--primary:#0288d1;
   --soft:#e1f5fe;--accent:#26c6da;--text:#10303f;--muted:#5e8494;
   --border:#cde9f5;--grad:linear-gradient(135deg,#26c6da,#0288d1);
+}
+[data-theme="modern"]{
+  --bg:#F8F9FA;--bg2:#EEF0F2;--card:#fff;--primary:#FF4D6D;
+  --soft:rgba(255,77,109,.14);--accent:#6C5CE7;--text:#1A1A1A;--muted:#6B7280;
+  --border:#E5E7EB;--grad:linear-gradient(135deg,#FF4D6D,#6C5CE7);
+  --shadow:0 8px 30px rgba(255,77,109,.12);
 }
 [data-theme="sunset"]{
   --bg:#fff6ee;--bg2:#ffeadb;--card:#fff;--primary:#f4511e;
@@ -99,6 +112,7 @@ header{
 .dark{background:linear-gradient(135deg,#bb86fc,#2d2440)}
 .ocean{background:linear-gradient(135deg,#26c6da,#0288d1)}
 .sunset{background:linear-gradient(135deg,#ffb74d,#f4511e)}
+.modern{background:linear-gradient(135deg,#FF4D6D,#6C5CE7)}
 .badge{font-size:.72rem;background:var(--soft);color:var(--primary);padding:4px 8px;border-radius:10px}
 .toast{
   position:fixed;left:50%;bottom:25px;transform:translateX(-50%);
@@ -132,8 +146,8 @@ body.bg-photo[data-theme="dark"]{
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
-<script src="lw-core.js?v=2"></script>
-<script src="lw-app.js?v=2"></script>
+<script src="lw-core.js?v=3"></script>
+<script src="lw-app.js?v=4"></script>
 </head>
 <body data-theme="ocean">
 
@@ -192,23 +206,25 @@ body.bg-photo[data-theme="dark"]{
 
       <div class="section" id="privacy">
         <div class="section-head"><h3 data-i18n="privacyTitle">Privacy</h3><p data-i18n="privacyDesc">Kaun tumhari profile aur activity dekh sakta hai.</p></div>
-        <div class="card row"><div><strong data-i18n="profileVisibilityLabel">Profile Visibility</strong><small data-i18n="profileVisibilityDesc">Who can see your profile?</small></div><select class="select" style="max-width:160px"><option data-i18n="visFriends">Friends</option><option data-i18n="visEveryone">Everyone</option><option data-i18n="visOnlyMe">Only Me</option></select></div>
-        <div class="card row"><div><strong data-i18n="onlineStatusLabel">Online Status</strong><small data-i18n="onlineStatusDesc">Show when you are online</small></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
-        <div class="card row"><div><strong data-i18n="lastSeenLabel">Last Seen</strong><small data-i18n="lastSeenDesc">Allow friends to see your last active time</small></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
-        <div class="card row"><div><strong data-i18n="friendRequestsLabel">Friend Requests</strong><small data-i18n="friendReqDescPrivacy">Allow people to send requests</small></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+        <div class="card row"><div><strong data-i18n="profileVisibilityLabel">Profile Visibility</strong><small data-i18n="profileVisibilityDesc">Who can see your profile?</small></div><select id="prefProfileVis" class="select" style="max-width:160px"><option value="friends" data-i18n="visFriends">Friends</option><option value="everyone" data-i18n="visEveryone">Everyone</option><option value="only_me" data-i18n="visOnlyMe">Only Me</option></select></div>
+        <div class="card row"><div><strong data-i18n="onlineStatusLabel">Online Status</strong><small data-i18n="onlineStatusDesc">Show when you are online</small></div><label class="switch"><input type="checkbox" id="prefOnlineStatus" checked><span class="slider"></span></label></div>
+        <div class="card row"><div><strong data-i18n="lastSeenLabel">Last Seen</strong><small data-i18n="lastSeenDesc">Allow friends to see your last active time</small></div><label class="switch"><input type="checkbox" id="prefLastSeen" checked><span class="slider"></span></label></div>
+        <div class="card row"><div><strong data-i18n="friendRequestsLabel">Friend Requests</strong><small data-i18n="friendReqDescPrivacy">Allow people to send requests</small></div><label class="switch"><input type="checkbox" id="prefAllowFriendReq" checked><span class="slider"></span></label></div>
         <div class="card">
           <strong data-i18n="blockedUsersLabel">🚫 Blocked Users</strong>
           <div id="blockedList" style="margin-top:10px"><small style="color:var(--muted)" data-i18n="blockedLoading">Load ho raha hai…</small></div>
         </div>
+        <button class="btn primary" onclick="savePrivacy()">💾 <span data-i18n="save">Save Changes</span></button>
       </div>
 
       <div class="section" id="notifications">
         <div class="section-head"><h3 data-i18n="notificationTitle">Notifications</h3><p data-i18n="notificationDesc">Loveway ki notifications control karo.</p></div>
-        <div class="card row"><div><strong data-i18n="messagesLabel">Messages</strong><small data-i18n="messagesDesc">New chat messages</small></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
-        <div class="card row"><div><strong data-i18n="friendRequestsLabel">Friend Requests</strong><small data-i18n="friendReqDescNotif">New friend or partner requests</small></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
-        <div class="card row"><div><strong data-i18n="birthdaysLabel">Birthdays</strong><small data-i18n="birthdaysDesc">Upcoming birthday reminders</small></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
-        <div class="card row"><div><strong data-i18n="songDedicationsLabel">Song Dedications</strong><small data-i18n="songDedicationsDesc">When someone dedicates a song to you</small></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
-        <div class="card row"><div><strong data-i18n="announcementsLabel">Announcements</strong><small data-i18n="announcementsDesc">Important Loveway updates</small></div><label class="switch"><input type="checkbox"><span class="slider"></span></label></div>
+        <div class="card row"><div><strong data-i18n="messagesLabel">Messages</strong><small data-i18n="messagesDesc">New chat messages</small></div><label class="switch"><input type="checkbox" id="prefNotifMessages" checked><span class="slider"></span></label></div>
+        <div class="card row"><div><strong data-i18n="friendRequestsLabel">Friend Requests</strong><small data-i18n="friendReqDescNotif">New friend or partner requests</small></div><label class="switch"><input type="checkbox" id="prefNotifFriendReq" checked><span class="slider"></span></label></div>
+        <div class="card row"><div><strong data-i18n="birthdaysLabel">Birthdays</strong><small data-i18n="birthdaysDesc">Upcoming birthday reminders</small></div><label class="switch"><input type="checkbox" id="prefNotifBirthdays" checked><span class="slider"></span></label></div>
+        <div class="card row"><div><strong data-i18n="songDedicationsLabel">Song Dedications</strong><small data-i18n="songDedicationsDesc">When someone dedicates a song to you</small></div><label class="switch"><input type="checkbox" id="prefNotifSongs" checked><span class="slider"></span></label></div>
+        <div class="card row"><div><strong data-i18n="announcementsLabel">Announcements</strong><small data-i18n="announcementsDesc">Important Loveway updates</small></div><label class="switch"><input type="checkbox" id="prefNotifAnnouncements"><span class="slider"></span></label></div>
+        <button class="btn primary" onclick="saveNotifications()">💾 <span data-i18n="save">Save Changes</span></button>
       </div>
 
       <div class="section" id="appearance">
@@ -218,6 +234,7 @@ body.bg-photo[data-theme="dark"]{
           <button class="theme dark" data-theme="dark" title="Dark" data-i18n-title="themeDarkTitle"></button>
           <button class="theme ocean active" data-theme="ocean" title="Ocean" data-i18n-title="themeOceanTitle"></button>
           <button class="theme sunset" data-theme="sunset" title="Sunset" data-i18n-title="themeSunsetTitle"></button>
+          <button class="theme modern" data-theme="modern" title="Modern" data-i18n-title="themeModernTitle"></button>
           <label class="theme" id="customColorDot" title="Custom color" data-i18n-title="customColorTitle"
             style="position:relative;overflow:hidden;display:block;cursor:pointer;
             background:conic-gradient(from 0deg,#ff595e,#ffca3a,#8ac926,#1982c4,#6a4c93,#ff595e)">
@@ -252,10 +269,11 @@ body.bg-photo[data-theme="dark"]{
       <div class="section" id="security">
         <div class="section-head"><h3 data-i18n="securityTitle">Security</h3><p data-i18n="securityDesc">Account ko secure rakho.</p></div>
         <div class="card row"><div><strong data-i18n="passwordLabel">Password</strong><small data-i18n="passwordDesc">Reset link email par aayega</small></div><button class="btn secondary" onclick="changePassword()" data-i18n="changeBtn">Change</button></div>
-        <div class="card row"><div><strong data-i18n="otpLoginLabel">OTP Login</strong><small data-i18n="otpLoginDesc">Use mobile OTP for sign-in</small></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
-        <div class="card row"><div><strong data-i18n="loginAlertsLabel">Login Alerts</strong><small data-i18n="loginAlertsDesc">Get notified about new logins</small></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+        <div class="card row"><div><strong data-i18n="otpLoginLabel">OTP Login</strong><small data-i18n="otpLoginDesc">Use mobile OTP for sign-in</small></div><label class="switch"><input type="checkbox" id="prefOtpLogin" checked><span class="slider"></span></label></div>
+        <div class="card row"><div><strong data-i18n="loginAlertsLabel">Login Alerts</strong><small data-i18n="loginAlertsDesc">Get notified about new logins</small></div><label class="switch"><input type="checkbox" id="prefLoginAlerts" checked><span class="slider"></span></label></div>
         <div class="card row"><div><strong data-i18n="activeSessionsLabel">Active Sessions</strong><small data-i18n="activeSessionsDesc">Manage devices where Loveway is open</small></div><button class="btn secondary" data-i18n="viewBtn">View</button></div>
-        <div class="card"><button class="btn danger" onclick="logoutAll()" data-i18n="logoutAllBtn">Log out from all devices</button></div>
+        <button class="btn primary" onclick="saveSecurity()">💾 <span data-i18n="save">Save Changes</span></button>
+        <div class="card" style="margin-top:12px"><button class="btn danger" onclick="logoutAll()" data-i18n="logoutAllBtn">Log out from all devices</button></div>
       </div>
 
       <div class="section" id="help">
@@ -575,6 +593,45 @@ function paintMe(p){
  document.getElementById("cityField").value=p.city||"";
 }
 
+// Privacy/Notifications/Security ke toggles ab tak sirf UI the, kahin save
+// nahi hote the. Ab profiles.preferences (jsonb) mein store hote hain —
+// jo values nahi milti unke liye upar wali HTML ki default checked/unchecked
+// state hi maani jaati hai (backward-compatible purane accounts ke liye).
+function paintPrefs(p){
+ const prefs=p.preferences||{};
+ const setChk=(id,def)=>{const el=document.getElementById(id); if(el) el.checked = prefs[id]===undefined ? def : !!prefs[id];};
+ document.getElementById("prefProfileVis").value = prefs.prefProfileVis || "friends";
+ setChk("prefOnlineStatus", true);
+ setChk("prefLastSeen", true);
+ setChk("prefAllowFriendReq", true);
+ setChk("prefNotifMessages", true);
+ setChk("prefNotifFriendReq", true);
+ setChk("prefNotifBirthdays", true);
+ setChk("prefNotifSongs", true);
+ setChk("prefNotifAnnouncements", false);
+ setChk("prefOtpLogin", true);
+ setChk("prefLoginAlerts", true);
+}
+
+async function savePrefKeys(keys){
+ const me=window.LW_ME; if(!me) return;
+ const patch={};
+ keys.forEach(id=>{
+   const el=document.getElementById(id);
+   if(!el) return;
+   patch[id] = el.type==="checkbox" ? el.checked : el.value;
+ });
+ const merged=Object.assign({}, me.preferences||{}, patch);
+ const r=await LWApp.saveProfile({preferences:merged});
+ if(r.error){toast("❌ "+LW.errText(r.error));return}
+ me.preferences=merged;
+ toast((translations[getLang()]||translations.en).saved);
+}
+
+function savePrivacy(){savePrefKeys(["prefProfileVis","prefOnlineStatus","prefLastSeen","prefAllowFriendReq"])}
+function saveNotifications(){savePrefKeys(["prefNotifMessages","prefNotifFriendReq","prefNotifBirthdays","prefNotifSongs","prefNotifAnnouncements"])}
+function saveSecurity(){savePrefKeys(["prefOtpLogin","prefLoginAlerts"])}
+
 async function changeEmail(){
  const next=prompt(tl("newEmailPrompt"),(window.LW_ME||{}).email||"");
  if(!next) return;
@@ -678,7 +735,7 @@ async function unblockSettings(friendshipId){
 document.addEventListener("DOMContentLoaded",async()=>{
  const p=await LW.requireAuth({allowBlocked:true});
  if(!p) return;
- window.LW_ME=p; paintMe(p);
+ window.LW_ME=p; paintMe(p); paintPrefs(p);
  loadBlockedSettings();
  checkSpotify();
  enhanceSelect(document.getElementById("languageQuick"));

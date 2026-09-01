@@ -5,191 +5,100 @@
 <title>Get the App — Loveway</title>
 <meta name="description" content="Download the Loveway Android app — chat, dedicate songs, and stay close to your people, right from your home screen.">
 <!--
-  IMPORTANT — InfinityFree hosting cannot serve .apk files as a real download
-  (their servers only open URLs in-browser, they don't send a proper download).
-  So the actual loveway.apk file needs to live somewhere else — GitHub Releases
-  is the easiest free option:
-    1. Create a GitHub repo (can be empty/private-doesn't matter), go to
-       "Releases" -> "Create a new release", upload loveway.apk as a release asset.
-    2. Copy the asset's direct download URL — it looks like:
-       https://github.com/<you>/<repo>/releases/download/v1.0/loveway.apk
-    3. Replace APK_DOWNLOAD_URL below (two places: the button href, and the
-       QR code's `data=` parameter, URL-encoded) with that real URL.
-  Until you do this, the button/QR code below point at a placeholder that
-  will not work.
+  loveway.apk is hosted directly at https://loveway.in/loveway.apk (uploaded
+  alongside this site). The download="" attribute below hints the browser to
+  save the file instead of navigating to it — but some free hosts (like
+  InfinityFree) can still serve .apk without the right content-type and open
+  it in-browser instead of downloading. If that happens, move the file to
+  GitHub Releases and swap the URL below (button href + QR code data=).
 -->
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Sans:wght@300;400;500&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lw-tailwind.css?v=4">
 <style>
-  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-  :root{
-    --pink:#FF4F7B; --pink-light:#FF85A1; --dark:#1A0A14; --dark2:#2D1525;
-    --dark3:#3D1E30; --gold:#FFB347; --white:#FFF5F8; --text-muted:#C4849A;
-  }
-  html{scroll-behavior:smooth}
-  body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--white);line-height:1.6;overflow-x:hidden}
-
-  .hero{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;
-      justify-content:center;text-align:center;padding:150px 24px 80px}
-  .hero-glow{position:absolute;inset:0;pointer-events:none;
-      background:radial-gradient(circle at 50% 20%,rgba(255,79,123,.22),transparent 55%),
-                 radial-gradient(circle at 80% 80%,rgba(255,179,71,.12),transparent 50%)}
-  .app-icon{position:relative;width:112px;height:112px;border-radius:28px;
-      background:linear-gradient(135deg,var(--pink),var(--gold));
-      display:flex;align-items:center;justify-content:center;font-size:3rem;
-      box-shadow:0 20px 50px rgba(255,79,123,.35);margin-bottom:26px}
-  .section-tag{position:relative;display:inline-block;padding:6px 16px;border-radius:999px;
-      background:rgba(255,79,123,.12);border:1px solid rgba(255,79,123,.3);
-      color:var(--pink-light);font-size:.74rem;letter-spacing:.16em;text-transform:uppercase;margin-bottom:20px}
-  .hero h1{position:relative;font-family:'Playfair Display',serif;font-size:clamp(2.2rem,5.6vw,3.6rem);
-      line-height:1.15;margin-bottom:16px;max-width:720px}
-  .hero h1 em{font-family:'Dancing Script',cursive;font-style:normal;color:var(--pink-light);font-size:1.1em}
-  .hero p{position:relative;color:var(--text-muted);max-width:520px;font-size:1.02rem;margin-bottom:36px}
-
-  .btn-download{position:relative;display:inline-flex;align-items:center;gap:12px;
-      padding:18px 38px;border-radius:999px;background:var(--pink);color:#fff;text-decoration:none;
-      font:600 1.08rem 'DM Sans',sans-serif;box-shadow:0 14px 40px rgba(255,79,123,.4);
-      transition:.28s;border:0;cursor:pointer}
-  .btn-download:hover{transform:translateY(-3px);box-shadow:0 20px 50px rgba(255,79,123,.5);background:#e03565}
-  .btn-download .dl-ic{font-size:1.3rem}
-  .btn-download .dl-meta{display:flex;flex-direction:column;align-items:flex-start;line-height:1.25}
-  .btn-download .dl-meta small{font-weight:400;opacity:.85;font-size:.72rem;letter-spacing:.02em}
-
-  .meta-row{position:relative;margin-top:22px;display:flex;gap:22px;flex-wrap:wrap;justify-content:center;
-      color:var(--text-muted);font-size:.82rem}
-  .meta-row span{display:flex;align-items:center;gap:6px}
-
-  .qr-card{position:relative;margin-top:44px;display:inline-flex;align-items:center;gap:18px;
-      padding:18px 26px;border-radius:20px;background:var(--dark2);border:1px solid rgba(255,79,123,.16)}
-  .qr-card img{width:104px;height:104px;border-radius:12px;background:#fff;padding:6px;display:block}
-  .qr-card .qr-text{text-align:left;max-width:190px}
-  .qr-card .qr-text b{display:block;font-size:.92rem;margin-bottom:4px}
-  .qr-card .qr-text span{color:var(--text-muted);font-size:.8rem}
-
-  section.pad{padding:82px 40px;position:relative}
-  .head{text-align:center;max-width:640px;margin:0 auto 52px}
-  .head h2{font-family:'Playfair Display',serif;font-size:clamp(1.7rem,3.6vw,2.5rem);margin-bottom:12px}
-  .head p{color:var(--text-muted);font-size:.96rem}
-
-  .steps{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
-  .step{background:var(--dark2);border:1px solid rgba(255,79,123,.14);border-radius:20px;padding:28px 22px;text-align:center;transition:.3s}
-  .step:hover{transform:translateY(-4px);border-color:rgba(255,79,123,.35)}
-  .step-n{width:40px;height:40px;margin:0 auto 16px;border-radius:50%;border:1px solid rgba(255,79,123,.4);
-      display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;
-      color:var(--pink-light);font-size:.95rem}
-  .step h3{font-size:1rem;font-weight:500;margin-bottom:8px}
-  .step p{color:var(--text-muted);font-size:.86rem}
-
-  .why-band{background:var(--dark2);padding:70px 40px}
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;max-width:1000px;margin:0 auto}
-  .card{background:var(--dark);border:1px solid rgba(255,79,123,.14);border-radius:18px;padding:26px 22px;transition:.3s}
-  .card:hover{transform:translateY(-4px);border-color:rgba(255,79,123,.35)}
-  .card .ic{width:44px;height:44px;border-radius:12px;background:rgba(255,79,123,.13);
-      display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:14px}
-  .card h3{font-size:1rem;font-weight:500;margin-bottom:6px}
-  .card p{color:var(--text-muted);font-size:.85rem}
-
-  .note-band{padding:56px 40px;text-align:center}
-  .note-card{max-width:640px;margin:0 auto;background:rgba(255,179,71,.08);border:1px solid rgba(255,179,71,.28);
-      border-radius:18px;padding:26px 28px;text-align:left}
-  .note-card b{color:var(--gold);display:block;margin-bottom:8px;font-size:.92rem}
-  .note-card p{color:var(--text-muted);font-size:.86rem;line-height:1.7}
-
-  footer{padding:54px 40px 30px;border-top:1px solid rgba(255,79,123,.14);text-align:center}
-  footer a{color:var(--pink-light);text-decoration:none;font-size:.86rem}
-  footer a:hover{text-decoration:underline}
-  footer .foot-links{display:flex;gap:22px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
-  footer .foot-bottom{color:var(--text-muted);font-size:.78rem}
-
-  @media(max-width:640px){
-    .hero{padding:120px 20px 60px}
-    .steps{grid-template-columns:1fr}
-    .qr-card{flex-direction:column;text-align:center}
-    .qr-card .qr-text{text-align:center;max-width:220px}
-    .btn-download{padding:16px 28px;font-size:.98rem}
-  }
+  .hero-glow{background:radial-gradient(circle at 50% 20%,rgba(255,79,123,.22),transparent 55%),
+             radial-gradient(circle at 80% 80%,rgba(255,179,71,.12),transparent 50%)}
 </style>
 </head>
-<body>
+<body class="font-sans bg-bg text-text leading-relaxed overflow-x-hidden">
 
-<section class="hero">
-  <div class="hero-glow"></div>
-  <div class="app-icon">💕</div>
-  <div class="section-tag">Android App</div>
-  <h1>Loveway, <em>ab apni jeb mein</em></h1>
-  <p>Chat karo, gaane dedicate karo, aur apne logon ke kareeb raho — seedha apni home screen se. Ek baar install karo, phir har baar browser kholne ki zaroorat nahi.</p>
+<section class="relative min-h-screen flex flex-col items-center justify-center text-center px-6 pt-[150px] pb-20 max-[640px]:pt-[120px] max-[640px]:pb-[60px]">
+  <div class="hero-glow absolute inset-0 pointer-events-none"></div>
+  <div class="relative w-28 h-28 rounded-[28px] flex items-center justify-center text-[3rem] shadow-[0_20px_50px_rgba(255,79,123,.35)] mb-[26px]" style="background:linear-gradient(135deg,var(--primary),var(--accent))">💕</div>
+  <div class="relative inline-block px-4 py-1.5 rounded-full bg-primary/10 border border-primary/30 text-pink-light text-[.74rem] tracking-[.16em] uppercase mb-5">Android App</div>
+  <h1 class="relative font-display text-[clamp(2.2rem,5.6vw,3.6rem)] leading-[1.15] mb-4 max-w-[720px]">Loveway, <em class="not-italic text-pink-light" style="font-family:'Dancing Script',cursive;font-size:1.1em">ab apni jeb mein</em></h1>
+  <p class="relative text-text-soft max-w-[520px] text-[1.02rem] mb-9">Chat karo, gaane dedicate karo, aur apne logon ke kareeb raho — seedha apni home screen se. Ek baar install karo, phir har baar browser kholne ki zaroorat nahi.</p>
 
-  <a href="APK_DOWNLOAD_URL" class="btn-download">
-    <span class="dl-ic">⬇</span>
-    <span class="dl-meta">Download APK<small>Android 6.0+ · Free</small></span>
+  <a href="loveway.apk" download="loveway.apk" class="relative inline-flex items-center gap-3 px-9 py-[18px] rounded-full bg-primary text-white no-underline font-semibold text-[1.08rem] shadow-[0_14px_40px_rgba(255,79,123,.4)] transition-[.28s] border-0 cursor-pointer hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(255,79,123,.5)] hover:bg-[#e03565] max-[640px]:px-7 max-[640px]:py-4 max-[640px]:text-[.98rem]">
+    <span class="text-[1.3rem]">⬇</span>
+    <span class="flex flex-col items-start leading-[1.25]">Download APK<small class="font-normal opacity-85 text-[.72rem] tracking-[.02em]">Android 6.0+ · Free</small></span>
   </a>
 
-  <div class="meta-row">
-    <span>✓ Free, hamesha ke liye</span>
-    <span>✓ Play Store jaisa hi safe</span>
-    <span>✓ Seedha Loveway se — koi third-party ads nahi</span>
+  <div class="relative mt-[22px] flex gap-[22px] flex-wrap justify-center text-text-soft text-[.82rem]">
+    <span class="flex items-center gap-1.5">✓ Free, hamesha ke liye</span>
+    <span class="flex items-center gap-1.5">✓ Play Store jaisa hi safe</span>
+    <span class="flex items-center gap-1.5">✓ Seedha Loveway se — koi third-party ads nahi</span>
   </div>
 
-  <div class="qr-card">
-    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data=APK_DOWNLOAD_URL" alt="Scan to download Loveway APK" loading="lazy">
-    <div class="qr-text">
-      <b>📱 Phone se scan karo</b>
-      <span>Camera se QR scan karke seedha apne Android phone par download shuru karo.</span>
+  <div class="relative mt-11 inline-flex items-center gap-[18px] px-[26px] py-[18px] rounded-[20px] bg-bg2 border border-primary/[.16] max-[640px]:flex-col max-[640px]:text-center">
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data=https%3A%2F%2Floveway.in%2Floveway.apk" alt="Scan to download Loveway APK" loading="lazy" class="w-[104px] h-[104px] rounded-xl bg-white p-1.5 block">
+    <div class="text-left max-w-[190px] max-[640px]:text-center max-[640px]:max-w-[220px]">
+      <b class="block text-[.92rem] mb-1">📱 Phone se scan karo</b>
+      <span class="text-text-soft text-[.8rem]">Camera se QR scan karke seedha apne Android phone par download shuru karo.</span>
     </div>
   </div>
 </section>
 
-<section class="pad">
-  <div class="head">
-    <div class="section-tag">Install kaise karein</div>
-    <h2>3 aasan steps</h2>
-    <p>Loveway abhi Play Store par nahi hai, isliye "Unknown apps" install karne ki ek baar permission deni hogi — bilkul safe hai.</p>
+<section class="relative px-10 py-[82px]">
+  <div class="text-center max-w-[640px] mx-auto mb-[52px]">
+    <div class="relative inline-block px-4 py-1.5 rounded-full bg-primary/10 border border-primary/30 text-pink-light text-[.74rem] tracking-[.16em] uppercase mb-5">Install kaise karein</div>
+    <h2 class="font-display text-[clamp(1.7rem,3.6vw,2.5rem)] mb-3">3 aasan steps</h2>
+    <p class="text-text-soft text-[.96rem]">Loveway abhi Play Store par nahi hai, isliye "Unknown apps" install karne ki ek baar permission deni hogi — bilkul safe hai.</p>
   </div>
-  <div class="steps">
-    <div class="step">
-      <div class="step-n">1</div>
-      <h3>APK download karo</h3>
-      <p>Upar wale button se ya QR scan karke <code>loveway.apk</code> file apne phone mein download karo.</p>
+  <div class="max-w-[760px] mx-auto grid gap-[22px] max-[640px]:grid-cols-1" style="grid-template-columns:repeat(3,1fr)">
+    <div class="bg-bg2 border border-primary/[.14] rounded-[20px] px-[22px] py-7 text-center transition-[.3s] hover:-translate-y-1 hover:border-primary/[.35]">
+      <div class="w-10 h-10 mx-auto mb-4 rounded-full border border-primary/40 flex items-center justify-center font-display text-pink-light text-[.95rem]">1</div>
+      <h3 class="text-base font-medium mb-2">APK download karo</h3>
+      <p class="text-text-soft text-[.86rem]">Upar wale button se ya QR scan karke <code>loveway.apk</code> file apne phone mein download karo.</p>
     </div>
-    <div class="step">
-      <div class="step-n">2</div>
-      <h3>Unknown apps allow karo</h3>
-      <p>Download hone par jo popup aaye usme "Settings" par jao, aur "Install unknown apps" ko is baar ke liye ON kar do.</p>
+    <div class="bg-bg2 border border-primary/[.14] rounded-[20px] px-[22px] py-7 text-center transition-[.3s] hover:-translate-y-1 hover:border-primary/[.35]">
+      <div class="w-10 h-10 mx-auto mb-4 rounded-full border border-primary/40 flex items-center justify-center font-display text-pink-light text-[.95rem]">2</div>
+      <h3 class="text-base font-medium mb-2">Unknown apps allow karo</h3>
+      <p class="text-text-soft text-[.86rem]">Download hone par jo popup aaye usme "Settings" par jao, aur "Install unknown apps" ko is baar ke liye ON kar do.</p>
     </div>
-    <div class="step">
-      <div class="step-n">3</div>
-      <h3>Install karo aur kholo</h3>
-      <p>File ko dobara tap karo, "Install" dabao, aur ho gaya — Loveway ab home screen par hai.</p>
+    <div class="bg-bg2 border border-primary/[.14] rounded-[20px] px-[22px] py-7 text-center transition-[.3s] hover:-translate-y-1 hover:border-primary/[.35]">
+      <div class="w-10 h-10 mx-auto mb-4 rounded-full border border-primary/40 flex items-center justify-center font-display text-pink-light text-[.95rem]">3</div>
+      <h3 class="text-base font-medium mb-2">Install karo aur kholo</h3>
+      <p class="text-text-soft text-[.86rem]">File ko dobara tap karo, "Install" dabao, aur ho gaya — Loveway ab home screen par hai.</p>
     </div>
   </div>
 </section>
 
-<section class="why-band">
-  <div class="head">
-    <div class="section-tag">App kyun</div>
-    <h2>Browser se behtar</h2>
+<section class="bg-bg2 px-10 py-[70px]">
+  <div class="text-center max-w-[640px] mx-auto mb-[52px]">
+    <div class="relative inline-block px-4 py-1.5 rounded-full bg-primary/10 border border-primary/30 text-pink-light text-[.74rem] tracking-[.16em] uppercase mb-5">App kyun</div>
+    <h2 class="font-display text-[clamp(1.7rem,3.6vw,2.5rem)] mb-3">Browser se behtar</h2>
   </div>
-  <div class="cards">
-    <div class="card"><div class="ic">🔔</div><h3>Turant notifications</h3><p>Naya message ya song dedication aate hi pata chal jaaye — background mein bhi.</p></div>
-    <div class="card"><div class="ic">⚡</div><h3>Tez aur halka</h3><p>Har baar browser mein type karke jaane ki zaroorat nahi, ek tap mein khul jaata hai.</p></div>
-    <div class="card"><div class="ic">🏠</div><h3>Home screen par</h3><p>Apne baaki apps ke saath, ek nazar mein Loveway tak pahunch.</p></div>
-  </div>
-</section>
-
-<section class="note-band">
-  <div class="note-card">
-    <b>⚠️ Play Store par nahi hai (abhi)</b>
-    <p>Ye Loveway ki apni banayi APK hai, seedha is website se. Isliye Android "unknown source" ki ek chhoti si permission maangega — ye normal hai aur bilkul safe hai. Hum future mein Play Store par bhi laane ki koshish kar rahe hain.</p>
+  <div class="grid gap-5 max-w-[1000px] mx-auto" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+    <div class="bg-bg border border-primary/[.14] rounded-2xl px-[22px] py-[26px] transition-[.3s] hover:-translate-y-1 hover:border-primary/[.35]"><div class="w-11 h-11 rounded-xl bg-primary/[.13] flex items-center justify-center text-[1.3rem] mb-3.5">🔔</div><h3 class="text-base font-medium mb-1.5">Turant notifications</h3><p class="text-text-soft text-[.85rem]">Naya message ya song dedication aate hi pata chal jaaye — background mein bhi.</p></div>
+    <div class="bg-bg border border-primary/[.14] rounded-2xl px-[22px] py-[26px] transition-[.3s] hover:-translate-y-1 hover:border-primary/[.35]"><div class="w-11 h-11 rounded-xl bg-primary/[.13] flex items-center justify-center text-[1.3rem] mb-3.5">⚡</div><h3 class="text-base font-medium mb-1.5">Tez aur halka</h3><p class="text-text-soft text-[.85rem]">Har baar browser mein type karke jaane ki zaroorat nahi, ek tap mein khul jaata hai.</p></div>
+    <div class="bg-bg border border-primary/[.14] rounded-2xl px-[22px] py-[26px] transition-[.3s] hover:-translate-y-1 hover:border-primary/[.35]"><div class="w-11 h-11 rounded-xl bg-primary/[.13] flex items-center justify-center text-[1.3rem] mb-3.5">🏠</div><h3 class="text-base font-medium mb-1.5">Home screen par</h3><p class="text-text-soft text-[.85rem]">Apne baaki apps ke saath, ek nazar mein Loveway tak pahunch.</p></div>
   </div>
 </section>
 
-<footer>
-  <div class="foot-links">
-    <a href="index.html">Home</a>
-    <a href="about.html">About</a>
-    <a href="features.html">Features</a>
-    <a href="contact.html">Contact</a>
+<section class="py-14 px-10 text-center">
+  <div class="max-w-[640px] mx-auto rounded-[18px] px-7 py-[26px] text-left" style="background:rgba(255,179,71,.08);border:1px solid rgba(255,179,71,.28)">
+    <b class="block mb-2 text-[.92rem]" style="color:var(--accent)">⚠️ Play Store par nahi hai (abhi)</b>
+    <p class="text-text-soft text-[.86rem] leading-[1.7]">Ye Loveway ki apni banayi APK hai, seedha is website se. Isliye Android "unknown source" ki ek chhoti si permission maangega — ye normal hai aur bilkul safe hai. Hum future mein Play Store par bhi laane ki koshish kar rahe hain.</p>
   </div>
-  <div class="foot-bottom">© <span id="yr">2026</span> Loveway · Made in India</div>
+</section>
+
+<footer class="px-10 pt-[54px] pb-[30px] border-t border-primary/[.14] text-center">
+  <div class="flex gap-[22px] justify-center flex-wrap mb-4">
+    <a href="index.html" class="text-pink-light no-underline text-[.86rem] hover:underline">Home</a>
+    <a href="about.html" class="text-pink-light no-underline text-[.86rem] hover:underline">About</a>
+    <a href="features.html" class="text-pink-light no-underline text-[.86rem] hover:underline">Features</a>
+    <a href="contact.html" class="text-pink-light no-underline text-[.86rem] hover:underline">Contact</a>
+  </div>
+  <div class="text-text-soft text-[.78rem]">© <span id="yr">2026</span> Loveway · Made in India</div>
 </footer>
 
 <script>document.getElementById('yr').textContent = new Date().getFullYear();</script>

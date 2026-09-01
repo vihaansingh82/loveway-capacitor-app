@@ -73,7 +73,12 @@
     globe:     '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
     chevron:   '<polyline points="6 9 12 15 18 9"/>',
     chain:     '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
-    image:     '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" stroke="none"/><path d="M21 15l-5-5L5 21"/>'
+    image:     '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" stroke="none"/><path d="M21 15l-5-5L5 21"/>',
+    download:  '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+    chat:      '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
+    search:    '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+    sun:       '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>',
+    heart:     '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>'
   };
 
   function icon(name, size) {
@@ -123,9 +128,36 @@
     refresh();
     selectEl.addEventListener('change', refresh);
 
+    // Trigger ke neeche jitni jagah bachi hai usi hisaab se menu ko upar/neeche
+    // kholte hain aur uski max-height clamp karte hain — warna screen ke bottom
+    // ke paas wale dropdown (jaise composer ka "Post" selector) viewport ke
+    // bahar cut ho jaate the aur andar scroll karke bhi baaki options nahi
+    // dikhte the (scroll sirf menu ke apne max-height ke andar kaam karta hai,
+    // viewport ke bahar wale hisse ke liye nahi).
+    function positionMenu() {
+      var pad = 10;
+      var rect = trigger.getBoundingClientRect();
+      var spaceBelow = window.innerHeight - rect.bottom - pad;
+      var spaceAbove = rect.top - pad;
+      var naturalMax = 280;
+
+      menu.style.top = '';
+      menu.style.bottom = '';
+
+      if (spaceBelow >= Math.min(naturalMax, 160) || spaceBelow >= spaceAbove) {
+        menu.style.top = 'calc(100% + 8px)';
+        menu.style.maxHeight = Math.max(120, Math.min(naturalMax, spaceBelow)) + 'px';
+      } else {
+        menu.style.bottom = 'calc(100% + 8px)';
+        menu.style.maxHeight = Math.max(120, Math.min(naturalMax, spaceAbove)) + 'px';
+      }
+    }
+
     trigger.addEventListener('click', function (ev) {
       ev.stopPropagation();
       document.querySelectorAll('.lw-dd-menu.open').forEach(function (m) { if (m !== menu) m.classList.remove('open'); });
+      var willOpen = !menu.classList.contains('open');
+      if (willOpen) positionMenu();
       menu.classList.toggle('open');
     });
 
@@ -139,6 +171,19 @@
     document.addEventListener('click', function () {
       document.querySelectorAll('.lw-dd-menu.open').forEach(function (m) { m.classList.remove('open'); });
     });
+  }
+
+  // .card ki entrance animation (fill-mode:both) hamesha ke liye ek naya stacking
+  // context bana deti hai, jisse uske andar ka .lw-dd-menu (position:absolute,
+  // z-index) card ke baad wale siblings (jaise .tabs) ke peeche chhup jaata hai.
+  // Animation khatam hote hi hata dete hain taaki dropdown sahi se upar dikhe.
+  if (!window._lwCardAnimCloser) {
+    window._lwCardAnimCloser = true;
+    document.addEventListener('animationend', function (ev) {
+      if (ev.animationName === 'lwFadeUp' && ev.target.classList.contains('card')) {
+        ev.target.style.animation = 'none';
+      }
+    }, true);
   }
 
   /* ---------- helpers ---------- */
@@ -274,11 +319,11 @@
   // har page ka header + bottom nav ek jaisa
   function shell(active) {
     var pages = [
-      { id: 'feed',       href: 'dashboard.html',  ic: '🏠', label: 'Feed' },
-      { id: 'chat',       href: 'messages.html',   ic: '💬', label: 'Chat' },
-      { id: 'community',  href: 'community.html',  ic: '🏘️', label: 'Community' },
-      { id: 'activities', href: 'activities.html', ic: '📌', label: 'Board' },
-      { id: 'profile',    href: 'profile.html',    ic: '👤', label: 'Profile' }
+      { id: 'feed',       href: 'dashboard.html',  ic: 'home',      label: 'Feed' },
+      { id: 'chat',       href: 'messages.html',   ic: 'chat',      label: 'Chat' },
+      { id: 'community',  href: 'community.html',  ic: 'community', label: 'Community' },
+      { id: 'activities', href: 'activities.html', ic: 'pin',       label: 'Board' },
+      { id: 'profile',    href: 'profile.html',    ic: 'profile',   label: 'Profile' }
     ];
 
     var h1 = document.querySelector('header h1');
@@ -330,6 +375,17 @@
       customSelect(langSelect, true);
     }
 
+    if (head && !document.getElementById('themeToggleBtn')) {
+      var themeBtn = document.createElement('button');
+      themeBtn.type = 'button';
+      themeBtn.className = 'header-action';
+      themeBtn.id = 'themeToggleBtn';
+      themeBtn.title = 'Switch theme';
+      themeBtn.onclick = function () { cycleTheme(); };
+      themeBtn.innerHTML = icon('sun', 16);
+      head.insertBefore(themeBtn, head.firstChild);
+    }
+
     if (head && !document.getElementById('notifBtn')) {
       var b = document.createElement('button');
       b.className = 'header-action has-label';
@@ -346,11 +402,15 @@
       var nav = document.createElement('nav');
       nav.className = 'bottom-nav';
       nav.innerHTML = pages.map(function (p) {
-        return '<a href="' + p.href + '"' + (p.id === active ? ' class="active"' : '') +
-               '><span>' + p.ic + '</span>' + p.label + '</a>';
+        return '<a href="' + p.href + '" title="' + p.label + '"' + (p.id === active ? ' class="active"' : '') +
+               '>' + icon(p.ic, 22) + '</a>';
       }).join('');
       document.body.appendChild(nav);
     }
+
+    buildSidebar(active);
+    buildTopbarSearch();
+    buildRailRight();
 
     if (!window._lwScrollBound) {
       window._lwScrollBound = true;
@@ -363,6 +423,123 @@
     restoreTheme();
     refreshNotifCount();
     if (typeof window.applyLanguage === 'function') window.applyLanguage();
+  }
+
+  /* ---------- Left sidebar nav (desktop) — JS-injected once, same list on
+     every shell() page, no per-page markup needed ---------- */
+  var SIDEBAR_PAGES = [
+    { id: 'feed',          href: 'dashboard.html',     icon: 'home',      label: 'navHome' },
+    { id: 'community',     href: 'community.html',     icon: 'community', label: 'navCommunity' },
+    { id: 'activities',    href: 'activities.html',    icon: 'pin',       label: 'navBoard' },
+    { id: 'journey',       href: 'journey.html',       icon: 'chain',     label: 'navLifeChain' },
+    { id: 'goals',         href: 'goals.html',         icon: 'target',    label: 'navGoals' },
+    { id: 'friends',       href: 'friends.html',       icon: 'friends',   label: 'navFriends' },
+    { id: 'chat',          href: 'messages.html',      icon: 'chat',      label: 'navChat' },
+    { id: 'notifications', href: 'notifications.html', icon: 'bell',      label: 'navNotifications' },
+    { id: 'settings',      href: 'settings.html',      icon: 'settings',  label: 'navSettings' }
+  ];
+
+  function buildSidebar(active) {
+    if (document.querySelector('.app-sidebar')) return;
+    var me = window.LW && window.LW.profile;
+    var sidebar = document.createElement('aside');
+    sidebar.className = 'app-sidebar';
+    sidebar.innerHTML =
+      '<a href="dashboard.html" class="app-sidebar-brand"><img src="logo.png" alt="Loveway" class="lw-logo-icon"></a>' +
+      '<div class="app-sidebar-nav" role="navigation">' +
+      SIDEBAR_PAGES.map(function (p) {
+        return '<a href="' + p.href + '"' + (p.id === active ? ' class="active"' : '') + '>' +
+          icon(p.icon) + '<span data-i18n="' + p.label + '">' +
+          (window.t ? window.t(p.label) : p.id) + '</span></a>';
+      }).join('') +
+      '</div>' +
+      '<a href="profile.html" class="app-sidebar-profile">' +
+        avatarHtml(me || {}, 'sm') +
+        '<div style="min-width:0"><b>' + esc((me && (me.full_name || me.username)) || '—') + '</b>' +
+        '<small>@' + esc((me && me.username) || '') + '</small></div>' +
+      '</a>';
+    document.body.appendChild(sidebar);
+  }
+
+  /* ---------- Topbar search — real search (LWApp.searchPeople), not a
+     placeholder; JS-injected into the existing <header>, no markup change
+     needed on any page ---------- */
+  var _topbarSearchTimer = null;
+  function buildTopbarSearch() {
+    var head = document.querySelector('header');
+    if (!head || head.querySelector('.app-topbar-search')) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'app-topbar-search';
+    wrap.innerHTML =
+      icon('search', 16) +
+      '<input type="search" id="topbarSearch" placeholder="Search Loveway…" autocomplete="off">' +
+      '<div class="app-search-results" style="display:none"></div>';
+    var h1 = head.querySelector('h1');
+    if (h1 && h1.nextSibling) head.insertBefore(wrap, h1.nextSibling);
+    else head.insertBefore(wrap, head.firstChild.nextSibling || null);
+
+    var input = wrap.querySelector('#topbarSearch');
+    var results = wrap.querySelector('.app-search-results');
+    input.addEventListener('input', function () {
+      var q = this.value.trim();
+      clearTimeout(_topbarSearchTimer);
+      if (!q) { results.style.display = 'none'; results.innerHTML = ''; return; }
+      _topbarSearchTimer = setTimeout(function () {
+        searchPeople(q).then(function (people) {
+          results.style.display = '';
+          results.innerHTML = people.length
+            ? people.map(function (p) {
+                return '<a class="picker-item" href="profile.html?u=' + encodeURIComponent(p.username || '') + '" style="display:flex;align-items:center;gap:8px;text-decoration:none;color:inherit">' +
+                  avatarHtml(p, 'sm') + '<span>' + esc(p.full_name || p.username || '—') + '</span></a>';
+              }).join('')
+            : '<div class="picker-item disabled">Koi nahi mila</div>';
+        });
+      }, 350);
+    });
+    document.addEventListener('click', function (e) {
+      if (!wrap.contains(e.target)) { results.style.display = 'none'; }
+    });
+  }
+
+  /* ---------- Right "extras" mini-rail — only injected on pages that don't
+     already have their own richer .side-rail-right (dashboard/messages) ---------- */
+  function buildRailRight() {
+    if (document.querySelector('.side-rail-right') || document.querySelector('.app-rail-right')) return;
+    var me = window.LW && window.LW.profile;
+    if (!me) return;
+    var rail = document.createElement('aside');
+    rail.className = 'app-rail-right';
+    rail.innerHTML =
+      '<div class="card">' +
+        '<div style="display:flex;gap:10px;align-items:center">' +
+          avatarHtml(me, 'sm') +
+          '<div style="min-width:0"><b style="display:block">' + esc(me.full_name || me.username || '—') + '</b>' +
+          '<small class="muted">@' + esc(me.username || '') + '</small></div>' +
+        '</div>' +
+        '<div class="stats" id="appRailStats">' +
+          '<div><b>—</b><span data-i18n="statFriends">Dost</span></div>' +
+          '<div><b>—</b><span data-i18n="statPosts">Posts</span></div>' +
+          '<div><b>—</b><span data-i18n="statStreak">Chain 🔥</span></div>' +
+        '</div>' +
+        '<a class="btn sm" href="profile.html" style="width:100%;justify-content:center;margin-top:10px">View profile</a>' +
+      '</div>';
+    document.body.appendChild(rail);
+
+    Promise.all([myFriends(), myStreak()]).then(function (r) {
+      var boxes = document.querySelectorAll('#appRailStats b');
+      if (boxes[0]) boxes[0].textContent = r[0].length;
+      if (boxes[2]) boxes[2].textContent = r[1].current_count || 0;
+    }).catch(function () {});
+  }
+
+  /* ---------- Quick theme-cycle button (topbar) — cycles through all 5
+     data-theme values using the existing setTheme(), no new light/dark
+     concept introduced ---------- */
+  var THEME_CYCLE = ['romantic', 'dark', 'ocean', 'sunset', 'modern'];
+  function cycleTheme() {
+    var cur = document.body.getAttribute('data-theme') || 'romantic';
+    var i = THEME_CYCLE.indexOf(cur);
+    setTheme(THEME_CYCLE[(i + 1) % THEME_CYCLE.length]);
   }
 
   function refreshNotifCount() {
@@ -809,6 +986,8 @@
     return m ? 'https://open.spotify.com/embed/' + m[1] + '/' + m[2] + '?utm_source=loveway' : null;
   }
 
+  var _spotifySearchTimer = null;
+
   function ensureSpotifyModal() {
     if (document.getElementById('lwSpotifyModal')) return;
     var modal = document.createElement('div');
@@ -817,18 +996,54 @@
     modal.innerHTML =
       '<div class="modal">' +
         '<h3>🎵 Spotify se gaana chuno</h3>' +
+        '<input type="text" id="lwSpotifySearch" placeholder="🔍 Gaana ya singer ka naam likho…" style="margin-top:10px" autocomplete="off">' +
         '<div id="lwSpotifyBody" style="margin-top:10px"><div class="spinner">Load ho raha hai…</div></div>' +
         '<div class="foot"><button class="btn" onclick="LWApp.closeSpotifyPicker()">Band karo</button></div>' +
       '</div>';
     document.body.appendChild(modal);
     modal.addEventListener('click', function (e) { if (e.target === modal) closeSpotifyPicker(); });
+    document.getElementById('lwSpotifySearch').addEventListener('input', function () {
+      var q = this.value.trim();
+      clearTimeout(_spotifySearchTimer);
+      _spotifySearchTimer = setTimeout(function () {
+        if (q) searchSpotifyTracks(q); else loadSpotifyPlaylists();
+      }, 400);
+    });
   }
 
   function openSpotifyPicker(onPick) {
     ensureSpotifyModal();
     _spotifyPickCallback = onPick;
     document.getElementById('lwSpotifyModal').classList.add('open');
+    document.getElementById('lwSpotifySearch').value = '';
     loadSpotifyPlaylists();
+  }
+
+  // Spotify /search ka fetch-only hissa — modal (searchSpotifyTracks) aur
+  // dashboard rail ka inline search box, dono isi ek jagah se track list laate
+  // hain, taaki API-call/error-handling logic do baar na likhna pade.
+  async function fetchSpotifyTracks(query) {
+    var r = await window.LW.spotifyApi('/search?type=track&limit=20&q=' + encodeURIComponent(query));
+    if (r.error) return { error: r.error };
+    return { tracks: (r.data && r.data.tracks && r.data.tracks.items) || [] };
+  }
+
+  // free-text song search (Spotify /search) — alag se query type karke gaana dhoondo,
+  // playlist mein dhoondhne ke bajaye
+  async function searchSpotifyTracks(query) {
+    var box = document.getElementById('lwSpotifyBody');
+    box.innerHTML = '<div class="spinner">"' + esc(query) + '" khoja ja raha hai…</div>';
+    var r = await fetchSpotifyTracks(query);
+    if (r.error) {
+      box.innerHTML =
+        '<div class="empty"><span class="ic">🎧</span>' +
+        (r.error === 'no-token'
+          ? 'Pehle Spotify se sign-in/connect karo, tabhi search kaam karegi.'
+          : 'Spotify session expire ho gaya lagta hai — dobara connect karo.') +
+        '<br><br><button class="btn primary" onclick="LW.spotify()">🎵 Spotify connect karo</button></div>';
+      return;
+    }
+    renderSpotifyTrackResults(r.tracks, 'Kuch nahi mila. Doosra naam try karo.');
   }
 
   function closeSpotifyPicker() {
@@ -875,30 +1090,106 @@
     if (r.error) { box.innerHTML = '<div class="empty"><span class="ic">🎧</span>Load nahi ho paaya.</div>'; return; }
 
     var tracks = ((r.data && r.data.items) || []).map(function (it) { return it.track; }).filter(Boolean);
-    if (!tracks.length) {
-      box.innerHTML = '<div class="empty"><span class="ic">🎧</span>Is playlist mein gaane nahi hain.</div>' +
-        '<div class="foot" style="justify-content:flex-start"><button class="btn" onclick="LWApp.backToSpotifyPlaylists()">⬅ Playlists</button></div>';
-      return;
-    }
-    box.innerHTML =
-      '<div class="foot" style="justify-content:flex-start;margin:0 0 8px">' +
-      '<button class="btn" onclick="LWApp.backToSpotifyPlaylists()">⬅ Playlists</button></div>' +
-      tracks.map(function (t) {
-        var img = (t.album && t.album.images && t.album.images[t.album.images.length - 1] && t.album.images[t.album.images.length - 1].url) || '';
-        var artists = (t.artists || []).map(function (a) { return a.name; }).join(', ');
-        return '<div class="sp-item" onclick="LWApp.pickSpotifyTrack(' + JSON.stringify({
-            title: t.name, artist: artists, url: (t.external_urls && t.external_urls.spotify) || ''
-          }).replace(/"/g, '&quot;') + ')">' +
-          (img ? '<img src="' + esc(img) + '">' : '<div class="avatar sm">🎵</div>') +
-          '<div style="min-width:0"><b>' + esc(t.name) + '</b><br><small class="muted">' + esc(artists) + '</small></div></div>';
-      }).join('');
+    renderSpotifyTrackResults(tracks, 'Is playlist mein gaane nahi hain.', true);
   }
 
   function backToSpotifyPlaylists() { loadSpotifyPlaylists(); }
 
+  // playlist tracks aur free-text search — dono jagah gaano ki list ek jaisi dikhti hai
+  function renderSpotifyTrackResults(tracks, emptyMsg, showBackBtn) {
+    var box = document.getElementById('lwSpotifyBody');
+    var backBtn = showBackBtn
+      ? '<div class="foot" style="justify-content:flex-start;margin:0 0 8px">' +
+        '<button class="btn" onclick="LWApp.backToSpotifyPlaylists()">⬅ Playlists</button></div>'
+      : '';
+    if (!tracks.length) {
+      box.innerHTML = backBtn + '<div class="empty"><span class="ic">🎧</span>' + esc(emptyMsg) + '</div>';
+      return;
+    }
+    box.innerHTML = backBtn + tracks.map(function (t) {
+      var img = (t.album && t.album.images && t.album.images[t.album.images.length - 1] && t.album.images[t.album.images.length - 1].url) || '';
+      var artists = (t.artists || []).map(function (a) { return a.name; }).join(', ');
+      return '<div class="sp-item" onclick="LWApp.pickSpotifyTrack(' + JSON.stringify({
+          id: t.id, title: t.name, artist: artists, url: (t.external_urls && t.external_urls.spotify) || ''
+        }).replace(/"/g, '&quot;') + ')">' +
+        (img ? '<img src="' + esc(img) + '">' : '<div class="avatar sm">🎵</div>') +
+        '<div style="min-width:0"><b>' + esc(t.name) + '</b><br><small class="muted">' + esc(artists) + '</small></div></div>';
+    }).join('');
+  }
+
   function pickSpotifyTrack(track) {
     if (_spotifyPickCallback) _spotifyPickCallback(track);
     closeSpotifyPicker();
+  }
+
+  /* ---------- Song favorites + playlists (dashboard/messages right-rail music card) ----------
+     track shape everywhere here: { id, title, artist, url } — same shape the
+     Spotify picker already hands back via pickSpotifyTrack(). */
+  function myFavorites() {
+    return sb().from('song_favorites').select('*')
+      .eq('user_id', window.LW.profile.id).order('created_at', { ascending: false })
+      .then(function (r) { return r.data || []; });
+  }
+
+  function favoriteSong(track) {
+    return sb().from('song_favorites').upsert({
+      user_id: window.LW.profile.id,
+      spotify_track_id: track.id,
+      song_title: track.title,
+      song_artist: track.artist || null,
+      song_url: track.url || null
+    }, { onConflict: 'user_id,spotify_track_id' });
+  }
+
+  function unfavoriteSong(spotifyTrackId) {
+    return sb().from('song_favorites').delete()
+      .eq('user_id', window.LW.profile.id).eq('spotify_track_id', spotifyTrackId);
+  }
+
+  function myPlaylists() {
+    return sb().from('playlists').select('*')
+      .eq('owner_id', window.LW.profile.id).order('created_at', { ascending: false })
+      .then(function (r) { return r.data || []; });
+  }
+
+  function createPlaylist(name) {
+    return sb().from('playlists').insert({ owner_id: window.LW.profile.id, name: name }).select().maybeSingle()
+      .then(function (r) { return r.data; });
+  }
+
+  function deletePlaylist(id) {
+    return sb().from('playlists').delete().eq('id', id);
+  }
+
+  function playlistTracks(playlistId) {
+    return sb().from('playlist_tracks').select('*')
+      .eq('playlist_id', playlistId).order('position', { ascending: true })
+      .then(function (r) { return r.data || []; });
+  }
+
+  function addToPlaylist(playlistId, track) {
+    return sb().from('playlist_tracks').upsert({
+      playlist_id: playlistId,
+      spotify_track_id: track.id,
+      song_title: track.title,
+      song_artist: track.artist || null,
+      song_url: track.url || null
+    }, { onConflict: 'playlist_id,spotify_track_id' });
+  }
+
+  function removeFromPlaylist(playlistId, spotifyTrackId) {
+    return sb().from('playlist_tracks').delete()
+      .eq('playlist_id', playlistId).eq('spotify_track_id', spotifyTrackId);
+  }
+
+  // profile par pin kiya hua gaana (Instagram jaisa) — track=null pin hata deta hai
+  function updateProfilePinnedSong(track) {
+    return sb().from('profiles').update({
+      pinned_spotify_track_id: track ? track.id : null,
+      pinned_song_title: track ? track.title : null,
+      pinned_song_artist: track ? (track.artist || null) : null,
+      pinned_song_url: track ? (track.url || null) : null
+    }).eq('id', window.LW.profile.id);
   }
 
   /* ---------- Life Chain (couple's shared journey) ---------- */
@@ -1226,6 +1517,11 @@
       });
   }
 
+  // apna bheja hua message delete karo (RLS: sirf sender ya admin hi delete kar sakta hai)
+  function deleteMessage(messageId) {
+    return sb().from('messages').delete().eq('id', messageId).eq('sender_id', window.LW.profile.id);
+  }
+
   // kai messages ke reactions ek saath — { messageId: [{user_id, emoji}, ...] }
   function messageReactions(messageIds) {
     if (!messageIds || !messageIds.length) return Promise.resolve({});
@@ -1472,7 +1768,7 @@
 
   /* ---------- export ---------- */
   window.LWApp = {
-    esc: esc, initials: initials, avatarHtml: avatarHtml, timeAgo: timeAgo,
+    esc: esc, initials: initials, avatarHtml: avatarHtml, timeAgo: timeAgo, icon: icon,
     toast: toast, err: err, setTheme: setTheme, restoreTheme: restoreTheme, setCustomColor: setCustomColor,
     restoreBgPhoto: restoreBgPhoto,
     shell: shell, refreshNotifCount: refreshNotifCount, customSelect: customSelect,
@@ -1500,7 +1796,12 @@
 
     openSpotifyPicker: openSpotifyPicker, closeSpotifyPicker: closeSpotifyPicker,
     openSpotifyPlaylistTracks: openSpotifyPlaylistTracks, backToSpotifyPlaylists: backToSpotifyPlaylists,
-    pickSpotifyTrack: pickSpotifyTrack, spotifyEmbedUrl: spotifyEmbedUrl,
+    pickSpotifyTrack: pickSpotifyTrack, spotifyEmbedUrl: spotifyEmbedUrl, fetchSpotifyTracks: fetchSpotifyTracks,
+
+    myFavorites: myFavorites, favoriteSong: favoriteSong, unfavoriteSong: unfavoriteSong,
+    myPlaylists: myPlaylists, createPlaylist: createPlaylist, deletePlaylist: deletePlaylist,
+    playlistTracks: playlistTracks, addToPlaylist: addToPlaylist, removeFromPlaylist: removeFromPlaylist,
+    updateProfilePinnedSong: updateProfilePinnedSong,
 
     myConversations: myConversations, openDirect: openDirect, messages: messages,
     sendMessage: sendMessage, createGroup: createGroup, markRead: markRead,
@@ -1509,7 +1810,7 @@
     translateText: translateText, contentLangMatches: contentLangMatches,
     uploadChatMedia: uploadChatMedia, uploadAvatar: uploadAvatar,
     memberReadStates: memberReadStates, chatStreak: chatStreak, leaveConversation: leaveConversation,
-    reactToMessage: reactToMessage, messageReactions: messageReactions,
+    reactToMessage: reactToMessage, messageReactions: messageReactions, deleteMessage: deleteMessage,
 
     communities: communities, featuredCommunities: featuredCommunities, myCommunityIds: myCommunityIds,
     createCommunity: createCommunity, joinCommunity: joinCommunity,

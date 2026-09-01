@@ -4,139 +4,23 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Loveway — दिल जुड़ैं, गीत बोलैं</title>
 <meta name="description" content="Loveway — a safe, verified community where hearts connect, songs speak and love travels. Free to join.">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&amp;family=DM+Sans:wght@300;400;500&amp;family=Dancing+Script:wght@700&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lw-tailwind.css?v=4">
 <style>
-  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-  :root{
-    --pink:#FF4F7B; --pink-light:#FF85A1; --dark:#1A0A14; --dark2:#2D1525;
-    --dark3:#3D1E30; --gold:#FFB347; --white:#FFF5F8; --text-muted:#C4849A;
-  }
-  html{scroll-behavior:smooth}
-  body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--white);line-height:1.6;overflow-x:hidden}
-
-  /* ---------- nav ---------- */
-  nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;
-      padding:14px 40px;background:rgba(26,10,20,.82);backdrop-filter:blur(14px);
-      border-bottom:1px solid rgba(255,79,123,.14)}
-  .brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--white)}
-  .brand-mark{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--pink),var(--gold));
-      display:flex;align-items:center;justify-content:center;font-size:1rem}
-  .brand-name{font-family:'Dancing Script',cursive;font-size:1.5rem;font-weight:700}
-  nav ul{display:flex;gap:26px;list-style:none}
-  nav ul a{color:var(--text-muted);text-decoration:none;font-size:.88rem;transition:.25s;position:relative}
-  nav ul a:hover,nav ul a.active{color:var(--white)}
-  nav ul a.active::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:2px;background:var(--pink);border-radius:2px}
-  .nav-actions{display:flex;align-items:center;gap:10px}
-  .lang-switcher{display:flex;align-items:center;gap:6px;margin-right:4px}
-  .lang-switcher select{width:auto;padding:7px 11px;border-radius:999px;background:rgba(45,21,37,.9);
-      border:1px solid rgba(255,79,123,.3);color:var(--white);font:400 .78rem 'DM Sans',sans-serif;cursor:pointer;outline:none}
-  .btn-ghost,.btn-primary{padding:9px 18px;border-radius:999px;font:500 .84rem 'DM Sans',sans-serif;
-      text-decoration:none;cursor:pointer;border:0;transition:.25s;white-space:nowrap}
-  .btn-ghost{color:var(--white);border:1px solid rgba(255,79,123,.35);background:transparent}
-  .btn-ghost:hover{border-color:var(--pink)}
-  .btn-primary{background:var(--pink);color:#fff}
-  .btn-primary:hover{background:#e03565;transform:translateY(-1px)}
-
-  /* ---------- hero ---------- */
-  .hero{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;
-      justify-content:center;text-align:center;padding:130px 24px 70px}
-  .hero-glow{position:absolute;inset:0;pointer-events:none;
-      background:radial-gradient(circle at 50% 30%,rgba(255,79,123,.22),transparent 55%),
-                 radial-gradient(circle at 80% 75%,rgba(255,179,71,.10),transparent 50%)}
-  .hearts{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+  /* page-specific decorative animations — not reused elsewhere, kept local */
+  .hero-glow{background:radial-gradient(circle at 50% 30%,rgba(255,79,123,.22),transparent 55%),
+      radial-gradient(circle at 80% 75%,rgba(255,179,71,.10),transparent 50%)}
   .hearts span{position:absolute;bottom:-40px;color:rgba(255,79,123,.30);font-size:1rem;animation:rise linear infinite}
   @keyframes rise{to{transform:translateY(-115vh) rotate(28deg);opacity:0}}
-  .section-tag{position:relative;display:inline-block;padding:6px 16px;border-radius:999px;
-      background:rgba(255,79,123,.12);border:1px solid rgba(255,79,123,.3);
-      color:var(--pink-light);font-size:.74rem;letter-spacing:.16em;text-transform:uppercase;margin-bottom:22px}
-  .hero h1{position:relative;font-family:'Playfair Display',serif;font-size:clamp(2.4rem,6.4vw,4.4rem);
-      line-height:1.12;margin-bottom:20px;max-width:900px}
-  .hero h1 em{font-family:'Dancing Script',cursive;font-style:normal;color:var(--pink-light);font-size:1.12em}
-  .hero p{position:relative;color:var(--text-muted);max-width:600px;font-size:1.03rem;margin-bottom:34px}
-  .hero-cta{position:relative;display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
-  .btn-hero{padding:15px 34px;border-radius:999px;font:500 .98rem 'DM Sans',sans-serif;
-      text-decoration:none;transition:.28s;display:inline-block}
-  .btn-hero.pink{background:var(--pink);color:#fff;box-shadow:0 10px 34px rgba(255,79,123,.34)}
-  .btn-hero.pink:hover{transform:translateY(-3px);box-shadow:0 16px 44px rgba(255,79,123,.48)}
-  .btn-hero.outline{border:1px solid rgba(255,79,123,.42);color:var(--white)}
-  .btn-hero.outline:hover{border-color:var(--pink);background:rgba(255,79,123,.08)}
-  .trust{position:relative;margin-top:34px;display:flex;gap:26px;flex-wrap:wrap;justify-content:center;
-      color:var(--text-muted);font-size:.8rem}
-  .trust span{display:flex;align-items:center;gap:6px}
-
-  /* ---------- ticker (signature) ---------- */
-  .ticker{position:relative;border-top:1px solid rgba(255,79,123,.14);border-bottom:1px solid rgba(255,79,123,.14);
-      background:var(--dark2);padding:16px 0;overflow:hidden;white-space:nowrap}
-  .ticker-track{display:inline-flex;gap:52px;animation:slide 34s linear infinite}
-  .ticker-track span{font-family:'Dancing Script',cursive;font-size:1.32rem;color:var(--pink-light);opacity:.85}
-  .ticker-track span::after{content:"❤";margin-left:52px;color:rgba(255,179,71,.55);font-family:'DM Sans',sans-serif;font-size:.9rem}
+  .ticker-track{animation:slide 34s linear infinite}
+  .ticker-track span::after{content:"❤";margin-left:52px;color:rgba(255,179,71,.55);font-size:.9rem}
   @keyframes slide{to{transform:translateX(-50%)}}
-
-  /* ---------- sections ---------- */
-  section.pad{padding:82px 40px}
-  .head{text-align:center;max-width:640px;margin:0 auto 52px}
-  .head h2{font-family:'Playfair Display',serif;font-size:clamp(1.7rem,3.6vw,2.5rem);margin-bottom:12px}
-  .head p{color:var(--text-muted);font-size:.96rem}
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:22px;max-width:1120px;margin:0 auto}
-  .card{background:var(--dark2);border:1px solid rgba(255,79,123,.14);border-radius:20px;padding:30px 26px;transition:.3s}
-  .card:hover{transform:translateY(-5px);border-color:rgba(255,79,123,.4)}
-  .card .ic{width:48px;height:48px;border-radius:14px;background:rgba(255,79,123,.13);
-      display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:16px}
-  .card h3{font-size:1.06rem;font-weight:500;margin-bottom:8px}
-  .card p{color:var(--text-muted);font-size:.89rem}
-
-  .steps{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:0}
-  .step{display:flex;gap:24px;padding:26px 0;border-bottom:1px solid rgba(255,79,123,.12)}
-  .step:last-child{border-bottom:0}
-  .step-n{flex-shrink:0;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,79,123,.4);
-      display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;
-      color:var(--pink-light);font-size:1rem}
-  .step h3{font-size:1.06rem;font-weight:500;margin-bottom:6px}
-  .step p{color:var(--text-muted);font-size:.9rem}
-
-  .cta-band{text-align:center;padding:78px 40px;background:
-      linear-gradient(rgba(26,10,20,.55),rgba(26,10,20,.55)),
-      radial-gradient(circle at 50% 0%,rgba(255,79,123,.3),transparent 60%),var(--dark2)}
-  .cta-band h2{font-family:'Playfair Display',serif;font-size:clamp(1.7rem,4vw,2.6rem);margin-bottom:14px}
-  .cta-band p{color:var(--text-muted);margin-bottom:28px}
-
-  /* ---------- footer ---------- */
-  footer{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:44px;
-      padding:56px 40px 0;background:var(--dark2);border-top:1px solid rgba(255,79,123,.14)}
-  .footer-col h4{font-size:.82rem;letter-spacing:.13em;text-transform:uppercase;color:var(--pink-light);margin-bottom:16px}
-  .footer-col p{color:var(--text-muted);font-size:.88rem;max-width:280px}
-  .footer-col a{display:block;color:var(--text-muted);text-decoration:none;font-size:.88rem;margin-bottom:10px;transition:.2s}
-  .footer-col a:hover{color:var(--pink-light)}
-  .footer-brand{display:flex;align-items:center;gap:9px;margin-bottom:14px}
-  .footer-bottom{grid-column:1/-1;margin-top:44px;padding:20px 0;border-top:1px solid rgba(255,79,123,.12);
-      text-align:center;color:var(--text-muted);font-size:.8rem}
-
-  .fade{opacity:0;transform:translateY(22px);animation:fadeUp .8s ease forwards}
-  .fade-1{animation-delay:.05s}.fade-2{animation-delay:.2s}.fade-3{animation-delay:.35s}.fade-4{animation-delay:.5s}
-  @keyframes fadeUp{to{opacity:1;transform:translateY(0)}}
-
-  @media(max-width:900px){
-    nav{padding:11px 20px}nav ul{display:none}
-    section.pad{padding:62px 22px}
-    footer{grid-template-columns:1fr 1fr;gap:32px;padding:44px 22px 0}
-  }
-  @media(max-width:520px){
-    .nav-actions .btn-ghost{display:none}
-    .lang-switcher select{max-width:104px}
-    .hero{padding:110px 20px 56px}
-    footer{grid-template-columns:1fr}
-  }
   @media(prefers-reduced-motion:reduce){
-    .fade{animation:none;opacity:1;transform:none}
     .hearts,.ticker-track{animation:none}
     .hearts{display:none}
   }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="config.js"></script>
-<script src="lw-core.js?v=2"></script>
-<link rel="stylesheet" href="lw-site.css"></head>
-<body>
+</head>
+<body class="font-sans bg-bg text-text leading-relaxed overflow-x-hidden">
 
 <nav>
   <a href="index.html" class="lw-brand" aria-label="Loveway home">
@@ -165,155 +49,156 @@
   </div>
 </nav>
 
-<section class="hero">
-  <div class="hero-glow"></div>
-  <div class="hearts" id="hearts" aria-hidden="true"></div>
+<section class="relative min-h-screen flex flex-col items-center justify-center text-center px-6 pt-[130px] pb-[70px]">
+  <div class="hero-glow absolute inset-0 pointer-events-none"></div>
+  <div class="hearts absolute inset-0 overflow-hidden pointer-events-none" id="hearts" aria-hidden="true"></div>
 
-  <div class="section-tag fade fade-1">Verified community · Free to join</div>
-  <h1 class="fade fade-2">जहाँ दिल जुड़ैं<br>अरु गीत <em>बोलैं</em></h1>
-  <p class="fade fade-3">
+  <div class="fade fade-1 relative inline-block px-4 py-1.5 rounded-full bg-primary/10 border border-primary/30 text-pink-light text-[.74rem] tracking-[.16em] uppercase mb-[22px]">Verified community · Free to join</div>
+  <h1 class="fade fade-2 relative font-display text-[clamp(2.4rem,6.4vw,4.4rem)] leading-[1.12] mb-5 max-w-[900px]">जहाँ दिल जुड़ैं<br>अरु गीत <em class="not-italic text-pink-light" style="font-family:'Dancing Script',cursive;font-size:1.12em">बोलैं</em></h1>
+  <p class="fade fade-3 relative text-text-soft max-w-[600px] text-[1.03rem] mb-[34px]">
     Loveway ek verified community hai — jahan aap private baat kar sakte hain, kisi ko gaana
     dedicate kar sakte hain, aur apni baat apni bhaasha mein keh sakte hain. Har profile admin
     dwara check hoti hai, isliye yahan asli log milte hain.
   </p>
-  <div class="hero-cta fade fade-3">
-    <a href="signup.html" class="btn-hero pink">Join free ❤</a>
-    <a href="how-it-works.html" class="btn-hero outline">Kaise chalta hai?</a>
+  <div class="fade fade-3 relative flex gap-3.5 flex-wrap justify-center">
+    <a href="signup.html" class="inline-block px-8 py-4 rounded-full font-medium text-[.98rem] transition-[.28s] bg-primary text-white shadow-[0_10px_34px_rgba(255,79,123,.34)] hover:-translate-y-1 hover:shadow-[0_16px_44px_rgba(255,79,123,.48)]">Join free ❤</a>
+    <a href="how-it-works.html" class="inline-block px-8 py-4 rounded-full font-medium text-[.98rem] transition-[.28s] border border-primary/[.42] text-text hover:border-primary hover:bg-primary/[.08]">Kaise chalta hai?</a>
   </div>
-  <div class="trust fade fade-4">
-    <span>✓ Admin-verified profiles</span>
-    <span>🔒 Encrypted, India ke servers par</span>
-    <span>🌐 ब्रज · हिंदी · मराठी · English</span>
+  <div class="fade fade-4 relative mt-[34px] flex gap-6 flex-wrap justify-center text-text-soft text-[.8rem]">
+    <span class="flex items-center gap-1.5">✓ Admin-verified profiles</span>
+    <span class="flex items-center gap-1.5">🔒 Encrypted, India ke servers par</span>
+    <span class="flex items-center gap-1.5">🌐 ब्रज · हिंदी · मराठी · English</span>
   </div>
 </section>
 
-<div class="ticker" aria-hidden="true">
-  <div class="ticker-track">
-    <span>तुम्हारे बिना सब सूनौ</span>
-    <span>ये गाना तुम्हारे लिए</span>
-    <span>तू ही मेरी मंज़िल</span>
-    <span>मन तुझ्यात गुंतलंय</span>
-    <span>तुम्हारे बिना सब सूनौ</span>
-    <span>ये गाना तुम्हारे लिए</span>
-    <span>तू ही मेरी मंज़िल</span>
-    <span>मन तुझ्यात गुंतलंय</span>
+<div class="relative border-y border-primary/[.14] bg-bg2 py-4 overflow-hidden whitespace-nowrap" aria-hidden="true">
+  <div class="ticker-track inline-flex gap-[52px]">
+    <span class="text-[1.32rem] text-pink-light opacity-85" style="font-family:'Dancing Script',cursive">तुम्हारे बिना सब सूनौ</span>
+    <span class="text-[1.32rem] text-pink-light opacity-85" style="font-family:'Dancing Script',cursive">ये गाना तुम्हारे लिए</span>
+    <span class="text-[1.32rem] text-pink-light opacity-85" style="font-family:'Dancing Script',cursive">तू ही मेरी मंज़िल</span>
+    <span class="text-[1.32rem] text-pink-light opacity-85" style="font-family:'Dancing Script',cursive">मन तुझ्यात गुंतलंय</span>
+    <span class="text-[1.32rem] text-pink-light opacity-85" style="font-family:'Dancing Script',cursive">तुम्हारे बिना सब सूनौ</span>
+    <span class="text-[1.32rem] text-pink-light opacity-85" style="font-family:'Dancing Script',cursive">ये गाना तुम्हारे लिए</span>
+    <span class="text-[1.32rem] text-pink-light opacity-85" style="font-family:'Dancing Script',cursive">तू ही मेरी मंज़िल</span>
+    <span class="text-[1.32rem] text-pink-light opacity-85" style="font-family:'Dancing Script',cursive">मन तुझ्यात गुंतलंय</span>
   </div>
 </div>
 
-<section class="pad">
-  <div class="head">
-    <h2>Jo cheezein Loveway ko alag banati hain</h2>
-    <p>Sirf ek chat app nahi. Ek jagah jahan feelings ka apna tareeka hai.</p>
+<section class="px-10 py-[82px]">
+  <div class="text-center max-w-[640px] mx-auto mb-[52px]">
+    <h2 class="font-display text-[clamp(1.7rem,3.6vw,2.5rem)] mb-3">Jo cheezein Loveway ko alag banati hain</h2>
+    <p class="text-text-soft text-[.96rem]">Sirf ek chat app nahi. Ek jagah jahan feelings ka apna tareeka hai.</p>
   </div>
-  <div class="cards">
-    <div class="card">
-      <div class="ic">🎵</div>
-      <h3>Song dedication</h3>
-      <p>Jab shabd kam pad jaayein, gaana bhej dein. Dedication chat mein ek card ki tarah dikhta hai — kisne, kis ke liye, kab.</p>
+  <div class="grid gap-[22px] max-w-[1120px] mx-auto" style="grid-template-columns:repeat(auto-fit,minmax(255px,1fr))">
+    <div class="bg-bg2 border border-primary/[.14] rounded-[20px] px-[26px] py-[30px] transition-[.3s] hover:-translate-y-[5px] hover:border-primary/40">
+      <div class="w-12 h-12 rounded-[14px] bg-primary/[.13] flex items-center justify-center text-[1.4rem] mb-4">🎵</div>
+      <h3 class="text-[1.06rem] font-medium mb-2">Song dedication</h3>
+      <p class="text-text-soft text-[.89rem]">Jab shabd kam pad jaayein, gaana bhej dein. Dedication chat mein ek card ki tarah dikhta hai — kisne, kis ke liye, kab.</p>
     </div>
-    <div class="card">
-      <div class="ic">💬</div>
-      <h3>Private chat</h3>
-      <p>Sirf aap dono. Koi ad nahi, koi outsider nahi. Aap tay karte hain ki aapko kaun message kar sakta hai.</p>
+    <div class="bg-bg2 border border-primary/[.14] rounded-[20px] px-[26px] py-[30px] transition-[.3s] hover:-translate-y-[5px] hover:border-primary/40">
+      <div class="w-12 h-12 rounded-[14px] bg-primary/[.13] flex items-center justify-center text-[1.4rem] mb-4">💬</div>
+      <h3 class="text-[1.06rem] font-medium mb-2">Private chat</h3>
+      <p class="text-text-soft text-[.89rem]">Sirf aap dono. Koi ad nahi, koi outsider nahi. Aap tay karte hain ki aapko kaun message kar sakta hai.</p>
     </div>
-    <div class="card">
-      <div class="ic">🛡️</div>
-      <h3>Verified accounts</h3>
-      <p>Har account OTP se verify hota hai, aur admin kabhi bhi fake ya galat profile ko block kar sakta hai.</p>
+    <div class="bg-bg2 border border-primary/[.14] rounded-[20px] px-[26px] py-[30px] transition-[.3s] hover:-translate-y-[5px] hover:border-primary/40">
+      <div class="w-12 h-12 rounded-[14px] bg-primary/[.13] flex items-center justify-center text-[1.4rem] mb-4">🛡️</div>
+      <h3 class="text-[1.06rem] font-medium mb-2">Verified accounts</h3>
+      <p class="text-text-soft text-[.89rem]">Har account OTP se verify hota hai, aur admin kabhi bhi fake ya galat profile ko block kar sakta hai.</p>
     </div>
-    <div class="card">
-      <div class="ic">🌐</div>
-      <h3>Aapki bhaasha</h3>
-      <p>ब्रज, हिंदी, मराठी ya English — poora app aapki chuni hui bhaasha mein chalta hai, sirf ek toggle se.</p>
+    <div class="bg-bg2 border border-primary/[.14] rounded-[20px] px-[26px] py-[30px] transition-[.3s] hover:-translate-y-[5px] hover:border-primary/40">
+      <div class="w-12 h-12 rounded-[14px] bg-primary/[.13] flex items-center justify-center text-[1.4rem] mb-4">🌐</div>
+      <h3 class="text-[1.06rem] font-medium mb-2">Aapki bhaasha</h3>
+      <p class="text-text-soft text-[.89rem]">ब्रज, हिंदी, मराठी ya English — poora app aapki chuni hui bhaasha mein chalta hai, sirf ek toggle se.</p>
     </div>
-    <div class="card">
-      <div class="ic">📣</div>
-      <h3>Announcements</h3>
-      <p>Birthday, anniversary, ya bas ek acchi baat — apne logon ke saath share karein.</p>
+    <div class="bg-bg2 border border-primary/[.14] rounded-[20px] px-[26px] py-[30px] transition-[.3s] hover:-translate-y-[5px] hover:border-primary/40">
+      <div class="w-12 h-12 rounded-[14px] bg-primary/[.13] flex items-center justify-center text-[1.4rem] mb-4">📣</div>
+      <h3 class="text-[1.06rem] font-medium mb-2">Announcements</h3>
+      <p class="text-text-soft text-[.89rem]">Birthday, anniversary, ya bas ek acchi baat — apne logon ke saath share karein.</p>
     </div>
-    <div class="card">
-      <div class="ic">🎨</div>
-      <h3>Themes</h3>
-      <p>Romantic, Dark, Ocean, Sunset. App ka look apne mood ke hisaab se badal lein.</p>
-    </div>
-  </div>
-</section>
-
-<section class="pad" style="background:var(--dark2)">
-  <div class="head">
-    <h2>Shuru karne mein 2 minute</h2>
-    <p>Chaar step. Uske baad Loveway aapka hai.</p>
-  </div>
-  <div class="steps">
-    <div class="step">
-      <div class="step-n">1</div>
-      <div>
-        <h3>Account banayein</h3>
-        <p>Naam, username, mobile aur email. Ya seedha Google se sign up karein — ek click mein.</p>
-      </div>
-    </div>
-    <div class="step">
-      <div class="step-n">2</div>
-      <div>
-        <h3>Verify karein</h3>
-        <p>6 ank ka code aata hai. Daal dein — bas confirm ho jaata hai ki account aapka hi hai.</p>
-      </div>
-    </div>
-    <div class="step">
-      <div class="step-n">3</div>
-      <div>
-        <h3>Profile poori karein</h3>
-        <p>Naam, username aur mobile — bas itna. Koi intezaar nahi, account turant chaalu ho jaata hai.</p>
-      </div>
-    </div>
-    <div class="step">
-      <div class="step-n">4</div>
-      <div>
-        <h3>Jud jaayein</h3>
-        <p>Chat karein, gaane dedicate karein, announcements post karein, dost jodein.</p>
-      </div>
+    <div class="bg-bg2 border border-primary/[.14] rounded-[20px] px-[26px] py-[30px] transition-[.3s] hover:-translate-y-[5px] hover:border-primary/40">
+      <div class="w-12 h-12 rounded-[14px] bg-primary/[.13] flex items-center justify-center text-[1.4rem] mb-4">🎨</div>
+      <h3 class="text-[1.06rem] font-medium mb-2">Themes</h3>
+      <p class="text-text-soft text-[.89rem]">Romantic, Dark, Ocean, Sunset. App ka look apne mood ke hisaab se badal lein.</p>
     </div>
   </div>
 </section>
 
-<section class="cta-band">
-  <h2>Aapki kahani yahin se shuru hoti hai</h2>
-  <p>Sign up free hai. Card ki zaroorat nahi.</p>
-  <div class="hero-cta" style="justify-content:center">
-    <a href="signup.html" class="btn-hero pink">Loveway join karein ❤</a>
-    <a href="login.html" class="btn-hero outline">Pehle se account hai?</a>
+<section class="px-10 py-[82px] bg-bg2">
+  <div class="text-center max-w-[640px] mx-auto mb-[52px]">
+    <h2 class="font-display text-[clamp(1.7rem,3.6vw,2.5rem)] mb-3">Shuru karne mein 2 minute</h2>
+    <p class="text-text-soft text-[.96rem]">Chaar step. Uske baad Loveway aapka hai.</p>
+  </div>
+  <div class="max-w-[820px] mx-auto flex flex-col">
+    <div class="flex gap-6 py-[26px] border-b border-primary/[.12]">
+      <div class="shrink-0 w-11 h-11 rounded-full border border-primary/40 flex items-center justify-center font-display text-pink-light text-base">1</div>
+      <div>
+        <h3 class="text-[1.06rem] font-medium mb-1.5">Account banayein</h3>
+        <p class="text-text-soft text-[.9rem]">Naam, username, mobile aur email. Ya seedha Google se sign up karein — ek click mein.</p>
+      </div>
+    </div>
+    <div class="flex gap-6 py-[26px] border-b border-primary/[.12]">
+      <div class="shrink-0 w-11 h-11 rounded-full border border-primary/40 flex items-center justify-center font-display text-pink-light text-base">2</div>
+      <div>
+        <h3 class="text-[1.06rem] font-medium mb-1.5">Verify karein</h3>
+        <p class="text-text-soft text-[.9rem]">6 ank ka code aata hai. Daal dein — bas confirm ho jaata hai ki account aapka hi hai.</p>
+      </div>
+    </div>
+    <div class="flex gap-6 py-[26px] border-b border-primary/[.12]">
+      <div class="shrink-0 w-11 h-11 rounded-full border border-primary/40 flex items-center justify-center font-display text-pink-light text-base">3</div>
+      <div>
+        <h3 class="text-[1.06rem] font-medium mb-1.5">Profile poori karein</h3>
+        <p class="text-text-soft text-[.9rem]">Naam, username aur mobile — bas itna. Koi intezaar nahi, account turant chaalu ho jaata hai.</p>
+      </div>
+    </div>
+    <div class="flex gap-6 py-[26px]">
+      <div class="shrink-0 w-11 h-11 rounded-full border border-primary/40 flex items-center justify-center font-display text-pink-light text-base">4</div>
+      <div>
+        <h3 class="text-[1.06rem] font-medium mb-1.5">Jud jaayein</h3>
+        <p class="text-text-soft text-[.9rem]">Chat karein, gaane dedicate karein, announcements post karein, dost jodein.</p>
+      </div>
+    </div>
   </div>
 </section>
 
-<footer>
-  <div class="footer-col">
+<section class="text-center px-10 py-[78px] bg-bg2" style="background:linear-gradient(rgba(26,10,20,.55),rgba(26,10,20,.55)),radial-gradient(circle at 50% 0%,rgba(255,79,123,.3),transparent 60%),var(--bg2)">
+  <h2 class="font-display text-[clamp(1.7rem,4vw,2.6rem)] mb-3.5">Aapki kahani yahin se shuru hoti hai</h2>
+  <p class="text-text-soft mb-7">Sign up free hai. Card ki zaroorat nahi.</p>
+  <div class="flex gap-3.5 flex-wrap justify-center">
+    <a href="signup.html" class="inline-block px-8 py-4 rounded-full font-medium text-[.98rem] transition-[.28s] bg-primary text-white shadow-[0_10px_34px_rgba(255,79,123,.34)] hover:-translate-y-1 hover:shadow-[0_16px_44px_rgba(255,79,123,.48)]">Loveway join karein ❤</a>
+    <a href="login.html" class="inline-block px-8 py-4 rounded-full font-medium text-[.98rem] transition-[.28s] border border-primary/[.42] text-text hover:border-primary hover:bg-primary/[.08]">Pehle se account hai?</a>
+  </div>
+</section>
+
+<footer class="grid gap-11 px-10 pt-14 pb-0 bg-bg2 border-t border-primary/[.14]" style="grid-template-columns:1.5fr 1fr 1fr 1fr">
+  <div>
     <img class="footer-logo" src="logo.png" alt="Loveway" width="340" height="185">
-    <p>Ek community jahan dil judte hain, gaane baat karte hain, aur pyaar safar karta hai.</p>
+    <p class="text-text-soft text-[.88rem] max-w-[280px]">Ek community jahan dil judte hain, gaane baat karte hain, aur pyaar safar karta hai.</p>
   </div>
-  <div class="footer-col">
-    <h4>Pages</h4>
-    <a href="index.html">Home</a>
-    <a href="about.html">About</a>
-    <a href="features.html">Features</a>
-    <a href="how-it-works.html">How it Works</a>
-    <a href="contact.html">Contact</a>
-    <a href="app.html">Get the App</a>
+  <div>
+    <h4 class="text-[.82rem] tracking-[.13em] uppercase text-pink-light mb-4">Pages</h4>
+    <a href="index.html" class="block text-text-soft text-[.88rem] mb-2.5 hover:text-pink-light">Home</a>
+    <a href="about.html" class="block text-text-soft text-[.88rem] mb-2.5 hover:text-pink-light">About</a>
+    <a href="features.html" class="block text-text-soft text-[.88rem] mb-2.5 hover:text-pink-light">Features</a>
+    <a href="how-it-works.html" class="block text-text-soft text-[.88rem] mb-2.5 hover:text-pink-light">How it Works</a>
+    <a href="contact.html" class="block text-text-soft text-[.88rem] mb-2.5 hover:text-pink-light">Contact</a>
+    <a href="app.html" class="block text-text-soft text-[.88rem] mb-2.5 hover:text-pink-light">Get the App</a>
   </div>
-  <div class="footer-col">
-    <h4>Account</h4>
-    <a href="login.html">Login</a>
-    <a href="signup.html">Sign Up</a>
+  <div>
+    <h4 class="text-[.82rem] tracking-[.13em] uppercase text-pink-light mb-4">Account</h4>
+    <a href="login.html" class="block text-text-soft text-[.88rem] mb-2.5 hover:text-pink-light">Login</a>
+    <a href="signup.html" class="block text-text-soft text-[.88rem] mb-2.5 hover:text-pink-light">Sign Up</a>
   </div>
-  <div class="footer-col">
-    <h4>Connect</h4>
-    <a href="contact.html">Contact us</a>
-    <a href="contact.html">Report a problem</a>
-    <a href="contact.html">Help centre</a>
+  <div>
+    <h4 class="text-[.82rem] tracking-[.13em] uppercase text-pink-light mb-4">Connect</h4>
+    <a href="contact.html" class="block text-text-soft text-[.88rem] mb-2.5 hover:text-pink-light">Contact us</a>
+    <a href="contact.html" class="block text-text-soft text-[.88rem] mb-2.5 hover:text-pink-light">Report a problem</a>
+    <a href="contact.html" class="block text-text-soft text-[.88rem] mb-2.5 hover:text-pink-light">Help centre</a>
   </div>
-  <div class="footer-bottom">© <span id="yr">2026</span> Loveway · Made in India</div>
+  <div class="col-span-full mt-11 py-5 border-t border-primary/[.12] text-center text-text-soft text-[.8rem]">© <span id="yr">2026</span> Loveway · Made in India</div>
 </footer>
 
-
-
-
-<script src="lw-site.js?v=2"></script></body></html>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="lw-core.js?v=3"></script>
+<script src="lw-site.js?v=2"></script>
+</body></html>

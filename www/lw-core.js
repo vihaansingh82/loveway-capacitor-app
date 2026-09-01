@@ -313,6 +313,13 @@
   "subLogin": "Login to continue to Loveway ❤",
   "userTab": "Login with Username",
   "mobileTab": "Login with Mobile",
+  "loginIdLabel": "Email, username or mobile",
+  "loginIdPh": "Email, username or mobile",
+  "themeRomanticTitle": "Romantic",
+  "themeDarkTitle": "Dark",
+  "themeOceanTitle": "Ocean",
+  "themeSunsetTitle": "Sunset",
+  "themeModernTitle": "Modern",
   "username": "Username",
   "mobile": "Mobile Number",
   "password": "Password",
@@ -359,6 +366,9 @@
   "navFriends": "Friends",
   "navSettings": "Settings",
   "navNotifications": "Notifications",
+  "navCommunity": "Community",
+  "navChat": "Messages",
+  "navBoard": "Board",
   "messagesSoFarSuffix": "messages so far",
   "navProfile": "Profile",
   "journeyPageTitle": "⛓️ Life Chain — Our Journey",
@@ -905,6 +915,8 @@
   "subLogin": "Loveway में जारी रखने के लिए लॉगिन करें ❤",
   "userTab": "यूज़रनेम से लॉगिन",
   "mobileTab": "मोबाइल से लॉगिन",
+  "loginIdLabel": "ईमेल, यूज़रनेम या मोबाइल",
+  "loginIdPh": "ईमेल, यूज़रनेम या मोबाइल",
   "username": "यूज़रनेम",
   "mobile": "मोबाइल नंबर",
   "password": "पासवर्ड",
@@ -1497,6 +1509,8 @@
   "subLogin": "Loveway पै फेर सों जुड़ौ ❤",
   "userTab": "यूज़रनेम सों लॉगिन",
   "mobileTab": "मोबाइल सों लॉगिन",
+  "loginIdLabel": "ईमेल, यूज़रनेम या मोबाइल",
+  "loginIdPh": "ईमेल, यूज़रनेम या मोबाइल",
   "username": "यूज़रनेम",
   "mobile": "मोबाइल नंबर",
   "password": "पासवर्ड",
@@ -2089,6 +2103,8 @@
   "subLogin": "Loveway में आगे बढ़ण खातर लॉगिन करो ❤",
   "userTab": "यूज़रनेम सूं लॉगिन",
   "mobileTab": "मोबाइल सूं लॉगिन",
+  "loginIdLabel": "ईमेल, यूज़रनेम या मोबाइल",
+  "loginIdPh": "ईमेल, यूज़रनेम या मोबाइल",
   "username": "यूज़रनेम",
   "mobile": "मोबाइल नंबर",
   "password": "पासवर्ड",
@@ -2681,6 +2697,8 @@
   "subLogin": "Loveway प आगे बढ़े खातिर लॉगिन करीं ❤",
   "userTab": "यूज़रनेम से लॉगिन",
   "mobileTab": "मोबाइल से लॉगिन",
+  "loginIdLabel": "ईमेल, यूज़रनेम या मोबाइल",
+  "loginIdPh": "ईमेल, यूज़रनेम या मोबाइल",
   "username": "यूज़रनेम",
   "mobile": "मोबाइल नंबर",
   "password": "पासवर्ड",
@@ -3273,6 +3291,8 @@
   "subLogin": "Loveway में आगे जाने कू लॉगिन करो ❤",
   "userTab": "यूज़रनेम से लॉगिन",
   "mobileTab": "मोबाइल से लॉगिन",
+  "loginIdLabel": "ईमेल, यूज़रनेम या मोबाइल",
+  "loginIdPh": "ईमेल, यूज़रनेम या मोबाइल",
   "username": "यूज़रनेम",
   "mobile": "मोबाइल नंबर",
   "password": "पासवर्ड",
@@ -3865,6 +3885,8 @@
   "subLogin": "Loveway वर पुढे जाण्यासाठी लॉगिन करा ❤",
   "userTab": "यूजरनेमने लॉगिन",
   "mobileTab": "मोबाइलने लॉगिन",
+  "loginIdLabel": "ईमेल, युजरनेम किंवा मोबाईल",
+  "loginIdPh": "ईमेल, युजरनेम किंवा मोबाईल",
   "username": "यूजरनेम",
   "mobile": "मोबाइल नंबर",
   "password": "पासवर्ड",
@@ -4457,6 +4479,8 @@
   "subLogin": "Loveway-ஐ தொடர உள்நுழையவும் ❤",
   "userTab": "பயனர்பெயர் மூலம் உள்நுழைக",
   "mobileTab": "மொபைல் மூலம் உள்நுழைக",
+  "loginIdLabel": "மின்னஞ்சல், பயனர்பெயர் அல்லது மொபைல்",
+  "loginIdPh": "மின்னஞ்சல், பயனர்பெயர் அல்லது மொபைல்",
   "username": "பயனர்பெயர்",
   "mobile": "மொபைல் எண்",
   "password": "கடவுச்சொல்",
@@ -5049,6 +5073,8 @@
   "subLogin": "Loveway కొనసాగించడానికి లాగిన్ అవ్వండి ❤",
   "userTab": "యూజర్‌నేమ్‌తో లాగిన్",
   "mobileTab": "మొబైల్‌తో లాగిన్",
+  "loginIdLabel": "ఇమెయిల్, యూజర్‌నేమ్ లేదా మొబైల్",
+  "loginIdPh": "ఇమెయిల్, యూజర్‌నేమ్ లేదా మొబైల్",
   "username": "యూజర్‌నేమ్",
   "mobile": "మొబైల్ నంబర్",
   "password": "పాస్‌వర్డ్",
@@ -5641,6 +5667,8 @@
   "subLogin": "Loveway-তে চালিয়ে যেতে লগইন করুন ❤",
   "userTab": "ইউজারনেম দিয়ে লগইন করুন",
   "mobileTab": "মোবাইল দিয়ে লগইন করুন",
+  "loginIdLabel": "ইমেইল, ইউজারনেম অথবা মোবাইল",
+  "loginIdPh": "ইমেইল, ইউজারনেম অথবা মোবাইল",
   "username": "ইউজারনেম",
   "mobile": "মোবাইল নম্বর",
   "password": "পাসওয়ার্ড",
@@ -6233,6 +6261,8 @@
   "subLogin": "Loveway ਜਾਰੀ ਰੱਖਣ ਲਈ ਲਾਗਇਨ ਕਰੋ ❤",
   "userTab": "ਯੂਜ਼ਰਨੇਮ ਨਾਲ ਲਾਗਇਨ ਕਰੋ",
   "mobileTab": "ਮੋਬਾਈਲ ਨਾਲ ਲਾਗਇਨ ਕਰੋ",
+  "loginIdLabel": "ਈਮੇਲ, ਯੂਜ਼ਰਨੇਮ ਜਾਂ ਮੋਬਾਈਲ",
+  "loginIdPh": "ਈਮੇਲ, ਯੂਜ਼ਰਨੇਮ ਜਾਂ ਮੋਬਾਈਲ",
   "username": "ਯੂਜ਼ਰਨੇਮ",
   "mobile": "ਮੋਬਾਈਲ ਨੰਬਰ",
   "password": "ਪਾਸਵਰਡ",
@@ -6825,6 +6855,8 @@
   "subLogin": "Loveway પર આગળ વધવા લોગિન કરો ❤",
   "userTab": "યુઝરનેમથી લોગિન કરો",
   "mobileTab": "મોબાઈલથી લોગિન કરો",
+  "loginIdLabel": "ઈમેલ, યુઝરનેમ અથવા મોબાઈલ",
+  "loginIdPh": "ઈમેલ, યુઝરનેમ અથવા મોબાઈલ",
   "username": "યુઝરનેમ",
   "mobile": "મોબાઈલ નંબર",
   "password": "પાસવર્ડ",
@@ -7264,7 +7296,8 @@
   /* ---------- 5. Auth ---------- */
   var PROFILE_COLS =
     'id, full_name, username, email, mobile, address, city, bio, gender, dob, avatar_url, status, is_admin, created_at,' +
-    ' profession, relationship_status, partner_id, story, favourites, hobbies, cover_url, pincode, latitude, longitude, updated_at';
+    ' profession, relationship_status, partner_id, story, favourites, hobbies, cover_url, pincode, latitude, longitude, updated_at,' +
+    ' pinned_spotify_track_id, pinned_song_title, pinned_song_artist, pinned_song_url';
 
   function getSession() {
     if (!sb) return Promise.resolve(null);
@@ -7385,10 +7418,23 @@
     return attempt();
   }
 
+  // Android app (Capacitor) ke andar hain ya normal browser mein?
+  function isNativeApp() {
+    return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  }
+
+  // custom scheme jispe OAuth provider wapas redirect karega — Android manifest
+  // mein isi scheme/host ka intent-filter registered hai (MainActivity)
+  var NATIVE_OAUTH_REDIRECT = 'com.loveway.app://callback';
+
   // Google / Spotify
   function oauth(provider) {
     if (!sb) { alertBox('config.js set nahi hai.', 'error'); return Promise.resolve(); }
-    var opts = { redirectTo: pageUrl('callback.html') };
+    var native = isNativeApp();
+    var opts = {
+      redirectTo: native ? NATIVE_OAUTH_REDIRECT : pageUrl('callback.html'),
+      skipBrowserRedirect: native   // app ke andar se khud Browser plugin se kholenge
+    };
     if (provider === 'google') opts.queryParams = { prompt: 'select_account' };
     if (provider === 'spotify') opts.scopes = 'user-read-email playlist-read-private playlist-read-collaborative user-library-read';
     // callback.html isse pehchanta hai ki agar sign-in fail ho to Spotify-specific
@@ -7396,8 +7442,30 @@
     try { sessionStorage.setItem('lw_last_oauth_provider', provider); } catch (e) {}
     return sb.auth.signInWithOAuth({ provider: provider, options: opts })
       .then(function (r) {
-        if (r.error) alertBox('❌ ' + errText(r.error), 'error');
+        if (r.error) { alertBox('❌ ' + errText(r.error), 'error'); return; }
+        // web par supabase-js khud window.location redirect kar deta hai.
+        // App ke andar hum khud in-app browser tab kholte hain (Chrome poori
+        // tarah se alag na khule, aur wapas aane par app hi pakde).
+        if (native && r.data && r.data.url && window.Capacitor.Plugins.Browser) {
+          window.Capacitor.Plugins.Browser.open({ url: r.data.url });
+        }
       });
+  }
+
+  // App ke andar OAuth complete hone par is custom scheme par wapas aata hai —
+  // usi query/hash ke saath callback.html khol do (wahi normal web flow jaisa
+  // kaam karega, kyunki PKCE ka code_verifier isi app ke localStorage mein pehle
+  // se store ho chuka tha jab signInWithOAuth call hua tha).
+  if (isNativeApp() && window.Capacitor.Plugins.App) {
+    window.Capacitor.Plugins.App.addListener('appUrlOpen', function (data) {
+      var url = data && data.url || '';
+      if (url.indexOf(NATIVE_OAUTH_REDIRECT) !== 0) return;
+      if (window.Capacitor.Plugins.Browser) {
+        try { window.Capacitor.Plugins.Browser.close(); } catch (e) {}
+      }
+      var rest = url.slice(NATIVE_OAUTH_REDIRECT.length);   // '?code=...' ya '#access_token=...'
+      window.location.href = pageUrl('callback.html') + rest;
+    });
   }
 
   // chat mein "Spotify se dedication" ke liye — Spotify login se mila provider_token

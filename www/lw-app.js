@@ -358,6 +358,10 @@
       });
     }
 
+    document.querySelectorAll('.side-rail-toggle[data-icon]').forEach(function (el) {
+      if (!el.querySelector('svg')) el.insertAdjacentHTML('afterbegin', icon(el.getAttribute('data-icon'), 14));
+    });
+
     if (head && !document.getElementById('language')) {
       var langs = window.LW_LANGS || [{ code: 'en', label: 'English' }, { code: 'hi', label: 'हिंदी' }];
       var box = document.createElement('div');
@@ -422,6 +426,7 @@
 
     restoreTheme();
     restoreSidebarCollapsed();
+    restoreRailCollapsed();
     refreshNotifCount();
     if (typeof window.applyLanguage === 'function') window.applyLanguage();
   }
@@ -435,6 +440,24 @@
     var collapsed = false;
     try { collapsed = localStorage.getItem('loveway_sidebar_collapsed') === '1'; } catch (e) {}
     document.body.classList.toggle('sidebar-collapsed', collapsed);
+  }
+
+  // side-rail widgets (dashboard/messages ke "nearby spots" / "festivals")
+  // ka open/close button — sidebar jaisa hi pattern, per-side yaad rehta hai
+  function toggleRail(side) {
+    var el = document.getElementById(side === 'left' ? 'railLeft' : 'railRight');
+    if (!el) return;
+    var collapsed = el.classList.toggle('collapsed');
+    try { localStorage.setItem('loveway_rail_' + side + '_collapsed', collapsed ? '1' : '0'); } catch (e) {}
+  }
+  function restoreRailCollapsed() {
+    ['left', 'right'].forEach(function (side) {
+      var el = document.getElementById(side === 'left' ? 'railLeft' : 'railRight');
+      if (!el) return;
+      var collapsed = false;
+      try { collapsed = localStorage.getItem('loveway_rail_' + side + '_collapsed') === '1'; } catch (e) {}
+      el.classList.toggle('collapsed', collapsed);
+    });
   }
 
   /* ---------- Left sidebar nav (desktop) — JS-injected once, same list on
@@ -1788,7 +1811,7 @@
     esc: esc, initials: initials, avatarHtml: avatarHtml, timeAgo: timeAgo, icon: icon,
     toast: toast, err: err, setTheme: setTheme, restoreTheme: restoreTheme, setCustomColor: setCustomColor,
     restoreBgPhoto: restoreBgPhoto,
-    shell: shell, refreshNotifCount: refreshNotifCount, customSelect: customSelect, toggleSidebar: toggleSidebar,
+    shell: shell, refreshNotifCount: refreshNotifCount, customSelect: customSelect, toggleSidebar: toggleSidebar, toggleRail: toggleRail,
 
     publicProfile: publicProfile, searchPeople: searchPeople, saveProfile: saveProfile,
     suggestedPeople: suggestedPeople, nearbyPeople: nearbyPeople,

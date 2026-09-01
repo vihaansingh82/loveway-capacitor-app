@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chat — Loveway</title>
-<link rel="stylesheet" href="lw-tailwind.css?v=5">
+<link rel="stylesheet" href="lw-tailwind.css?v=6">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script src="lw-core.js?v=3"></script>
-<script src="lw-app.js?v=5"></script>
+<script src="lw-app.js?v=6"></script>
 <script src="lw-rails.js?v=2"></script>
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 </head>
@@ -33,6 +33,7 @@
 </header>
 
 <aside class="side-rail side-rail-left" id="railLeft">
+  <button type="button" class="side-rail-toggle" data-icon="chevron" onclick="LWApp.toggleRail('left')" title="Show/hide"></button>
   <div class="card">
     <h3>💑 Aas-paas ke best spots</h3>
     <div class="spots-body">
@@ -43,6 +44,7 @@
 </aside>
 
 <aside class="side-rail side-rail-right" id="railRight">
+  <button type="button" class="side-rail-toggle" data-icon="chevron" onclick="LWApp.toggleRail('right')" title="Show/hide"></button>
   <div class="card music-rail-card"></div>
   <div class="card">
     <h3>🎉 Aane wale festival aur birthdays</h3>

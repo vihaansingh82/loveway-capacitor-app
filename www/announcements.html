@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Announcements — Loveway</title>
+<link rel="stylesheet" href="lw-styles.css?v=2">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="lw-core.js?v=3"></script>
+<script src="lw-app.js?v=7"></script>
+</head>
+<body data-theme="ocean">
+
+<header>
+  <h1>💕 Loveway</h1>
+  <div class="header-tools">
+    <a class="header-action" href="dashboard.html" data-icon="home" title="Home"></a>
+    <a class="header-action" href="profile.html" data-icon="profile" title="Profile"></a>
+    <button class="header-action" onclick="LW.logout()" data-icon="logout" title="Log out"></button>
+  </div>
+</header>
+
+<div class="container">
+  <div id="alertBox" class="alert"></div>
+
+  <div class="page-head">
+    <h2>🎁 Announcements</h2>
+    <span class="spacer"></span>
+    <button class="btn primary" onclick="openForm()">+ Naya Announcement</button>
+  </div>
+  <p class="muted" style="margin:-8px 0 16px">Birthday, anniversary, proposal ya koi bhi special wish bhejo — recipient approve karega tabhi sabko dikhega.</p>
+
+  <div class="tabs">
+    <div class="tab active" onclick="setTab('pending',this)">🎁 Pending approvals</div>
+    <div class="tab" onclick="setTab('sent',this)">📤 Sent</div>
+  </div>
+
+  <div id="pendingList"><div class="spinner">Load ho raha hai…</div></div>
+  <div id="sentList" style="display:none"><div class="spinner">Load ho raha hai…</div></div>
+</div>
+
+<!-- new announcement modal -->
+<div class="modal-bg" id="amodal" onclick="if(event.target===this)closeForm()">
+  <div class="modal">
+    <h3>🎁 Naya Announcement</h3>
+
+    <label class="fl">Kise bhejna hai?</label>
+    <input type="text" id="aRecipientSearch" placeholder="Naam ya username khojo…" oninput="onRecipientSearch()">
+    <div id="aRecipientResults"></div>
+    <div id="aRecipientChosen" style="display:none;align-items:center;margin-top:8px"></div>
+
+    <label class="fl" style="margin-top:14px">Kis mauke ke liye?</label>
+    <div class="row-2" style="grid-template-columns:repeat(3,1fr);gap:8px" id="aKindRow">
+      <div class="tab kind-opt active" data-val="birthday" onclick="pickKind(this)">🎂 Birthday</div>
+      <div class="tab kind-opt" data-val="anniversary" onclick="pickKind(this)">💕 Anniversary</div>
+      <div class="tab kind-opt" data-val="proposal" onclick="pickKind(this)">💍 Proposal</div>
+      <div class="tab kind-opt" data-val="love" onclick="pickKind(this)">❤️ I Love You</div>
+      <div class="tab kind-opt" data-val="special_moment" onclick="pickKind(this)">🎉 Special</div>
+      <div class="tab kind-opt" data-val="custom" onclick="pickKind(this)">💌 Custom</div>
+    </div>
+
+    <label class="fl">Photo</label>
+    <div id="aPreviewWrap" style="display:none;margin-bottom:8px;max-width:220px">
+      <img id="aPreview" src="" alt="" style="max-width:100%;border-radius:12px;display:block">
+    </div>
+    <button type="button" class="btn" onclick="document.getElementById('aFile').click()">📷 Upload Image</button>
+    <input type="file" id="aFile" accept="image/*" style="display:none" onchange="onFilePicked(event)">
+
+    <label class="fl">Message</label>
+    <textarea id="aMessage" rows="3" placeholder="Apna dil ki baat likho…"></textarea>
+
+    <label class="fl">Approve hone ke baad kaun dekh sakta hai?</label>
+    <select id="aVisibility">
+      <option value="friends">👥 Dost</option>
+      <option value="public">🌍 Sabhi</option>
+      <option value="partner">💑 Partner</option>
+      <option value="private">🔒 Sirf tum dono</option>
+    </select>
+
+    <div class="foot">
+      <button class="btn" onclick="closeForm()">Cancel</button>
+      <button class="btn primary" id="aSendBtn" onclick="sendAnnouncement()">Bhejo</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var me = null, recipient = null, announcementImageUrl = null, selectedKind = 'birthday';
+var _searchTimer = null, _searchResults = [];
+
+var KIND_META = {
+  birthday:       { emoji: '🎂', label: 'Birthday wish' },
+  anniversary:    { emoji: '💕', label: 'Anniversary wish' },
+  proposal:       { emoji: '💍', label: 'Proposal' },
+  love:           { emoji: '❤️', label: 'I Love You' },
+  special_moment: { emoji: '🎉', label: 'Special Moment' },
+  custom:         { emoji: '💌', label: 'Custom message' }
+};
+
+function openForm() {
+  recipient = null; announcementImageUrl = null; selectedKind = 'birthday';
+  document.getElementById('aRecipientSearch').value = '';
+  document.getElementById('aRecipientResults').innerHTML = '';
+  document.getElementById('aRecipientChosen').style.display = 'none';
+  document.getElementById('aMessage').value = '';
+  document.getElementById('aVisibility').value = 'friends';
+  document.getElementById('aPreview').src = '';
+  document.getElementById('aPreviewWrap').style.display = 'none';
+  document.querySelectorAll('.kind-opt').forEach(function (x) { x.classList.toggle('active', x.dataset.val === 'birthday'); });
+  document.getElementById('amodal').classList.add('open');
+}
+function closeForm() { document.getElementById('amodal').classList.remove('open'); }
+
+function pickKind(el) {
+  document.querySelectorAll('.kind-opt').forEach(function (x) { x.classList.remove('active'); });
+  el.classList.add('active');
+  selectedKind = el.dataset.val;
+}
+
+function onRecipientSearch() {
+  var q = document.getElementById('aRecipientSearch').value.trim();
+  clearTimeout(_searchTimer);
+  var box = document.getElementById('aRecipientResults');
+  if (!q) { box.innerHTML = ''; _searchResults = []; return; }
+  _searchTimer = setTimeout(function () {
+    LWApp.searchPeople(q).then(function (people) {
+      _searchResults = people;
+      box.innerHTML = people.length
+        ? people.map(function (p, i) {
+            return '<div class="picker-item" style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="pickRecipient(' + i + ')">' +
+              LWApp.avatarHtml(p, 'sm') + '<span>' + LWApp.esc(p.full_name || p.username || '—') + '</span></div>';
+          }).join('')
+        : '<div class="picker-item disabled">Koi nahi mila</div>';
+    });
+  }, 300);
+}
+
+function pickRecipient(i) {
+  recipient = _searchResults[i];
+  if (!recipient) return;
+  document.getElementById('aRecipientSearch').value = '';
+  document.getElementById('aRecipientResults').innerHTML = '';
+  var chosen = document.getElementById('aRecipientChosen');
+  chosen.style.display = 'flex';
+  chosen.innerHTML = LWApp.avatarHtml(recipient, 'sm') +
+    '<b style="margin-left:8px">' + LWApp.esc(recipient.full_name || recipient.username || '—') + '</b>' +
+    '<button type="button" class="icon-btn" onclick="clearRecipient()" style="margin-left:8px">✕</button>';
+}
+function clearRecipient() {
+  recipient = null;
+  document.getElementById('aRecipientChosen').style.display = 'none';
+}
+
+async function onFilePicked(e) {
+  var file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  if (file.type.indexOf('image/') !== 0) { LWApp.toast('Sirf image chalegi', 'error'); return; }
+  if (file.size > 15 * 1024 * 1024) { LWApp.toast('Photo 15MB se badi hai', 'error'); return; }
+
+  LWApp.toast('Photo upload ho rahi hai…');
+  try {
+    announcementImageUrl = await LWApp.uploadAnnouncementMedia(file);
+    document.getElementById('aPreview').src = announcementImageUrl;
+    document.getElementById('aPreviewWrap').style.display = '';
+    LWApp.toast('Photo ready hai');
+  } catch (er) {
+    LWApp.toast('❌ ' + LWApp.err(er), 'error');
+  }
+}
+
+async function sendAnnouncement() {
+  if (!recipient) { LWApp.toast('Pehle kisi ko chuno', 'error'); return; }
+  var message = document.getElementById('aMessage').value.trim();
+  if (!message && !announcementImageUrl) { LWApp.toast('Message ya photo daalo', 'error'); return; }
+
+  var btn = document.getElementById('aSendBtn');
+  btn.disabled = true; btn.textContent = 'Bhej rahe hain…';
+
+  var r = await LWApp.createAnnouncement({
+    recipient_id: recipient.id,
+    kind: selectedKind,
+    message: message || null,
+    media_url: announcementImageUrl,
+    visibility: document.getElementById('aVisibility').value
+  });
+
+  btn.disabled = false; btn.textContent = 'Bhejo';
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+
+  LWApp.toast('🎁 Announcement bhej diya — unke approve karne ka wait karo');
+  closeForm();
+  loadSent();
+}
+
+function setTab(name, el) {
+  document.querySelectorAll('.tabs .tab').forEach(function (t) { t.classList.remove('active'); });
+  el.classList.add('active');
+  document.getElementById('pendingList').style.display = name === 'pending' ? '' : 'none';
+  document.getElementById('sentList').style.display = name === 'sent' ? '' : 'none';
+}
+
+function pendingHtml(x) {
+  var meta = KIND_META[x.kind] || KIND_META.custom;
+  return '<div class="person">' + LWApp.avatarHtml(x.sender, 'sm') +
+    '<div class="who"><b>' + meta.emoji + ' ' + LWApp.esc(meta.label) + '</b>' +
+    '<small>' + LWApp.esc(x.sender.full_name || x.sender.username || '—') + ' · ' + LWApp.timeAgo(x.created_at) + '</small>' +
+    (x.message ? '<div class="muted" style="margin-top:4px">' + LWApp.esc(x.message) + '</div>' : '') +
+    '</div><div class="acts">' +
+    '<button class="btn sm primary" onclick="answer(' + x.id + ',true)">Approve</button>' +
+    '<button class="btn sm" onclick="answer(' + x.id + ',false)">Reject</button>' +
+    '</div></div>';
+}
+
+function sentHtml(x) {
+  var meta = KIND_META[x.kind] || KIND_META.custom;
+  var statusChip = x.status === 'approved' ? '<span class="chip">✅ Approved</span>'
+    : x.status === 'rejected' ? '<span class="chip locked">❌ Rejected</span>'
+    : '<span class="chip">⏳ Pending</span>';
+  return '<div class="person">' + LWApp.avatarHtml(x.recipient, 'sm') +
+    '<div class="who"><b>' + meta.emoji + ' ' + LWApp.esc(meta.label) + '</b>' +
+    '<small>' + LWApp.esc(x.recipient.full_name || x.recipient.username || '—') + ' · ' + LWApp.timeAgo(x.created_at) + '</small></div>' +
+    '<div class="acts">' + statusChip + '</div></div>';
+}
+
+async function loadPending() {
+  var rows = await LWApp.pendingAnnouncements();
+  var el = document.getElementById('pendingList');
+  el.innerHTML = rows.length
+    ? rows.map(pendingHtml).join('')
+    : '<div class="empty"><span class="ic">🎁</span>Koi pending announcement nahi hai.</div>';
+}
+
+async function loadSent() {
+  var rows = await LWApp.sentAnnouncements();
+  var el = document.getElementById('sentList');
+  el.innerHTML = rows.length
+    ? rows.map(sentHtml).join('')
+    : '<div class="empty"><span class="ic">💌</span>Abhi tak koi announcement nahi bheja.</div>';
+}
+
+async function answer(id, approve) {
+  var r = await LWApp.answerAnnouncement(id, approve);
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  LWApp.toast(approve ? '🎉 Approve ho gaya' : 'Reject kar diya');
+  loadPending();
+}
+
+document.addEventListener('DOMContentLoaded', async function () {
+  if (!LW.configOk) { LWApp.toast('config.js me Supabase keys daalo.', 'error'); return; }
+  me = await LW.requireAuth();
+  if (!me) return;
+  LWApp.shell('announcements');
+  loadPending();
+  loadSent();
+});
+</script>
+</body>
+</html>

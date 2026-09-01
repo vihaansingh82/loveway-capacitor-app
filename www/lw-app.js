@@ -78,7 +78,8 @@
     chat:      '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
     search:    '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
     sun:       '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>',
-    heart:     '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>'
+    heart:     '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>',
+    gift:      '<polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>'
   };
 
   function icon(name, size) {
@@ -467,6 +468,7 @@
     { id: 'community',     href: 'community.html',     icon: 'community', label: 'navCommunity' },
     { id: 'activities',    href: 'activities.html',    icon: 'pin',       label: 'navBoard' },
     { id: 'journey',       href: 'journey.html',       icon: 'chain',     label: 'navLifeChain' },
+    { id: 'announcements', href: 'announcements.html', icon: 'gift',      label: 'Announcements' },
     { id: 'goals',         href: 'goals.html',         icon: 'target',    label: 'navGoals' },
     { id: 'friends',       href: 'friends.html',       icon: 'friends',   label: 'navFriends' },
     { id: 'chat',          href: 'messages.html',      icon: 'chat',      label: 'navChat' },
@@ -832,6 +834,70 @@
         if (r.error) throw r.error;
         return sb().storage.from('posts').getPublicUrl(path).data.publicUrl;
       });
+  }
+
+  /* ---------- Announcements (birthday/anniversary/proposal/... — approval-gated,
+     recipient must approve before it becomes a real post) ---------- */
+  function createAnnouncement(a) {
+    a.sender_id = window.LW.profile.id;
+    return sb().from('announcements').insert(a).select().maybeSingle();
+  }
+
+  // announcements/<user_id>/<file> — "announcements" bucket, path jaisa posts/journey mein hai
+  function uploadAnnouncementMedia(file) {
+    var safe = (file.name || 'file').replace(/[^a-zA-Z0-9._-]/g, '_');
+    var path = window.LW.profile.id + '/' + Date.now() + '-' + safe;
+    return sb().storage.from('announcements')
+      .upload(path, file, { contentType: file.type || undefined })
+      .then(function (r) {
+        if (r.error) throw r.error;
+        return sb().storage.from('announcements').getPublicUrl(path).data.publicUrl;
+      });
+  }
+
+  function pendingAnnouncements() {
+    return sb().from('announcements')
+      .select('id, sender_id, kind, message, media_url, visibility, created_at')
+      .eq('recipient_id', window.LW.profile.id)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .then(function (r) {
+        var rows = r.data || [];
+        if (!rows.length) return [];
+        return sb().from('lw_public_profiles')
+          .select('id, full_name, username, avatar_url')
+          .in('id', rows.map(function (x) { return x.sender_id; }))
+          .then(function (p) {
+            var by = {};
+            (p.data || []).forEach(function (x) { by[x.id] = x; });
+            return rows.map(function (x) { x.sender = by[x.sender_id] || {}; return x; });
+          });
+      });
+  }
+
+  function sentAnnouncements() {
+    return sb().from('announcements')
+      .select('id, recipient_id, kind, message, media_url, visibility, status, created_at')
+      .eq('sender_id', window.LW.profile.id)
+      .order('created_at', { ascending: false })
+      .then(function (r) {
+        var rows = r.data || [];
+        if (!rows.length) return [];
+        return sb().from('lw_public_profiles')
+          .select('id, full_name, username, avatar_url')
+          .in('id', rows.map(function (x) { return x.recipient_id; }))
+          .then(function (p) {
+            var by = {};
+            (p.data || []).forEach(function (x) { by[x.id] = x; });
+            return rows.map(function (x) { x.recipient = by[x.recipient_id] || {}; return x; });
+          });
+      });
+  }
+
+  function answerAnnouncement(id, approve) {
+    return sb().from('announcements')
+      .update({ status: approve ? 'approved' : 'rejected' })
+      .eq('id', id);
   }
 
   /* ---------- Location picker (Leaflet + OpenStreetMap Nominatim, no API key) ---------- */
@@ -1826,6 +1892,10 @@
     feed: feed, createPost: createPost, deletePost: deletePost, toggleLove: toggleLove,
     comments: comments, addComment: addComment,
     uploadPostMedia: uploadPostMedia, storiesFeed: storiesFeed,
+
+    createAnnouncement: createAnnouncement, uploadAnnouncementMedia: uploadAnnouncementMedia,
+    pendingAnnouncements: pendingAnnouncements, sentAnnouncements: sentAnnouncements,
+    answerAnnouncement: answerAnnouncement,
 
     journeyEntries: journeyEntries, createJourneyEntry: createJourneyEntry,
     deleteJourneyEntry: deleteJourneyEntry, uploadJourneyMedia: uploadJourneyMedia,

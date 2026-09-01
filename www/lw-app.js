@@ -900,6 +900,17 @@
       .eq('id', id);
   }
 
+  /* ---------- Report (content moderation — koi bhi post/user/comment/message report kar sakta hai) ---------- */
+  function reportContent(targetType, targetId, reason, details) {
+    return sb().from('reports').insert({
+      reporter_id: window.LW.profile.id,
+      target_type: targetType,
+      target_id: String(targetId),
+      reason: reason,
+      details: details || null
+    });
+  }
+
   /* ---------- Location picker (Leaflet + OpenStreetMap Nominatim, no API key) ---------- */
   var _lwMap = null, _lwMarker = null, _lwPickCallback = null, _lwLeafletLoading = null;
 
@@ -1895,7 +1906,7 @@
 
     createAnnouncement: createAnnouncement, uploadAnnouncementMedia: uploadAnnouncementMedia,
     pendingAnnouncements: pendingAnnouncements, sentAnnouncements: sentAnnouncements,
-    answerAnnouncement: answerAnnouncement,
+    answerAnnouncement: answerAnnouncement, reportContent: reportContent,
 
     journeyEntries: journeyEntries, createJourneyEntry: createJourneyEntry,
     deleteJourneyEntry: deleteJourneyEntry, uploadJourneyMedia: uploadJourneyMedia,

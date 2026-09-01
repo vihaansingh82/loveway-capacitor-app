@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script src="lw-core.js?v=3"></script>
-<script src="lw-app.js?v=7"></script>
+<script src="lw-app.js?v=8"></script>
 <script src="lw-rails.js?v=2"></script>
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 <style>
@@ -330,6 +330,8 @@ function postHtml(p) {
        '<span class="vis-tag">' + visLabel(p.visibility) + '</span></small></div>';
   if (p.author_id === me.id) {
     t += '<button class="icon-btn" onclick="removePost(' + p.id + ')" title="' + LWApp.esc(window.t('deleteTitle')) + '">🗑</button>';
+  } else {
+    t += '<button class="icon-btn" onclick="openReport(\'post\',' + p.id + ')" title="Report karo">🚩</button>';
   }
   t += '</div>';
 
@@ -677,6 +679,24 @@ async function loadSidebar() {
   }
 }
 
+var _reportType = null, _reportId = null;
+function openReport(type, id) {
+  _reportType = type; _reportId = id;
+  document.getElementById('rReason').value = 'spam';
+  document.getElementById('rDetails').value = '';
+  document.getElementById('rmodal').classList.add('open');
+}
+function closeReport() { document.getElementById('rmodal').classList.remove('open'); }
+async function submitReport() {
+  var btn = document.getElementById('rSendBtn');
+  btn.disabled = true; btn.textContent = 'Bhej rahe hain…';
+  var r = await LWApp.reportContent(_reportType, _reportId, document.getElementById('rReason').value, document.getElementById('rDetails').value.trim());
+  btn.disabled = false; btn.textContent = 'Report karo';
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  LWApp.toast('Report bhej diya, admin dekh lenge 🚩');
+  closeReport();
+}
+
 document.addEventListener('DOMContentLoaded', async function () {
   if (!LW.configOk) { LWApp.toast('config.js me Supabase keys daalo.', 'error'); return; }
   me = await LW.requireAuth();
@@ -699,5 +719,26 @@ document.addEventListener('DOMContentLoaded', async function () {
   initMiniPlayer();
 });
 </script>
+<!-- report modal -->
+<div class="modal-bg" id="rmodal" onclick="if(event.target===this)closeReport()">
+  <div class="modal">
+    <h3>🚩 Report karo</h3>
+    <label class="fl">Wajah</label>
+    <select id="rReason">
+      <option value="spam">Spam</option>
+      <option value="harassment">Harassment / Bullying</option>
+      <option value="nudity">Nudity / Inappropriate</option>
+      <option value="fake">Fake account/content</option>
+      <option value="other">Kuch aur</option>
+    </select>
+    <label class="fl">Details (optional)</label>
+    <textarea id="rDetails" rows="3" placeholder="Aur kuch batana ho to likho…"></textarea>
+    <div class="foot">
+      <button class="btn" onclick="closeReport()">Cancel</button>
+      <button class="btn primary" id="rSendBtn" onclick="submitReport()">Report karo</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

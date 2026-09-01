@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script src="lw-core.js?v=3"></script>
-<script src="lw-app.js?v=7"></script>
+<script src="lw-app.js?v=8"></script>
 </head>
 <body data-theme="ocean">
 
@@ -486,6 +486,24 @@ async function loadStats() {
   document.getElementById('stFamily').textContent = fam.length;
 }
 
+var _reportType = null, _reportId = null;
+function openReport(type, id) {
+  _reportType = type; _reportId = id;
+  document.getElementById('rReason').value = 'spam';
+  document.getElementById('rDetails').value = '';
+  document.getElementById('rmodal').classList.add('open');
+}
+function closeReport() { document.getElementById('rmodal').classList.remove('open'); }
+async function submitReport() {
+  var btn = document.getElementById('rSendBtn');
+  btn.disabled = true; btn.textContent = 'Bhej rahe hain…';
+  var r = await LWApp.reportContent(_reportType, _reportId, document.getElementById('rReason').value, document.getElementById('rDetails').value.trim());
+  btn.disabled = false; btn.textContent = 'Report karo';
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  LWApp.toast('Report bhej diya, admin dekh lenge 🚩');
+  closeReport();
+}
+
 document.addEventListener('DOMContentLoaded', async function () {
   if (!LW.configOk) { LWApp.toast('config.js me Supabase keys daalo.', 'error'); return; }
   me = await LW.requireAuth();
@@ -516,7 +534,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     document.getElementById('ownerActions').innerHTML =
       '<button class="btn primary" onclick="msgThem()" data-i18n="messageBtn">💬 Message</button>' +
       (already ? '' : ' <a class="btn" href="add-friend.html?u=' + encodeURIComponent(viewing.username || '') +
-        '" data-i18n="addFriendBtn">➕ Friend request bhejo</a>');
+        '" data-i18n="addFriendBtn">➕ Friend request bhejo</a>') +
+      ' <button class="btn" onclick="openReport(\'user\',\'' + viewing.id + '\')">🚩 Report</button>';
   }
 
   if (typeof window.applyLanguage === 'function') window.applyLanguage();
@@ -564,5 +583,26 @@ document.addEventListener('lw:language', function () {
   if (name.indexOf("'posts'") !== -1) loadPosts();
 });
 </script>
+<!-- report modal -->
+<div class="modal-bg" id="rmodal" onclick="if(event.target===this)closeReport()">
+  <div class="modal">
+    <h3>🚩 Report karo</h3>
+    <label class="fl">Wajah</label>
+    <select id="rReason">
+      <option value="spam">Spam</option>
+      <option value="harassment">Harassment / Bullying</option>
+      <option value="nudity">Nudity / Inappropriate</option>
+      <option value="fake">Fake account/content</option>
+      <option value="other">Kuch aur</option>
+    </select>
+    <label class="fl">Details (optional)</label>
+    <textarea id="rDetails" rows="3" placeholder="Aur kuch batana ho to likho…"></textarea>
+    <div class="foot">
+      <button class="btn" onclick="closeReport()">Cancel</button>
+      <button class="btn primary" id="rSendBtn" onclick="submitReport()">Report karo</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

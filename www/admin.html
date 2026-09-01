@@ -114,7 +114,12 @@
     <div class="stat-card approved-card"><div class="stat-label" data-i18n="approved"></div><div class="stat-value" id="approvedCount">—</div></div>
     <div class="stat-card rejected-card"><div class="stat-label" data-i18n="rejected"></div><div class="stat-value" id="rejectedCount">—</div></div>
   </div>
-  <div class="panel">
+  <div class="tabs" id="sectionTabs" style="margin-bottom:14px">
+    <div class="tab active" data-section="users" onclick="switchSection('users')">👥 Users</div>
+    <div class="tab" data-section="reports" onclick="switchSection('reports')">🚩 Reports</div>
+  </div>
+
+  <div class="panel" id="usersPanel">
     <div class="toolbar">
       <div class="toolbar-title">👥 <span data-i18n="userManagement"></span></div>
       <div class="search-wrap"><span class="search-icon">⌕</span><input id="userSearch" class="search" type="search" data-i18n-placeholder="searchUsers" oninput="filterUsers()"></div>
@@ -125,6 +130,17 @@
       <div class="tab" data-status="rejected" onclick="switchTab('rejected')" data-i18n="rejected"></div>
     </div>
     <div id="tableWrap"><div class="empty" data-i18n="loading"></div></div>
+  </div>
+
+  <div class="panel" id="reportsPanel" style="display:none">
+    <div class="toolbar">
+      <div class="toolbar-title">🚩 Reports</div>
+    </div>
+    <div class="tabs">
+      <div class="tab active" data-rstatus="open" onclick="switchReportTab('open')">Open</div>
+      <div class="tab" data-rstatus="all" onclick="switchReportTab('all')">All</div>
+    </div>
+    <div id="reportsTableWrap"><div class="empty" data-i18n="loading"></div></div>
   </div>
 </div>
 
@@ -232,6 +248,87 @@ async function act(userId, status) {
 
 function loadUsersDirect() { loadUsers(); }
 function logout() { LW.logout(); }
+
+/* ---------- Reports (content moderation) ---------- */
+let currentReportStatus = 'open';
+let reportRows = [];
+
+function switchSection(name) {
+  document.querySelectorAll('#sectionTabs .tab').forEach(el => el.classList.toggle('active', el.dataset.section === name));
+  document.getElementById('usersPanel').style.display   = name === 'users'   ? '' : 'none';
+  document.getElementById('reportsPanel').style.display = name === 'reports' ? '' : 'none';
+  if (name === 'reports' && !reportRows.length) loadReports();
+}
+
+function switchReportTab(status) {
+  currentReportStatus = status;
+  document.querySelectorAll('#reportsPanel .tabs .tab').forEach(el => el.classList.toggle('active', el.dataset.rstatus === status));
+  renderReports();
+}
+
+async function loadReports() {
+  document.getElementById('reportsTableWrap').innerHTML = '<div class="empty">' + t('loading') + '</div>';
+  const { data, error } = await LW.sb
+    .from('reports')
+    .select('id, reporter_id, target_type, target_id, reason, details, status, created_at')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    document.getElementById('reportsTableWrap').innerHTML =
+      '<div class="empty"><span class="empty-icon">⚠️</span>' + t('loadFail') + '</div>';
+    return;
+  }
+  reportRows = data || [];
+
+  const ids = [...new Set(reportRows.map(r => r.reporter_id))];
+  if (ids.length) {
+    const { data: profs } = await LW.sb.from('lw_public_profiles').select('id, full_name, username').in('id', ids);
+    const by = {};
+    (profs || []).forEach(p => { by[p.id] = p; });
+    reportRows.forEach(r => { r.reporter = by[r.reporter_id] || {}; });
+  }
+  renderReports();
+}
+
+function renderReports() {
+  const wrap = document.getElementById('reportsTableWrap');
+  const rows = reportRows.filter(r => currentReportStatus === 'all' || r.status === currentReportStatus);
+  if (!rows.length) {
+    wrap.innerHTML = '<div class="empty"><span class="empty-icon">🌸</span>Koi report nahi hai.</div>';
+    return;
+  }
+
+  let html = '<div class="table-scroll"><table><thead><tr>' +
+    ['Reporter', 'Target', 'Reason', 'Details', 'Status', 'Date', 'Action'].map(k => '<th>' + k + '</th>').join('') +
+    '</tr></thead><tbody>';
+
+  rows.forEach(r => {
+    const badgeClass = r.status === 'open' ? 'pending' : (r.status === 'dismissed' ? 'rejected' : 'approved');
+    html += '<tr>' +
+      '<td><span class="user-name">' + escapeHtml((r.reporter && (r.reporter.full_name || r.reporter.username)) || '—') + '</span></td>' +
+      '<td class="muted"><span class="username-pill">' + escapeHtml(r.target_type) + ' #' + escapeHtml(r.target_id) + '</span></td>' +
+      '<td class="muted">' + escapeHtml(r.reason) + '</td>' +
+      '<td class="muted">' + escapeHtml((r.details || '—').slice(0, 80)) + '</td>' +
+      '<td><span class="badge ' + badgeClass + '">' + escapeHtml(r.status) + '</span></td>' +
+      '<td class="muted">' + new Date(r.created_at).toLocaleDateString() + '</td>' +
+      '<td>' +
+        (r.status !== 'reviewed'  ? '<button class="btn-approve" onclick="actReport(' + r.id + ',\'reviewed\')">Reviewed</button>' : '') +
+        (r.status !== 'actioned'  ? '<button class="btn-approve" onclick="actReport(' + r.id + ',\'actioned\')">Actioned</button>' : '') +
+        (r.status !== 'dismissed' ? '<button class="btn-reject" onclick="actReport(' + r.id + ',\'dismissed\')">Dismiss</button>' : '') +
+      '</td>' +
+    '</tr>';
+  });
+  wrap.innerHTML = html + '</tbody></table></div>';
+}
+
+async function actReport(id, status) {
+  const { error } = await LW.sb.from('reports').update({ status: status }).eq('id', id);
+  if (error) { showAlert('❌ ' + LW.errText(error), 'error'); return; }
+  showAlert('✅ Updated', 'success');
+  const row = reportRows.find(r => r.id === id);
+  if (row) row.status = status;
+  renderReports();
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (!LW.configOk) {

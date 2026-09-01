@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Community — Loveway</title>
-<link rel="stylesheet" href="lw-styles.css?v=1">
+<link rel="stylesheet" href="lw-styles.css?v=2">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script src="lw-core.js?v=3"></script>
@@ -279,8 +279,10 @@ function communityPostHtml(p) {
     (p.content ? '<div class="post-body">' + LWApp.esc(p.content) + '</div>' : '') +
     (p.media_url ? '<div class="post-media"><img src="' + LWApp.esc(p.media_url) + '" alt="" loading="lazy"></div>' : '') +
     '<div class="post-actions">' +
-    '<span class="' + (p.i_loved ? 'on' : '') + '" onclick="loveCommunityPost(' + p.id + ')">❤️ ' + p.love_count + '</span>' +
-    '<span>💬 ' + p.comment_count + '</span></div></div>';
+    '<span class="post-ic' + (p.i_loved ? ' on' : '') + '" onclick="loveCommunityPost(' + p.id + ')">' + LWApp.icon('heart', 24) + '</span>' +
+    '<span class="post-ic">' + LWApp.icon('chat', 22) + '</span></div>' +
+    (p.love_count > 0 ? '<div class="post-likes">' + p.love_count + ' likes</div>' : '') +
+    '</div>';
 }
 
 async function loadFeed() {

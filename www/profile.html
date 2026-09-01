@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Profile — Loveway</title>
-<link rel="stylesheet" href="lw-styles.css?v=1">
+<link rel="stylesheet" href="lw-styles.css?v=2">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script src="lw-core.js?v=3"></script>
@@ -465,8 +465,10 @@ async function loadPosts() {
                '<div><b>' + LWApp.esc(p.author.full_name || '—') + '</b><small>' +
                LWApp.timeAgo(p.created_at) + '</small></div></div>' +
                (p.content ? '<div class="post-body">' + LWApp.esc(p.content) + '</div>' : '') +
-               '<div class="post-actions"><span>❤️ ' + p.love_count +
-               '</span><span>💬 ' + p.comment_count + '</span></div></div>';
+               '<div class="post-actions"><span class="post-ic">' + LWApp.icon('heart', 24) +
+               '</span><span class="post-ic">' + LWApp.icon('chat', 22) + '</span></div>' +
+               (p.love_count > 0 ? '<div class="post-likes">' + p.love_count + ' likes</div>' : '') +
+               '</div>';
       }).join('')
     : '<div class="empty"><span class="ic">📝</span>' + LWApp.esc(window.t('noPostsMsg')) + '</div>';
 }

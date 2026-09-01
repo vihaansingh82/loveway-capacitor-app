@@ -2318,3 +2318,34 @@ create policy reports_read_admin on public.reports
 
 create policy reports_update_admin on public.reports
   for update to authenticated using (public.lw_is_admin()) with check (public.lw_is_admin());
+
+
+-- ------------------------------------------------------------
+-- 31. Ban reason — 'rejected' status already fully blocks an account
+--     (see section 1's status check-constraint + lw_public_profiles'
+--     "where status <> 'rejected'" filter). Bas admin.html mein ye
+--     dikhane ke liye ki KYUN ban kiya, ek reason column chahiye.
+-- ------------------------------------------------------------
+alter table public.profiles add column if not exists rejection_reason text;
+
+-- lw_protect_profile() (section 4 upar) ko yahan dobara define kiya taaki
+-- rejection_reason bhi status/is_admin/created_at jaisa hi admin-only rahe
+-- (naya column function ke pehle wale version ke ban ke time exist nahi karta tha).
+create or replace function public.lw_protect_profile()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.lw_is_admin(auth.uid()) then
+    new.status            := old.status;
+    new.is_admin          := old.is_admin;
+    new.created_at        := old.created_at;
+    new.rejection_reason  := old.rejection_reason;
+  end if;
+  new.id         := old.id;
+  new.updated_at := now();
+  return new;
+end;
+$$;

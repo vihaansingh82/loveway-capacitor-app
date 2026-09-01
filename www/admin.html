@@ -117,6 +117,7 @@
   <div class="tabs" id="sectionTabs" style="margin-bottom:14px">
     <div class="tab active" data-section="users" onclick="switchSection('users')">👥 Users</div>
     <div class="tab" data-section="reports" onclick="switchSection('reports')">🚩 Reports</div>
+    <div class="tab" data-section="analytics" onclick="switchSection('analytics')">📊 Analytics</div>
   </div>
 
   <div class="panel" id="usersPanel">
@@ -141,6 +142,22 @@
       <div class="tab" data-rstatus="all" onclick="switchReportTab('all')">All</div>
     </div>
     <div id="reportsTableWrap"><div class="empty" data-i18n="loading"></div></div>
+  </div>
+
+  <div class="panel" id="analyticsPanel" style="display:none">
+    <div class="toolbar">
+      <div class="toolbar-title">📊 Analytics</div>
+      <button class="btn" onclick="loadAnalytics()">↻ Refresh</button>
+    </div>
+    <div class="stats" id="analyticsStats" style="grid-template-columns:repeat(4,1fr)">
+      <div class="stat-card total-card"><div class="stat-label">Users</div><div class="stat-value" id="anUsers">—</div></div>
+      <div class="stat-card approved-card"><div class="stat-label">Posts</div><div class="stat-value" id="anPosts">—</div></div>
+      <div class="stat-card approved-card"><div class="stat-label">Communities</div><div class="stat-value" id="anCommunities">—</div></div>
+      <div class="stat-card approved-card"><div class="stat-label">Activities</div><div class="stat-value" id="anActivities">—</div></div>
+      <div class="stat-card rejected-card"><div class="stat-label">Open Reports</div><div class="stat-value" id="anOpenReports">—</div></div>
+      <div class="stat-card total-card"><div class="stat-label">Pending Announcements</div><div class="stat-value" id="anPendingAnn">—</div></div>
+      <div class="stat-card approved-card"><div class="stat-label">Banned Users</div><div class="stat-value" id="anBanned">—</div></div>
+    </div>
   </div>
 </div>
 
@@ -183,7 +200,9 @@ function renderTable(rows) {
       '<td>' + escapeHtml(u.mobile || '—') + '</td>' +
       '<td class="muted">' + escapeHtml(u.gender || '—') + '</td>' +
       '<td class="muted">' + (u.dob || '—') + '</td>' +
-      '<td><span class="badge ' + u.status + '">' + t(u.status) + '</span></td>' +
+      '<td><span class="badge ' + u.status + '"' +
+        (u.status === 'rejected' && u.rejection_reason ? ' title="' + escapeHtml(u.rejection_reason) + '"' : '') +
+        '>' + t(u.status) + '</span></td>' +
       '<td class="muted">' + new Date(u.created_at).toLocaleDateString(loc) + '</td>' +
       '<td>' +
         (u.status !== 'approved' ? '<button class="btn-approve" onclick="act(\'' + u.id + '\',\'approved\')">' + t('approve') + '</button>' : '') +
@@ -222,7 +241,7 @@ async function loadUsers() {
   document.getElementById('tableWrap').innerHTML = '<div class="empty">' + t('loading') + '</div>';
   const { data, error } = await LW.sb
     .from('profiles')
-    .select('id, full_name, username, email, mobile, gender, dob, status, is_admin, created_at')
+    .select('id, full_name, username, email, mobile, gender, dob, status, is_admin, created_at, rejection_reason')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -237,11 +256,20 @@ async function loadUsers() {
 
 /* approve / reject */
 async function act(userId, status) {
-  const { error } = await LW.sb.from('profiles').update({ status: status }).eq('id', userId);
+  const patch = { status: status };
+  if (status === 'rejected') {
+    const reason = prompt('Ban karne ki wajah (optional):');
+    if (reason === null) return; // cancel dabaya
+    patch.rejection_reason = reason.trim() || null;
+  } else {
+    patch.rejection_reason = null; // unban/approve par reason clear ho jaaye
+  }
+
+  const { error } = await LW.sb.from('profiles').update(patch).eq('id', userId);
   if (error) { showAlert('❌ ' + LW.errText(error), 'error'); return; }
   showAlert('✅ ' + t(status), 'success');
   const row = allRows.find(u => u.id === userId);
-  if (row) row.status = status;
+  if (row) { row.status = status; row.rejection_reason = patch.rejection_reason; }
   updateStats(allRows);
   renderTable(visibleRows());
 }
@@ -253,11 +281,51 @@ function logout() { LW.logout(); }
 let currentReportStatus = 'open';
 let reportRows = [];
 
+let analyticsLoaded = false;
+
 function switchSection(name) {
   document.querySelectorAll('#sectionTabs .tab').forEach(el => el.classList.toggle('active', el.dataset.section === name));
-  document.getElementById('usersPanel').style.display   = name === 'users'   ? '' : 'none';
-  document.getElementById('reportsPanel').style.display = name === 'reports' ? '' : 'none';
+  document.getElementById('usersPanel').style.display     = name === 'users'     ? '' : 'none';
+  document.getElementById('reportsPanel').style.display   = name === 'reports'   ? '' : 'none';
+  document.getElementById('analyticsPanel').style.display = name === 'analytics' ? '' : 'none';
   if (name === 'reports' && !reportRows.length) loadReports();
+  if (name === 'analytics' && !analyticsLoaded) loadAnalytics();
+}
+
+async function loadAnalytics() {
+  const count = (table, filters) => {
+    let q = LW.sb.from(table).select('id', { count: 'exact', head: true });
+    (filters || []).forEach(f => { q = q.eq(f[0], f[1]); });
+    return q.then(r => {
+      if (r.error) throw r.error;
+      return r.count || 0;
+    });
+  };
+
+  let users, posts, communities, activities, openReports, pendingAnn, banned;
+  try {
+    [users, posts, communities, activities, openReports, pendingAnn, banned] = await Promise.all([
+      count('profiles'),
+      count('posts'),
+      count('communities'),
+      count('activities'),
+      count('reports', [['status', 'open']]),
+      count('announcements', [['status', 'pending']]),
+      count('profiles', [['status', 'rejected']]),
+    ]);
+  } catch (err) {
+    showAlert('❌ Analytics load fail: ' + LW.errText(err), 'error');
+    return; // analyticsLoaded false hi rahega, tab dobara khulne par retry hoga
+  }
+
+  analyticsLoaded = true;
+  document.getElementById('anUsers').textContent        = users;
+  document.getElementById('anPosts').textContent         = posts;
+  document.getElementById('anCommunities').textContent   = communities;
+  document.getElementById('anActivities').textContent    = activities;
+  document.getElementById('anOpenReports').textContent   = openReports;
+  document.getElementById('anPendingAnn').textContent    = pendingAnn;
+  document.getElementById('anBanned').textContent        = banned;
 }
 
 function switchReportTab(status) {

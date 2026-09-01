@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Store — Loveway</title>
+<link rel="stylesheet" href="lw-styles.css?v=2">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="lw-core.js?v=3"></script>
+<script src="lw-app.js?v=9"></script>
+</head>
+<body data-theme="ocean">
+
+<header>
+  <h1>💕 Loveway</h1>
+  <div class="header-tools">
+    <a class="header-action" href="dashboard.html" data-icon="home" title="Home"></a>
+    <a class="header-action" href="profile.html" data-icon="profile" title="Profile"></a>
+    <button class="header-action" onclick="LW.logout()" data-icon="logout" title="Log out"></button>
+  </div>
+</header>
+
+<div class="container">
+  <div id="alertBox" class="alert"></div>
+
+  <div class="page-head">
+    <h2>🛍️ Loveway Store</h2>
+    <span class="spacer"></span>
+  </div>
+  <p class="muted" style="margin:-8px 0 16px">Custom gifts, T-shirts, mugs aur bhi bahut kuch — apne pyaar ke liye. Abhi Cash on Delivery hi available hai.</p>
+
+  <div class="tabs" id="viewTabs">
+    <div class="tab active" onclick="setView('products',this)">🛍️ Products</div>
+    <div class="tab" onclick="setView('orders',this)">📦 Mere Orders</div>
+  </div>
+
+  <div id="catTabs" class="tabs" style="margin-top:-6px"></div>
+
+  <div id="productsView">
+    <div class="grid-3" id="productGrid"><div class="spinner">Load ho raha hai…</div></div>
+  </div>
+
+  <div id="ordersView" style="display:none">
+    <div id="ordersList"><div class="spinner">Load ho raha hai…</div></div>
+  </div>
+</div>
+
+<!-- customize + order modal -->
+<div class="modal-bg" id="omodal" onclick="if(event.target===this)closeOrder()">
+  <div class="modal">
+    <h3>🛒 Order karo</h3>
+
+    <div id="oProductSummary" style="display:flex;gap:12px;align-items:center;margin-bottom:14px"></div>
+
+    <div class="row-2">
+      <div>
+        <label class="fl">Quantity</label>
+        <input type="number" id="oQty" value="1" min="1" max="20" oninput="updateTotal()">
+      </div>
+      <div>
+        <label class="fl">Total</label>
+        <input type="text" id="oTotal" value="" disabled>
+      </div>
+    </div>
+
+    <label class="fl">Customization note (optional)</label>
+    <textarea id="oNote" rows="2" placeholder="Naam, text, color ya jo bhi customize karwana hai likho…"></textarea>
+
+    <label class="fl">Apni photo upload karo (optional)</label>
+    <div id="oPreviewWrap" style="display:none;margin-bottom:8px;max-width:160px">
+      <img id="oPreview" src="" alt="" style="max-width:100%;border-radius:12px;display:block">
+    </div>
+    <button type="button" class="btn" onclick="document.getElementById('oFile').click()">📷 Photo upload karo</button>
+    <input type="file" id="oFile" accept="image/*" style="display:none" onchange="onFilePicked(event)">
+
+    <label class="fl">Delivery address</label>
+    <textarea id="oAddress" rows="2" placeholder="Poora address likho…"></textarea>
+
+    <label class="fl">Contact mobile</label>
+    <input type="tel" id="oMobile" placeholder="10-digit mobile number">
+
+    <div class="foot">
+      <button class="btn" onclick="closeOrder()">Cancel</button>
+      <button class="btn primary" id="oSendBtn" onclick="placeOrder()">Order karo (COD)</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var me = null, products = [], currentCategory = 'all', currentProduct = null, customPhotoUrl = null;
+
+var CATEGORIES = [
+  { val: 'all',    label: 'Sab' },
+  { val: 'tshirt', label: '👕 T-Shirt' },
+  { val: 'mug',     label: '☕ Mug' },
+  { val: 'album',   label: '📸 Album' },
+  { val: 'frame',   label: '🖼️ Frame' },
+  { val: 'card',    label: '💌 Card' },
+  { val: 'gift',    label: '🎁 Gift' },
+  { val: 'other',   label: '✨ Aur' }
+];
+
+function setView(name, el) {
+  document.querySelectorAll('#viewTabs .tab').forEach(function (t) { t.classList.remove('active'); });
+  if (el) el.classList.add('active');
+  document.getElementById('productsView').style.display = name === 'products' ? '' : 'none';
+  document.getElementById('ordersView').style.display    = name === 'orders'   ? '' : 'none';
+  document.getElementById('catTabs').style.display        = name === 'products' ? 'flex' : 'none';
+  if (name === 'orders') loadOrders();
+}
+
+function renderCatTabs() {
+  document.getElementById('catTabs').innerHTML = CATEGORIES.map(function (c) {
+    return '<div class="tab' + (c.val === currentCategory ? ' active' : '') + '" onclick="setCategory(\'' + c.val + '\',this)">' + c.label + '</div>';
+  }).join('');
+}
+
+function setCategory(cat, el) {
+  currentCategory = cat;
+  document.querySelectorAll('#catTabs .tab').forEach(function (t) { t.classList.remove('active'); });
+  if (el) el.classList.add('active');
+  renderProducts();
+}
+
+function productCardHtml(p) {
+  return '<div class="card" style="margin:0">' +
+    (p.image_url ? '<div class="post-media" style="margin:-18px -18px 12px"><img src="' + LWApp.esc(p.image_url) + '" alt="" loading="lazy"></div>' : '') +
+    '<h3 style="cursor:pointer" onclick="openOrder(' + p.id + ')">' + LWApp.esc(p.name) + '</h3>' +
+    (p.description ? '<div class="muted" style="margin:6px 0;min-height:34px">' + LWApp.esc((p.description || '').slice(0, 90)) + '</div>' : '') +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px">' +
+    '<b style="font-size:1.05rem">₹' + Number(p.base_price).toFixed(0) + '</b>' +
+    '<button class="btn sm primary" onclick="openOrder(' + p.id + ')">🛒 Order karo</button>' +
+    '</div></div>';
+}
+
+function renderProducts() {
+  var list = currentCategory === 'all' ? products : products.filter(function (p) { return p.category === currentCategory; });
+  var el = document.getElementById('productGrid');
+  el.innerHTML = list.length
+    ? list.map(productCardHtml).join('')
+    : '<div class="empty" style="grid-column:1/-1"><span class="ic">🛍️</span>Is category mein abhi koi product nahi hai.</div>';
+}
+
+async function loadProducts() {
+  products = await LWApp.storeProducts();
+  renderCatTabs();
+  renderProducts();
+}
+
+function openOrder(productId) {
+  currentProduct = products.filter(function (p) { return p.id === productId; })[0];
+  if (!currentProduct) return;
+
+  document.getElementById('oProductSummary').innerHTML =
+    (currentProduct.image_url ? '<img src="' + LWApp.esc(currentProduct.image_url) + '" style="width:64px;height:64px;object-fit:cover;border-radius:12px">' : '') +
+    '<div><b>' + LWApp.esc(currentProduct.name) + '</b><br><span class="muted">₹' + Number(currentProduct.base_price).toFixed(0) + ' each</span></div>';
+
+  customPhotoUrl = null;
+  document.getElementById('oQty').value = 1;
+  document.getElementById('oNote').value = '';
+  document.getElementById('oAddress').value = '';
+  document.getElementById('oMobile').value = '';
+  document.getElementById('oPreview').src = '';
+  document.getElementById('oPreviewWrap').style.display = 'none';
+  updateTotal();
+
+  document.getElementById('omodal').classList.add('open');
+}
+function closeOrder() { document.getElementById('omodal').classList.remove('open'); }
+
+function updateTotal() {
+  if (!currentProduct) return;
+  var qty = Math.max(1, parseInt(document.getElementById('oQty').value, 10) || 1);
+  document.getElementById('oTotal').value = '₹' + (currentProduct.base_price * qty).toFixed(0);
+}
+
+async function onFilePicked(e) {
+  var file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  if (file.type.indexOf('image/') !== 0) { LWApp.toast('Sirf image chalegi', 'error'); return; }
+  if (file.size > 15 * 1024 * 1024) { LWApp.toast('Photo 15MB se badi hai', 'error'); return; }
+
+  LWApp.toast('Photo upload ho rahi hai…');
+  try {
+    customPhotoUrl = await LWApp.uploadStoreMedia(file);
+    document.getElementById('oPreview').src = customPhotoUrl;
+    document.getElementById('oPreviewWrap').style.display = '';
+    LWApp.toast('Photo ready hai');
+  } catch (er) {
+    LWApp.toast('❌ ' + LWApp.err(er), 'error');
+  }
+}
+
+async function placeOrder() {
+  var qty = Math.max(1, parseInt(document.getElementById('oQty').value, 10) || 1);
+  var address = document.getElementById('oAddress').value.trim();
+  var mobile = document.getElementById('oMobile').value.trim();
+  if (!address) { LWApp.toast('Delivery address daalo', 'error'); return; }
+  if (!mobile) { LWApp.toast('Contact mobile daalo', 'error'); return; }
+
+  var btn = document.getElementById('oSendBtn');
+  btn.disabled = true; btn.textContent = 'Order ho raha hai…';
+
+  var r = await LWApp.placeStoreOrder({
+    product_id: currentProduct.id,
+    quantity: qty,
+    customization: { note: document.getElementById('oNote').value.trim() || null, photo_url: customPhotoUrl },
+    total_price: currentProduct.base_price * qty,
+    shipping_address: address,
+    contact_mobile: mobile
+  });
+
+  btn.disabled = false; btn.textContent = 'Order karo (COD)';
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+
+  LWApp.toast('🛍️ Order ho gaya! Hum jald hi confirm karenge.');
+  closeOrder();
+}
+
+var STATUS_LABEL = { pending: '⏳ Pending', confirmed: '✅ Confirmed', shipped: '🚚 Shipped', delivered: '📦 Delivered', cancelled: '❌ Cancelled' };
+
+function orderHtml(o) {
+  var p = o.product || {};
+  return '<div class="person">' +
+    (p.image_url ? '<img src="' + LWApp.esc(p.image_url) + '" style="width:44px;height:44px;object-fit:cover;border-radius:10px;flex:none">' : '<div class="avatar sm">🛍️</div>') +
+    '<div class="who"><b>' + LWApp.esc(p.name || 'Product') + ' × ' + o.quantity + '</b>' +
+    '<small>₹' + Number(o.total_price).toFixed(0) + ' · ' + LWApp.timeAgo(o.created_at) + '</small></div>' +
+    '<div class="acts"><span class="chip">' + (STATUS_LABEL[o.status] || o.status) + '</span></div>' +
+    '</div>';
+}
+
+async function loadOrders() {
+  var el = document.getElementById('ordersList');
+  var rows = await LWApp.myStoreOrders();
+  if (!rows.length) {
+    el.innerHTML = '<div class="empty"><span class="ic">📦</span>Abhi tak koi order nahi kiya.</div>';
+    return;
+  }
+
+  var ids = rows.map(function (o) { return o.product_id; }).filter(function (v, i, a) { return a.indexOf(v) === i; });
+  var byId = {};
+  var pr = await LW.sb.from('store_products').select('id, name, image_url').in('id', ids);
+  (pr.data || []).forEach(function (p) { byId[p.id] = p; });
+  rows.forEach(function (o) { o.product = byId[o.product_id]; });
+
+  el.innerHTML = rows.map(orderHtml).join('');
+}
+
+document.addEventListener('DOMContentLoaded', async function () {
+  if (!LW.configOk) { LWApp.toast('config.js me Supabase keys daalo.', 'error'); return; }
+  me = await LW.requireAuth();
+  if (!me) return;
+  LWApp.shell('store');
+  loadProducts();
+});
+</script>
+</body>
+</html>

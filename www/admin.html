@@ -118,6 +118,7 @@
     <div class="tab active" data-section="users" onclick="switchSection('users')">👥 Users</div>
     <div class="tab" data-section="reports" onclick="switchSection('reports')">🚩 Reports</div>
     <div class="tab" data-section="analytics" onclick="switchSection('analytics')">📊 Analytics</div>
+    <div class="tab" data-section="store" onclick="switchSection('store')">🛍️ Store</div>
   </div>
 
   <div class="panel" id="usersPanel">
@@ -157,6 +158,65 @@
       <div class="stat-card rejected-card"><div class="stat-label">Open Reports</div><div class="stat-value" id="anOpenReports">—</div></div>
       <div class="stat-card total-card"><div class="stat-label">Pending Announcements</div><div class="stat-value" id="anPendingAnn">—</div></div>
       <div class="stat-card approved-card"><div class="stat-label">Banned Users</div><div class="stat-value" id="anBanned">—</div></div>
+    </div>
+  </div>
+
+  <div class="panel" id="storePanel" style="display:none">
+    <div class="toolbar">
+      <div class="toolbar-title">🛍️ Store</div>
+      <button class="btn" onclick="openProductForm(null)">+ Naya Product</button>
+    </div>
+    <div class="tabs">
+      <div class="tab active" data-stab="products" onclick="switchStoreTab('products')">Products</div>
+      <div class="tab" data-stab="orders" onclick="switchStoreTab('orders')">Orders</div>
+    </div>
+    <div id="storeProductsView">
+      <div id="storeProductsWrap"><div class="empty" data-i18n="loading"></div></div>
+    </div>
+    <div id="storeOrdersView" style="display:none">
+      <div id="storeOrdersWrap"><div class="empty" data-i18n="loading"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- product add/edit modal -->
+<div class="modal-bg" id="pmodal" onclick="if(event.target===this)closeProductForm()">
+  <div class="modal">
+    <h3 id="pModalTitle">Naya product</h3>
+    <label class="fl">Naam</label>
+    <input type="text" id="pName">
+    <label class="fl">Description</label>
+    <textarea id="pDesc" rows="2"></textarea>
+    <div class="row-2">
+      <div>
+        <label class="fl">Category</label>
+        <select id="pCategory">
+          <option value="tshirt">T-Shirt</option>
+          <option value="mug">Mug</option>
+          <option value="album">Album</option>
+          <option value="frame">Frame</option>
+          <option value="card">Card</option>
+          <option value="gift">Gift</option>
+          <option value="other" selected>Other</option>
+        </select>
+      </div>
+      <div>
+        <label class="fl">Price (₹)</label>
+        <input type="number" id="pPrice" min="0" step="1">
+      </div>
+    </div>
+    <label class="fl">Photo</label>
+    <div id="pPreviewWrap" style="display:none;margin-bottom:8px;max-width:140px">
+      <img id="pPreview" src="" alt="" style="max-width:100%;border-radius:12px;display:block">
+    </div>
+    <button type="button" class="btn" onclick="document.getElementById('pFile').click()">📷 Upload</button>
+    <input type="file" id="pFile" accept="image/*" style="display:none" onchange="onProductFilePicked(event)">
+    <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:.86rem">
+      <input type="checkbox" id="pCustomizable" checked style="width:auto"> <span>Customizable hai</span>
+    </label>
+    <div class="foot">
+      <button class="btn" onclick="closeProductForm()">Cancel</button>
+      <button class="btn primary" id="pSaveBtn" onclick="saveProduct()">Save</button>
     </div>
   </div>
 </div>
@@ -288,8 +348,10 @@ function switchSection(name) {
   document.getElementById('usersPanel').style.display     = name === 'users'     ? '' : 'none';
   document.getElementById('reportsPanel').style.display   = name === 'reports'   ? '' : 'none';
   document.getElementById('analyticsPanel').style.display = name === 'analytics' ? '' : 'none';
+  document.getElementById('storePanel').style.display     = name === 'store'     ? '' : 'none';
   if (name === 'reports' && !reportRows.length) loadReports();
   if (name === 'analytics' && !analyticsLoaded) loadAnalytics();
+  if (name === 'store' && !storeProducts.length) loadStoreProducts();
 }
 
 async function loadAnalytics() {
@@ -408,10 +470,204 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('loginGate').style.display = 'block';
     return;
   }
+  myId = p.id;
   document.getElementById('app').style.display = 'block';
   switchTab('all');
   loadUsers();
 });
+
+/* ---------- Store (product catalog + orders) — admin.html loads only
+   lw-core.js (not lw-app.js), so uploads/queries go straight through
+   LW.sb here instead of via LWApp.* wrappers. ---------- */
+let myId = null;
+let storeProducts = [];
+let storeOrders = [];
+let editingProductId = null;
+let productPhotoUrl = null;
+
+function switchStoreTab(name) {
+  document.querySelectorAll('#storePanel .tabs .tab').forEach(el => el.classList.toggle('active', el.dataset.stab === name));
+  document.getElementById('storeProductsView').style.display = name === 'products' ? '' : 'none';
+  document.getElementById('storeOrdersView').style.display   = name === 'orders'   ? '' : 'none';
+  if (name === 'orders' && !storeOrders.length) loadStoreOrders();
+}
+
+async function loadStoreProducts() {
+  document.getElementById('storeProductsWrap').innerHTML = '<div class="empty">' + t('loading') + '</div>';
+  const { data, error } = await LW.sb.from('store_products').select('*').order('created_at', { ascending: false });
+  if (error) {
+    document.getElementById('storeProductsWrap').innerHTML = '<div class="empty"><span class="empty-icon">⚠️</span>' + t('loadFail') + '</div>';
+    return;
+  }
+  storeProducts = data || [];
+  renderStoreProducts();
+}
+
+function renderStoreProducts() {
+  const wrap = document.getElementById('storeProductsWrap');
+  if (!storeProducts.length) {
+    wrap.innerHTML = '<div class="empty"><span class="empty-icon">🛍️</span>Koi product nahi hai.</div>';
+    return;
+  }
+  let html = '<div class="table-scroll"><table><thead><tr>' +
+    ['Photo', 'Name', 'Category', 'Price', 'Status', 'Action'].map(k => '<th>' + k + '</th>').join('') +
+    '</tr></thead><tbody>';
+
+  storeProducts.forEach(pr => {
+    html += '<tr>' +
+      '<td>' + (pr.image_url ? '<img src="' + escapeHtml(pr.image_url) + '" style="width:36px;height:36px;object-fit:cover;border-radius:8px">' : '—') + '</td>' +
+      '<td><span class="user-name">' + escapeHtml(pr.name) + '</span></td>' +
+      '<td class="muted">' + escapeHtml(pr.category) + '</td>' +
+      '<td>₹' + Number(pr.base_price).toFixed(0) + '</td>' +
+      '<td><span class="badge ' + (pr.is_active ? 'approved' : 'rejected') + '">' + (pr.is_active ? 'Active' : 'Hidden') + '</span></td>' +
+      '<td>' +
+        '<button class="btn-approve" onclick="openProductForm(' + pr.id + ')">Edit</button>' +
+        '<button class="btn-reject" onclick="toggleProductActive(' + pr.id + ',' + !pr.is_active + ')">' + (pr.is_active ? 'Hide' : 'Show') + '</button>' +
+      '</td>' +
+    '</tr>';
+  });
+  wrap.innerHTML = html + '</tbody></table></div>';
+}
+
+async function toggleProductActive(id, active) {
+  const { error } = await LW.sb.from('store_products').update({ is_active: active }).eq('id', id);
+  if (error) { showAlert('❌ ' + LW.errText(error), 'error'); return; }
+  const row = storeProducts.find(p => p.id === id);
+  if (row) row.is_active = active;
+  renderStoreProducts();
+}
+
+function openProductForm(id) {
+  editingProductId = id || null;
+  const p = id ? storeProducts.find(x => x.id === id) : null;
+  document.getElementById('pModalTitle').textContent = id ? 'Product edit karo' : 'Naya product';
+  document.getElementById('pName').value = p ? p.name : '';
+  document.getElementById('pDesc').value = p ? (p.description || '') : '';
+  document.getElementById('pCategory').value = p ? p.category : 'other';
+  document.getElementById('pPrice').value = p ? p.base_price : '';
+  document.getElementById('pCustomizable').checked = p ? !!p.customizable : true;
+  productPhotoUrl = p ? p.image_url : null;
+  document.getElementById('pPreview').src = productPhotoUrl || '';
+  document.getElementById('pPreviewWrap').style.display = productPhotoUrl ? '' : 'none';
+  document.getElementById('pmodal').classList.add('open');
+}
+function closeProductForm() { document.getElementById('pmodal').classList.remove('open'); }
+
+async function uploadProductPhoto(file) {
+  const safe = (file.name || 'file').replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = myId + '/' + Date.now() + '-' + safe;
+  const { error } = await LW.sb.storage.from('store').upload(path, file, { contentType: file.type || undefined });
+  if (error) throw error;
+  return LW.sb.storage.from('store').getPublicUrl(path).data.publicUrl;
+}
+
+async function onProductFilePicked(e) {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  showAlert('Photo upload ho rahi hai…', 'success');
+  try {
+    productPhotoUrl = await uploadProductPhoto(file);
+    document.getElementById('pPreview').src = productPhotoUrl;
+    document.getElementById('pPreviewWrap').style.display = '';
+  } catch (er) {
+    showAlert('❌ ' + LW.errText(er), 'error');
+  }
+}
+
+async function saveProduct() {
+  const name = document.getElementById('pName').value.trim();
+  const price = parseFloat(document.getElementById('pPrice').value);
+  if (!name) { showAlert('❌ Naam daalo', 'error'); return; }
+  if (!(price >= 0)) { showAlert('❌ Sahi price daalo', 'error'); return; }
+
+  const patch = {
+    name: name,
+    description: document.getElementById('pDesc').value.trim() || null,
+    category: document.getElementById('pCategory').value,
+    base_price: price,
+    image_url: productPhotoUrl,
+    customizable: document.getElementById('pCustomizable').checked,
+  };
+
+  const btn = document.getElementById('pSaveBtn');
+  btn.disabled = true; btn.textContent = 'Save ho raha hai…';
+
+  let error;
+  if (editingProductId) {
+    ({ error } = await LW.sb.from('store_products').update(patch).eq('id', editingProductId));
+  } else {
+    patch.created_by = myId;
+    ({ error } = await LW.sb.from('store_products').insert(patch));
+  }
+
+  btn.disabled = false; btn.textContent = 'Save';
+  if (error) { showAlert('❌ ' + LW.errText(error), 'error'); return; }
+
+  showAlert('✅ Product save ho gaya', 'success');
+  closeProductForm();
+  loadStoreProducts();
+}
+
+async function loadStoreOrders() {
+  document.getElementById('storeOrdersWrap').innerHTML = '<div class="empty">' + t('loading') + '</div>';
+  const { data, error } = await LW.sb.from('store_orders').select('*').order('created_at', { ascending: false });
+  if (error) {
+    document.getElementById('storeOrdersWrap').innerHTML = '<div class="empty"><span class="empty-icon">⚠️</span>' + t('loadFail') + '</div>';
+    return;
+  }
+  storeOrders = data || [];
+
+  const userIds = [...new Set(storeOrders.map(o => o.user_id))];
+  const prodIds = [...new Set(storeOrders.map(o => o.product_id))];
+  const [profs, prods] = await Promise.all([
+    userIds.length ? LW.sb.from('lw_public_profiles').select('id, full_name, username').in('id', userIds) : Promise.resolve({ data: [] }),
+    prodIds.length ? LW.sb.from('store_products').select('id, name').in('id', prodIds) : Promise.resolve({ data: [] }),
+  ]);
+  const byUser = {}; (profs.data || []).forEach(p => { byUser[p.id] = p; });
+  const byProd = {}; (prods.data || []).forEach(p => { byProd[p.id] = p; });
+  storeOrders.forEach(o => { o.buyer = byUser[o.user_id]; o.product = byProd[o.product_id]; });
+
+  renderStoreOrders();
+}
+
+function renderStoreOrders() {
+  const wrap = document.getElementById('storeOrdersWrap');
+  if (!storeOrders.length) {
+    wrap.innerHTML = '<div class="empty"><span class="empty-icon">📦</span>Koi order nahi hai.</div>';
+    return;
+  }
+  const statuses = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
+  let html = '<div class="table-scroll"><table><thead><tr>' +
+    ['Buyer', 'Product', 'Customization', 'Total', 'Contact / Address', 'Status', 'Date'].map(k => '<th>' + k + '</th>').join('') +
+    '</tr></thead><tbody>';
+
+  storeOrders.forEach(o => {
+    const opts = statuses.map(s => '<option value="' + s + '"' + (s === o.status ? ' selected' : '') + '>' + s + '</option>').join('');
+    const cz = o.customization || {};
+    const czHtml =
+      (cz.note ? escapeHtml(cz.note) : '<span class="muted">—</span>') +
+      (cz.photo_url ? '<br><a href="' + escapeHtml(cz.photo_url) + '" target="_blank" rel="noopener"><img src="' + escapeHtml(cz.photo_url) + '" style="width:32px;height:32px;object-fit:cover;border-radius:6px;margin-top:4px"></a>' : '');
+    html += '<tr>' +
+      '<td><span class="user-name">' + escapeHtml((o.buyer && (o.buyer.full_name || o.buyer.username)) || '—') + '</span></td>' +
+      '<td class="muted">' + escapeHtml((o.product && o.product.name) || ('#' + o.product_id)) + ' × ' + o.quantity + '</td>' +
+      '<td class="muted" style="max-width:160px">' + czHtml + '</td>' +
+      '<td>₹' + Number(o.total_price).toFixed(0) + '</td>' +
+      '<td class="muted">' + escapeHtml(o.contact_mobile) + '<br><small>' + escapeHtml((o.shipping_address || '').slice(0, 60)) + '</small></td>' +
+      '<td><select onchange="updateOrderStatus(' + o.id + ',this.value)">' + opts + '</select></td>' +
+      '<td class="muted">' + new Date(o.created_at).toLocaleDateString() + '</td>' +
+    '</tr>';
+  });
+  wrap.innerHTML = html + '</tbody></table></div>';
+}
+
+async function updateOrderStatus(id, status) {
+  const { error } = await LW.sb.from('store_orders').update({ status: status }).eq('id', id);
+  if (error) { showAlert('❌ ' + LW.errText(error), 'error'); renderStoreOrders(); return; }
+  showAlert('✅ Order updated', 'success');
+  const row = storeOrders.find(o => o.id === id);
+  if (row) row.status = status;
+}
 </script>
 </body>
 </html>

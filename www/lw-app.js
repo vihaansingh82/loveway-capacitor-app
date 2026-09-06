@@ -209,6 +209,14 @@
     return '<div class="' + c + '">' + esc(initials(p)) + '</div>';
   }
 
+  // Verified account ka tick. Flag admin hi laga sakta hai (DB par
+  // lw_protect_profile ise admin-only rakhta hai), isliye ise jahan bhi
+  // naam dikhta hai wahan bina soche laga sakte hain.
+  function verifiedTick(p) {
+    if (!p || !p.is_verified) return '';
+    return '<span class="verified-tick" title="Verified account">✔️</span>';
+  }
+
   // "2 ghante pehle" type
   function timeAgo(ts) {
     if (!ts) return '';
@@ -868,7 +876,7 @@
     var me      = window.LW.profile.id;
 
     return Promise.all([
-      sb().from('lw_public_profiles').select('id, full_name, username, avatar_url').in('id', authors),
+      sb().from('lw_public_profiles').select('id, full_name, username, avatar_url, is_verified').in('id', authors),
       sb().from('post_reactions').select('post_id, user_id').in('post_id', ids),
       sb().from('post_comments').select('id, post_id').in('post_id', ids)
     ]).then(function (res) {
@@ -2326,7 +2334,7 @@
 
   /* ---------- export ---------- */
   window.LWApp = {
-    esc: esc, initials: initials, avatarHtml: avatarHtml, timeAgo: timeAgo, icon: icon,
+    esc: esc, initials: initials, avatarHtml: avatarHtml, verifiedTick: verifiedTick, timeAgo: timeAgo, icon: icon,
     toast: toast, err: err, setTheme: setTheme, restoreTheme: restoreTheme, setCustomColor: setCustomColor,
     restoreBgPhoto: restoreBgPhoto,
     shell: shell, refreshNotifCount: refreshNotifCount, customSelect: customSelect, toggleSidebar: toggleSidebar, toggleRail: toggleRail,

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Loveway — Admin</title>
-<link rel="stylesheet" href="lw-styles.css?v=4">
+<link rel="stylesheet" href="lw-styles.css?v=5">
 <style>
 /* Page-local, loaded after lw-styles.css so it wins cascade on this page —
    admin.html has its own bespoke panel/table design (renamed .btn/.tab/
@@ -348,7 +348,7 @@ function renderTable(rows) {
   }
   let html = '<div class="table-scroll"><table><thead><tr>' +
     ['name', 'usernameCol', 'email', 'mobileCol', 'genderCol', 'dobCol', 'status'].map(k => '<th>' + t(k) + '</th>').join('') +
-    '<th>Role</th>' +
+    '<th>Role</th><th>Verified</th>' +
     ['joined', 'action'].map(k => '<th>' + t(k) + '</th>').join('') +
     '</tr></thead><tbody>';
 
@@ -367,6 +367,7 @@ function renderTable(rows) {
         (u.status === 'rejected' && u.rejection_reason ? ' title="' + escapeHtml(u.rejection_reason) + '"' : '') +
         '>' + t(u.status) + '</span></td>' +
       '<td>' + (u.is_admin ? '<span class="badge approved">🛡️ Admin</span>' : '<span class="muted">User</span>') + '</td>' +
+      '<td>' + (u.is_verified ? '<span class="badge approved">✔️ Verified</span>' : '<span class="muted">—</span>') + '</td>' +
       '<td class="muted">' + new Date(u.created_at).toLocaleDateString(loc) + '</td>' +
       '<td>' +
         (u.status !== 'approved' ? '<button class="btn-approve" onclick="act(\'' + u.id + '\',\'approved\')">' + t('approve') + '</button>' : '') +
@@ -374,6 +375,9 @@ function renderTable(rows) {
         // Apne aap ko demote karne ka button jaan-boojh kar nahi hai —
         // aakhri admin nikal jaaye to Control Center hamesha ke liye band.
         // (DB par bhi lw_guard_last_admin_trg wahi rokta hai.)
+        (u.is_verified
+          ? '<button class="btn-reject" onclick="setVerified(\'' + u.id + '\',false)">Tick hatao</button>'
+          : '<button class="btn-approve" onclick="setVerified(\'' + u.id + '\',true)">✔️ Verify karo</button>') +
         (isMe ? '<span class="muted" style="font-size:.78rem">tum</span>'
               : (u.is_admin
                   ? '<button class="btn-reject" onclick="setAdmin(\'' + u.id + '\',false)">Admin hatao</button>'
@@ -399,6 +403,24 @@ async function setAdmin(userId, makeAdmin) {
   showAlert(makeAdmin ? '✅ Admin bana diya' : '✅ Admin rights hata diye', 'success');
   const row = allRows.find(x => x.id === userId);
   if (row) row.is_admin = makeAdmin;
+  renderTable(visibleRows());
+}
+
+/* Blue-tick de do / hata do. DB par is_verified admin-only hai
+   (lw_protect_profile) — user khud apne aap ko verified nahi kar sakta,
+   chahe seedha API hi kyun na maare. */
+async function setVerified(userId, makeVerified) {
+  const u = allRows.find(x => x.id === userId) || {};
+  const who = u.full_name || (u.username ? '@' + u.username : 'is user');
+  if (!confirm(makeVerified
+      ? `${who} ka account verified mark karein? Unke naam ke aage ✔️ dikhega.`
+      : `${who} se verified tick hata dein?`)) return;
+
+  const { error } = await LW.sb.from('profiles').update({ is_verified: makeVerified }).eq('id', userId);
+  if (error) { showAlert('❌ ' + LW.errText(error), 'error'); return; }
+  showAlert(makeVerified ? '✅ Verified mark kar diya' : '✅ Tick hata diya', 'success');
+  const row = allRows.find(x => x.id === userId);
+  if (row) row.is_verified = makeVerified;
   renderTable(visibleRows());
 }
 
@@ -430,7 +452,7 @@ async function loadUsers() {
   document.getElementById('tableWrap').innerHTML = '<div class="empty">' + t('loading') + '</div>';
   const { data, error } = await LW.sb
     .from('profiles')
-    .select('id, full_name, username, email, mobile, gender, dob, status, is_admin, created_at, rejection_reason')
+    .select('id, full_name, username, email, mobile, gender, dob, status, is_admin, is_verified, created_at, rejection_reason')
     .order('created_at', { ascending: false });
 
   if (error) {

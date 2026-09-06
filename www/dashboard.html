@@ -5,13 +5,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Loveway 💕</title>
-<link rel="stylesheet" href="lw-styles.css?v=4">
+<link rel="stylesheet" href="lw-styles.css?v=5">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="config.js?v=2"></script>
 <script src="lw-core.js?v=7"></script>
 <script src="lw-festivals.js?v=2"></script>
 <script src="lw-spotify.js?v=6"></script>
-<script src="lw-app.js?v=16"></script>
+<script src="lw-app.js?v=17"></script>
 <script src="lw-rails.js?v=7"></script>
 <script src="lw-camera.js?v=1"></script>
 <link rel="stylesheet" href="lw-camera.css?v=1">
@@ -366,7 +366,8 @@ function visLabel(v) {
 function postHtml(p) {
   var t = '<div class="post" id="post-' + p.id + '">';
   t += '<div class="post-head">' + LWApp.avatarHtml(p.author, 'sm');
-  t += '<div style="flex:1"><b>' + LWApp.esc(p.author.full_name || p.author.username || '—') + '</b>';
+  t += '<div style="flex:1"><b>' + LWApp.esc(p.author.full_name || p.author.username || '—') +
+    LWApp.verifiedTick(p.author) + '</b>';
   t += '<small>' + LWApp.timeAgo(p.created_at) +
        '<span class="vis-tag">' + visLabel(p.visibility) + '</span></small></div>';
   if (p.author_id === me.id) {

@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Profile — Loveway</title>
-<link rel="stylesheet" href="lw-styles.css?v=4">
+<link rel="stylesheet" href="lw-styles.css?v=5">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="config.js?v=2"></script>
 <script src="lw-core.js?v=7"></script>
 <script src="lw-festivals.js?v=2"></script>
 <script src="lw-spotify.js?v=6"></script>
-<script src="lw-app.js?v=16"></script>
+<script src="lw-app.js?v=17"></script>
 <link rel="stylesheet" href="lw-responsive.css?v=5">
 <link rel="stylesheet" href="lw-clay.css?v=2">
 <script src="lw-responsive.js?v=2" defer></script>
@@ -216,7 +216,8 @@ var DATE_LOCALE = { en: 'en-IN', hi: 'hi-IN', braj: 'hi-IN', raj: 'hi-IN', bho: 
 function paint(p) {
   var locale = DATE_LOCALE[window.LW_CURRENT] || 'en-IN';
   document.getElementById('bigAv').innerHTML = LWApp.avatarHtml(p, 'lg');
-  document.getElementById('pName').textContent = p.full_name || p.username || '—';
+  document.getElementById('pName').innerHTML =
+    LWApp.esc(p.full_name || p.username || '—') + LWApp.verifiedTick(p);
   document.getElementById('pMeta').textContent =
     '@' + (p.username || '—') + (p.city ? ' · 📍 ' + p.city : '') +
     (p.profession ? ' · 💼 ' + p.profession : '');

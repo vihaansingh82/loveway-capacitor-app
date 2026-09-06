@@ -5940,3 +5940,12 @@ body.sidebar-collapsed {
   inherits: false;
   initial-value: 0;
 }
+
+/* Verified account tick — naam ke theek baad, thoda chhota aur
+   baseline se halka upar taaki naam ke saath sata hua lage */
+.verified-tick {
+  font-size: 0.78em;
+  margin-left: 4px;
+  vertical-align: 1px;
+  display: inline-block;
+}

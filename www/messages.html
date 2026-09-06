@@ -12,6 +12,8 @@
 <script src="lw-spotify.js?v=6"></script>
 <script src="lw-app.js?v=16"></script>
 <script src="lw-rails.js?v=7"></script>
+<script src="lw-camera.js?v=1"></script>
+<link rel="stylesheet" href="lw-camera.css?v=1">
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 <link rel="stylesheet" href="lw-responsive.css?v=5">
 <link rel="stylesheet" href="lw-clay.css?v=2">
@@ -103,6 +105,7 @@
         <input type="file" id="audioInput" accept="audio/*" style="display:none" onchange="onAudioPicked(event)">
 
         <div class="picker-pop" id="attachMenu">
+          <div class="picker-item" onclick="openChatCamera();closeAllPickers()">📷 Camera</div>
           <div class="picker-item" onclick="document.getElementById('mediaInput').click();closeAllPickers()" data-i18n="attachPhotoVideoItem">🖼️🎬 Photo / Video</div>
           <div class="picker-item" onclick="document.getElementById('audioInput').click();closeAllPickers()" data-i18n="attachMusicItem">🎼 Music / Audio</div>
         </div>
@@ -625,9 +628,9 @@ async function sendSticker(emoji) {
 
 var MAX_MEDIA_MB = 25;
 
-async function onMediaPicked(e) {
-  var file = e.target.files && e.target.files[0];
-  e.target.value = '';
+// File-input se aayi ho ya camera se khinchi ho, chat mein bhejne ka
+// raasta ek hi hai — dono yahin milte hain.
+async function sendMediaFile(file) {
   if (!file || !active) return;
   if (file.size > MAX_MEDIA_MB * 1024 * 1024) { LWApp.toast('❌ ' + LWApp.esc(window.t('fileSizeErr')), 'error'); return; }
   var kind = file.type.indexOf('video/') === 0 ? 'video' : 'image';
@@ -645,6 +648,25 @@ async function onMediaPicked(e) {
   } catch (er) {
     LWApp.toast('❌ ' + LWApp.err(er), 'error');
   }
+}
+
+async function onMediaPicked(e) {
+  var file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  await sendMediaFile(file);
+}
+
+function openChatCamera() {
+  if (!active) { LWApp.toast('❌ Pehle koi chat chuno', 'error'); return; }
+  LWCamera.open({
+    mode: 'chat',
+    onCapture: function (blob) {
+      var file;
+      try { file = new File([blob], 'photo.jpg', { type: 'image/jpeg' }); }
+      catch (e) { file = blob; file.name = 'photo.jpg'; }
+      sendMediaFile(file);
+    }
+  });
 }
 
 async function onAudioPicked(e) {

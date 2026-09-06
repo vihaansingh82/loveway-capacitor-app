@@ -13,6 +13,8 @@
 <script src="lw-spotify.js?v=6"></script>
 <script src="lw-app.js?v=16"></script>
 <script src="lw-rails.js?v=7"></script>
+<script src="lw-camera.js?v=1"></script>
+<link rel="stylesheet" href="lw-camera.css?v=1">
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 <style>
 .header-ticker{flex:1;min-width:0;overflow:hidden;display:flex;align-items:center;padding:0 14px}
@@ -229,6 +231,15 @@
         <button class="btn primary" id="storyPostBtn" onclick="publishStory()" data-i18n="postSubmit">Post karo</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- story: camera vs gallery chooser -->
+<div class="modal-bg cam-source-modal" id="storySourceModal" onclick="if(event.target===this)closeStorySourceChooser()">
+  <div class="modal">
+    <h3>⚡ Story banao</h3>
+    <button type="button" class="btn primary cam-source-btn" onclick="closeStorySourceChooser();openStoryCamera()">📷 Camera</button>
+    <button type="button" class="btn cam-source-btn" onclick="closeStorySourceChooser();document.getElementById('storyFile').click()">🖼️ Gallery se chuno</button>
   </div>
 </div>
 
@@ -575,7 +586,7 @@ async function loadStories() {
   var others = Object.keys(storiesByAuthor).filter(function (id) { return id !== me.id; });
 
   var html = '<div class="story-item" onclick="' +
-    (mine.length ? 'openStoryViewer(\'' + me.id + '\')' : 'document.getElementById(\'storyFile\').click()') + '">' +
+    (mine.length ? 'openStoryViewer(\'' + me.id + '\')' : 'openStorySourceChooser()') + '">' +
     '<div class="story-ring' + (mine.length && mine.every(function (p) { return seen.indexOf(p.id) !== -1; }) ? ' seen' : '') + '">' +
     LWApp.avatarHtml(me, 'md') +
     (mine.length ? '' : '<span class="story-plus">+</span>') + '</div>' +
@@ -596,16 +607,10 @@ async function loadStories() {
 /* Snapchat/Instagram jaise filters. Ye CSS filter strings hain, jo canvas ke
    ctx.filter par bhi bilkul waise hi chalte hain — isliye chip ka preview aur
    asli upload dono ek hi definition se bante hain, do jagah tweak nahi karna
-   padta. Face-tracking wale AR lens nahi hain; ye photo filters hain. */
-var STORY_FILTERS = [
-  { key: 'none',    label: 'Original', css: 'none' },
-  { key: 'warm',    label: 'Warm',     css: 'sepia(0.35) saturate(1.35) contrast(1.05)' },
-  { key: 'cool',    label: 'Cool',     css: 'hue-rotate(-15deg) saturate(1.25) brightness(1.05)' },
-  { key: 'bw',      label: 'B&W',      css: 'grayscale(1) contrast(1.15)' },
-  { key: 'vintage', label: 'Vintage',  css: 'sepia(0.55) saturate(0.85) contrast(0.95) brightness(1.05)' },
-  { key: 'vivid',   label: 'Vivid',    css: 'saturate(1.7) contrast(1.15)' },
-  { key: 'soft',    label: 'Soft',     css: 'brightness(1.08) saturate(0.95) contrast(0.92)' }
-];
+   padta. Face-tracking wale AR lens nahi hain; ye photo filters hain. Definition
+   ab lw-camera.js mein hai (live camera bhi yehi list use karta hai), taaki do
+   jagah maintain na karni pade. */
+var STORY_FILTERS = window.LWCamera.FILTERS;
 
 var storyDraftFile = null, storyDraftPreviewUrl = null, storyDraftMusic = null;
 var storyFilter = 'none', storyRotation = 0;
@@ -617,16 +622,11 @@ function storyFilterCss() {
   return 'none';
 }
 
-async function onStoryFilePicked(e) {
-  var file = e.target.files && e.target.files[0];
-  e.target.value = '';
-  if (!file) return;
-  if (file.type.indexOf('image/') !== 0) { LWApp.toast(window.t('onlyImageErr'), 'error'); return; }
-  if (file.size > 15 * 1024 * 1024) { LWApp.toast(window.t('photoSizeErr'), 'error'); return; }
-
-  // Upload ab publish ke waqt hota hai, yahan nahi. Do fayde: filter aur
-  // rotation asli file me bake ho jaate hain (viewer ko kuch samajhna nahi
-  // padta), aur cancel karne par bekaar photo storage me nahi padi rehti.
+// Upload ab publish ke waqt hota hai, yahan nahi. Do fayde: filter aur
+// rotation asli file me bake ho jaate hain (viewer ko kuch samajhna nahi
+// padta), aur cancel karne par bekaar photo storage me nahi padi rehti.
+// Gallery se chuni photo aur camera se khinchi photo dono yahin milti hain.
+function openStoryComposerWithFile(file) {
   if (storyDraftPreviewUrl) URL.revokeObjectURL(storyDraftPreviewUrl);
   storyDraftFile = file;
   storyDraftPreviewUrl = URL.createObjectURL(file);
@@ -639,6 +639,35 @@ async function onStoryFilePicked(e) {
   renderStoryFilters();
   applyStoryPreview();
   document.getElementById('storyComposeModal').classList.add('open');
+}
+
+async function onStoryFilePicked(e) {
+  var file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  if (file.type.indexOf('image/') !== 0) { LWApp.toast(window.t('onlyImageErr'), 'error'); return; }
+  if (file.size > 15 * 1024 * 1024) { LWApp.toast(window.t('photoSizeErr'), 'error'); return; }
+  openStoryComposerWithFile(file);
+}
+
+function openStorySourceChooser() {
+  document.getElementById('storySourceModal').classList.add('open');
+}
+
+function closeStorySourceChooser() {
+  document.getElementById('storySourceModal').classList.remove('open');
+}
+
+function openStoryCamera() {
+  LWCamera.open({
+    mode: 'story',
+    onCapture: function (blob) {
+      var file;
+      try { file = new File([blob], 'story.jpg', { type: 'image/jpeg' }); }
+      catch (e) { file = blob; file.name = 'story.jpg'; }
+      openStoryComposerWithFile(file);
+    }
+  });
 }
 
 function renderStoryFilters() {

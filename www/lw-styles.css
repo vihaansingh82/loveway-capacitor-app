@@ -645,13 +645,13 @@
     background: #f4511e;
   }
   body.bg-photo {
-    background-image: linear-gradient(#ffffffd1, #ffffffd1), url(/auth-bg.jpg);
+    background-image: linear-gradient(#ffffffd1, #ffffffd1), url(/auth-bg.jpg?v=2);
     background-position: 50%;
     background-size: cover;
     background-attachment: fixed;
   }
   body.bg-photo[data-theme="dark"] {
-    background-image: linear-gradient(#12121adb, #12121adb), url(/auth-bg.jpg);
+    background-image: linear-gradient(#12121adb, #12121adb), url(/auth-bg.jpg?v=2);
   }
   .theme-dot.bg-photo-toggle {
     background: var(--card);
@@ -2796,6 +2796,11 @@
       display: none;
     }
   }
+  @media (min-width: 1681px) {
+    .motd-card-mobile {
+      display: none;
+    }
+  }
   .side-rail .card {
     background: var(--card);
     border: 1px solid var(--border);
@@ -3759,7 +3764,7 @@
     }
   }
   .auth-bg {
-    background-image: url(/auth-bg.jpg);
+    background-image: url(/auth-bg.jpg?v=2);
     background-position: 50%;
     background-size: cover;
     position: fixed;

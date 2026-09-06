@@ -5,18 +5,33 @@
 <title>Get the App — Loveway</title>
 <meta name="description" content="Download the Loveway Android app — chat, dedicate songs, and stay close to your people, right from your home screen.">
 <!--
-  loveway.apk is hosted directly at https://loveway.in/loveway.apk (uploaded
-  alongside this site). The download="" attribute below hints the browser to
-  save the file instead of navigating to it — but some free hosts (like
-  InfinityFree) can still serve .apk without the right content-type and open
-  it in-browser instead of downloading. If that happens, move the file to
-  GitHub Releases and swap the URL below (button href + QR code data=).
+  APK ab GitHub Actions banati hai (.github/workflows/android.yml) aur wo
+  GitHub Release me chadh jaati hai. Neeche ke do link — button ka href aur
+  QR ka data= — usi Release ke "latest" par jaate hain, isliye har naye
+  release ke baad ye page badalna nahi padta.
+
+  Abhi button site ke apne loveway.apk par jaata hai — wo hosting par
+  upload kar rahe hain, isliye turant kaam karta hai.
+
+  GitHub Release se serve karna ho (kai free hosts .apk ko sahi
+  content-type ke bina serve karte hain aur browser use download karne
+  ke bajaye khol deta hai), to in dono ko badal dein:
+      button ka href  ->  https://github.com/<OWNER>/<REPO>/releases/latest/download/loveway.apk
+      QR ka data=     ->  wahi URL, encoded
+
+  Purana tarika (loveway.apk seedha site ke saath upload karna) isliye
+  chhoda: kai free hosts (InfinityFree jaise) .apk ko sahi content-type
+  ke bina serve karte hain aur browser use download karne ke bajaye khol
+  deta hai. GitHub Releases ye theek se karta hai.
 -->
-<link rel="stylesheet" href="lw-styles.css?v=2">
+<link rel="stylesheet" href="lw-styles.css?v=4">
 <style>
   .hero-glow{background:radial-gradient(circle at 50% 20%,rgba(255,79,123,.22),transparent 55%),
              radial-gradient(circle at 80% 80%,rgba(255,179,71,.12),transparent 50%)}
 </style>
+<link rel="stylesheet" href="lw-responsive.css?v=5">
+<link rel="stylesheet" href="lw-clay.css?v=1">
+<script src="lw-responsive.js?v=2" defer></script>
 </head>
 <body class="font-sans bg-bg text-text leading-relaxed overflow-x-hidden">
 
@@ -27,7 +42,7 @@
   <h1 class="relative font-display text-[clamp(2.2rem,5.6vw,3.6rem)] leading-[1.15] mb-4 max-w-[720px]">Loveway, <em class="not-italic text-pink-light" style="font-family:'Dancing Script',cursive;font-size:1.1em">ab apni jeb mein</em></h1>
   <p class="relative text-text-soft max-w-[520px] text-[1.02rem] mb-9">Chat karo, gaane dedicate karo, aur apne logon ke kareeb raho — seedha apni home screen se. Ek baar install karo, phir har baar browser kholne ki zaroorat nahi.</p>
 
-  <a href="loveway.apk" download="loveway.apk" class="relative inline-flex items-center gap-3 px-9 py-[18px] rounded-full bg-primary text-white no-underline font-semibold text-[1.08rem] shadow-[0_14px_40px_rgba(255,79,123,.4)] transition-[.28s] border-0 cursor-pointer hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(255,79,123,.5)] hover:bg-[#e03565] max-[640px]:px-7 max-[640px]:py-4 max-[640px]:text-[.98rem]">
+  <a href="loveway.apk?v=2" download="loveway.apk" class="relative inline-flex items-center gap-3 px-9 py-[18px] rounded-full bg-primary text-white no-underline font-semibold text-[1.08rem] shadow-[0_14px_40px_rgba(255,79,123,.4)] transition-[.28s] border-0 cursor-pointer hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(255,79,123,.5)] hover:bg-[#e03565] max-[640px]:px-7 max-[640px]:py-4 max-[640px]:text-[.98rem]">
     <span class="text-[1.3rem]">⬇</span>
     <span class="flex flex-col items-start leading-[1.25]">Download APK<small class="font-normal opacity-85 text-[.72rem] tracking-[.02em]">Android 6.0+ · Free</small></span>
   </a>

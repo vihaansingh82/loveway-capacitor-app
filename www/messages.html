@@ -1,16 +1,21 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chat — Loveway</title>
-<link rel="stylesheet" href="lw-styles.css?v=2">
+<link rel="stylesheet" href="lw-styles.css?v=4">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="config.js"></script>
-<script src="lw-core.js?v=3"></script>
-<script src="lw-app.js?v=9"></script>
-<script src="lw-rails.js?v=2"></script>
+<script src="config.js?v=2"></script>
+<script src="lw-core.js?v=7"></script>
+<script src="lw-festivals.js?v=2"></script>
+<script src="lw-spotify.js?v=6"></script>
+<script src="lw-app.js?v=15"></script>
+<script src="lw-rails.js?v=7"></script>
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
+<link rel="stylesheet" href="lw-responsive.css?v=5">
+<link rel="stylesheet" href="lw-clay.css?v=1">
+<script src="lw-responsive.js?v=2" defer></script>
 </head>
 <body data-theme="ocean">
 
@@ -45,6 +50,7 @@
 
 <aside class="side-rail side-rail-right" id="railRight">
   <button type="button" class="side-rail-toggle" data-icon="chevron" onclick="LWApp.toggleRail('right')" title="Show/hide"></button>
+  <div class="card motd-card"></div>
   <div class="card music-rail-card"></div>
   <div class="card">
     <h3>🎉 Aane wale festival aur birthdays</h3>
@@ -678,7 +684,7 @@ async function openDedication() {
         ? LWApp.esc(window.t('noTokenMsg'))
         : LWApp.esc(window.t('tokenExpiredMsg'))) +
       '<br><small class="muted">' + LWApp.esc(window.t('devModeHint')) + '</small>' +
-      '<br><br><button class="btn primary" onclick="LW.spotify()">🎵 ' + LWApp.esc(window.t('connectSpotifyBtn')) + '</button> ' +
+      '<br><br><button class="btn primary" onclick="LW.spotifyConnect()">🎵 ' + LWApp.esc(window.t('connectSpotifyBtn')) + '</button> ' +
       '<button class="btn" onclick="closeDedication();openSongForm()">🎵 ' + LWApp.esc(window.t('shareSongInsteadBtn')) + '</button></div>';
     return;
   }
@@ -704,10 +710,14 @@ function renderPlaylists(items) {
 async function openPlaylistTracks(playlistId, name) {
   var box = document.getElementById('dedBody');
   box.innerHTML = '<div class="spinner">"' + LWApp.esc(name) + '" ' + LWApp.esc(window.t('loading')) + '</div>';
-  var r = await LW.spotifyApi('/playlists/' + encodeURIComponent(playlistId) + '/tracks?limit=50');
+  // /tracks deprecated hai, /items uska replacement hai (Spotify OpenAPI spec)
+  var r = await LW.spotifyApi('/playlists/' + encodeURIComponent(playlistId) + '/items?limit=50');
   if (r.error) { box.innerHTML = '<div class="empty"><span class="ic">🎧</span>' + LWApp.esc(window.t('loadFailedMsg')) + '</div>'; return; }
 
-  var tracks = ((r.data && r.data.items) || []).map(function (it) { return it.track; }).filter(Boolean);
+  // local file aur podcast episode chhod do — unke paas track id nahi hoti, to
+  // dedication ka embed ban hi nahi sakta
+  var tracks = ((r.data && r.data.items) || []).map(function (it) { return it.track; })
+    .filter(function (t) { return t && t.id && t.type !== 'episode'; });
   if (!tracks.length) {
     box.innerHTML = '<div class="empty"><span class="ic">🎧</span>' + LWApp.esc(window.t('noTracksInPlaylist')) + '</div>' +
       '<div class="foot" style="justify-content:flex-start"><button class="btn" onclick="openDedication()">' + LWApp.esc(window.t('backToPlaylists')) + '</button></div>';

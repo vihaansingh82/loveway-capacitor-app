@@ -1,14 +1,19 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Profile — Loveway</title>
-<link rel="stylesheet" href="lw-styles.css?v=2">
+<link rel="stylesheet" href="lw-styles.css?v=4">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="config.js"></script>
-<script src="lw-core.js?v=3"></script>
-<script src="lw-app.js?v=9"></script>
+<script src="config.js?v=2"></script>
+<script src="lw-core.js?v=7"></script>
+<script src="lw-festivals.js?v=2"></script>
+<script src="lw-spotify.js?v=6"></script>
+<script src="lw-app.js?v=15"></script>
+<link rel="stylesheet" href="lw-responsive.css?v=5">
+<link rel="stylesheet" href="lw-clay.css?v=1">
+<script src="lw-responsive.js?v=2" defer></script>
 </head>
 <body data-theme="ocean">
 
@@ -110,6 +115,12 @@
   <div id="tab-edit" style="display:none">
     <div class="card">
       <h3 data-i18n="editProfileHeading">✏️ Profile edit karo</h3>
+      <!-- Wahi fields Settings mein bhi hain — dono ek doosre se linked
+           rahein taaki user ko dhoondhna na pade -->
+      <p class="muted" style="margin:-6px 0 14px;font-size:.85rem">
+        Naam/username, privacy, theme, Spotify aur dashboard widgets
+        <a href="settings.html#profile">⚙️ Settings</a> se badalte hain.
+      </p>
 
       <div class="row-2">
         <div><label class="fl" data-i18n="fullNameFieldLabel">Poora naam</label><input type="text" id="fName"></div>
@@ -366,6 +377,8 @@ function renderPinnedSongEditRow(p) {
 }
 
 async function pickProfilePinnedSong() {
+  // picker ab search-first khulta hai (pehle seedha playlists load karta tha
+  // aur Spotify juda na ho to search kabhi kaam hi nahi karti thi)
   LWApp.openSpotifyPicker(async function (track) {
     try {
       await LWApp.updateProfilePinnedSong(track);
@@ -380,7 +393,7 @@ async function pickProfilePinnedSong() {
     } catch (e) {
       LWApp.toast('❌ ' + LWApp.err(e), 'error');
     }
-  });
+  }, { title: '🎵 Profile par pin karne ke liye gaana chuno' });
 }
 
 async function removeProfilePinnedSong() {
@@ -520,6 +533,18 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   await hydratePartner(viewing);
   paint(viewing);
+
+  // Profile khulte hi pinned song apne aap baj jaaye (Instagram/Snapchat
+  // profile-music jaisa). Sirf tabhi jab asli Spotify track id ho — plain
+  // URL wale case mein playPinnedSong() window.open() karta hai, aur wo
+  // yahan har profile visit par khud-ba-khud popup khol deta, isliye us
+  // wale case ko yahan jaan-boojh kar skip kiya hai. Browser ki apni
+  // autoplay policy phir bhi lag sakti hai — page par pehla click/tap
+  // hone tak kabhi kabhi audio start nahi hota, ye Loveway control nahi
+  // kar sakta, sirf Chrome/Android ka apna niyam hai.
+  if (viewing.pinned_song_title && viewing.pinned_spotify_track_id) {
+    playPinnedSong();
+  }
 
   if (isOwner) {
     document.getElementById('editTab').style.display = '';

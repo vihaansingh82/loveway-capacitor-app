@@ -1,21 +1,38 @@
-﻿<!DOCTYPE html>
+
+<!DOCTYPE html>
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Loveway 💕</title>
-<link rel="stylesheet" href="lw-styles.css?v=2">
+<link rel="stylesheet" href="lw-styles.css?v=4">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="config.js"></script>
-<script src="lw-core.js?v=3"></script>
-<script src="lw-app.js?v=9"></script>
-<script src="lw-rails.js?v=2"></script>
+<script src="config.js?v=2"></script>
+<script src="lw-core.js?v=7"></script>
+<script src="lw-festivals.js?v=2"></script>
+<script src="lw-spotify.js?v=6"></script>
+<script src="lw-app.js?v=15"></script>
+<script src="lw-rails.js?v=7"></script>
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 <style>
 .header-ticker{flex:1;min-width:0;overflow:hidden;display:flex;align-items:center;padding:0 14px}
 .header-ticker .tick-item{font-size:.85rem;font-weight:600;color:var(--primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;animation:lwTickFlash .5s ease}
 @keyframes lwTickFlash{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* story composer ke filter thumbnails — yahin rakhe hain kyunki lw-styles.css
+   ek compiled artifact hai aur rebuild par uske changes ud jaate hain */
+.sfilters{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}
+.sfilters::-webkit-scrollbar{display:none}
+.sfilter{flex:0 0 auto;width:62px;padding:0;border:0;background:none;cursor:pointer;text-align:center}
+.sfilter img{width:56px;height:56px;object-fit:cover;border-radius:10px;display:block;
+  border:2px solid transparent;transition:border-color .15s}
+.sfilter small{display:block;font-size:.68rem;color:var(--text-soft);margin-top:3px}
+.sfilter.on img{border-color:var(--primary)}
+.sfilter.on small{color:var(--primary);font-weight:600}
 </style>
+<link rel="stylesheet" href="lw-responsive.css?v=5">
+<link rel="stylesheet" href="lw-clay.css?v=1">
+<script src="lw-responsive.js?v=2" defer></script>
 </head>
 <body data-theme="ocean">
 
@@ -48,6 +65,7 @@
 
 <aside class="side-rail side-rail-right" id="railRight">
   <button type="button" class="side-rail-toggle" data-icon="chevron" onclick="LWApp.toggleRail('right')" title="Show/hide"></button>
+  <div class="card motd-card"></div>
   <div class="card music-rail-card"></div>
   <div class="card">
     <h3>🎉 Aane wale festival aur birthdays</h3>
@@ -60,6 +78,7 @@
 
   <div class="stories-bar" id="storiesBar"><div class="spinner">Load ho raha hai…</div></div>
   <input type="file" id="storyFile" accept="image/*" style="display:none" onchange="onStoryFilePicked(event)">
+  <div class="card motd-card motd-card-mobile"></div>
 
   <div class="grid-2">
     <!-- ===== LEFT: composer + feed ===== -->
@@ -191,7 +210,17 @@
 <div class="modal-bg" id="storyComposeModal" onclick="if(event.target===this)closeStoryCompose()">
   <div class="modal" style="max-width:400px">
     <h3 data-i18n="storyModalTitle">⚡ Story banao</h3>
-    <img id="storyComposePreview" src="" alt="" style="width:100%;border-radius:14px;margin:12px 0;max-height:340px;object-fit:cover">
+    <img id="storyComposePreview" src="" alt="" style="width:100%;border-radius:14px;margin:12px 0;max-height:340px;object-fit:contain;background:var(--bg2)">
+
+    <!-- filter thumbnails — har chip par wahi photo, us filter ke saath -->
+    <div class="sfilters" id="storyFilterRow"></div>
+
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <input type="text" id="storyCaptionInput" maxlength="200" style="flex:1"
+             placeholder="Kuch likho… (optional)" data-i18n-placeholder="storyCaptionPh">
+      <button class="btn" onclick="rotateStory()" title="Ghumao" aria-label="Rotate">↻</button>
+    </div>
+
     <div class="msg-song" id="storyMusicPreview" style="display:none;background:var(--bg2);border-radius:12px;padding:10px 12px;margin-bottom:10px"></div>
     <div class="foot" style="justify-content:space-between">
       <button class="btn" onclick="pickStoryMusic()" data-i18n="addMusicBtn">🎵 Add Music</button>
@@ -449,14 +478,27 @@ async function loadFeed() {
   }
 }
 
-/* ---------- Header: announcements ticker ---------- */
+/* ---------- Header: announcements ticker ----------
+   Ab har announcement ke saath uska @user-id dikhta hai (naam badal
+   sakta hai, user-id nahi — isliye pehchan usi se hoti hai), aur agar
+   text patti se lamba ho to wo apne aap marquee ban kar chalta hai.
+   Mobile par ticker ab chhupta nahi — header ke neeche apni patti
+   mein aata hai (lw-responsive.css section 10). */
 var tickerItems = [], tickerIdx = 0, tickerTimer = null;
 function renderAnnouncementTicker() {
   var box = document.getElementById('announceTicker');
   if (!box) return;
+  // Settings > Dashboard se band kiya ja sakta hai
+  if (!LWApp.pref('prefDashTicker', true)) { box.innerHTML = ''; clearInterval(tickerTimer); return; }
   tickerItems = posts.filter(function (p) { return p.kind === 'announcement' && p.content; })
     .slice(0, 8)
-    .map(function (p) { return '📢 ' + (p.author.full_name || p.author.username || '') + ': ' + p.content; });
+    .map(function (p) {
+      var a = p.author || {};
+      // user-id pehli pasand; jinka username abhi set nahi hai unke liye
+      // naam, aur wo bhi na ho to 'someone'
+      var uid = a.username ? '@' + a.username : (a.full_name || 'someone');
+      return { uid: uid, text: p.content };
+    });
   clearInterval(tickerTimer);
   if (!tickerItems.length) { box.innerHTML = ''; return; }
   tickerIdx = 0;
@@ -465,13 +507,48 @@ function renderAnnouncementTicker() {
     tickerTimer = setInterval(function () {
       tickerIdx = (tickerIdx + 1) % tickerItems.length;
       showTick();
-    }, 4500);
+    }, 6500);
   }
 }
 function showTick() {
   var box = document.getElementById('announceTicker');
   if (!box || !tickerItems.length) return;
-  box.innerHTML = '<div class="tick-item">' + LWApp.esc(tickerItems[tickerIdx]) + '</div>';
+  var it = tickerItems[tickerIdx];
+  box.innerHTML =
+    '<div class="tick-item">' +
+      '<span class="tick-user">📢 ' + LWApp.esc(it.uid) + '</span>' +
+      '<span class="tick-text"><span>' + LWApp.esc(it.text) + '</span></span>' +
+    '</div>';
+  applyTickerMarquee(box);
+}
+
+/* Marquee sirf tab lagao jab text sach mein bahar nikal raha ho —
+   chhote announcement ko bewajah hilana dhyaan bhatkata hai. */
+function applyTickerMarquee(box) {
+  var wrap = box.querySelector('.tick-text');
+  if (!wrap) return;
+  var span = wrap.firstElementChild;
+  wrap.classList.remove('marquee');
+  // layout settle hone do, tabhi naap sahi milegi
+  requestAnimationFrame(function () {
+    var overflow = span.scrollWidth - wrap.clientWidth;
+    if (overflow <= 4) return;
+    // Seamless loop ke liye text ki bilkul EK JAISI do copies. Dono ka
+    // width barabar hone se -50% translate theek pehli copy ki lambai
+    // jitna khiskata hai — isliye jodh kabhi dikhta nahi.
+    var full = span.textContent;
+    span.innerHTML = '';
+    for (var i = 0; i < 2; i++) {
+      var copy = document.createElement('span');
+      copy.className = 'tick-copy';
+      copy.textContent = full;
+      span.appendChild(copy);
+    }
+    // ~45px/sec — lamba text bhi aaram se padha ja sake
+    var dur = Math.max(9, Math.round((span.scrollWidth / 2 / 45) * 10) / 10);
+    wrap.style.setProperty('--lw-tick-dur', dur + 's');
+    wrap.classList.add('marquee');
+  });
 }
 
 /* ---------- Stories (Instagram/Snapchat jaisi 24-hour stories) ---------- */
@@ -516,7 +593,29 @@ async function loadStories() {
   document.getElementById('storiesBar').innerHTML = html;
 }
 
-var storyDraftUrl = null, storyDraftMusic = null;
+/* Snapchat/Instagram jaise filters. Ye CSS filter strings hain, jo canvas ke
+   ctx.filter par bhi bilkul waise hi chalte hain — isliye chip ka preview aur
+   asli upload dono ek hi definition se bante hain, do jagah tweak nahi karna
+   padta. Face-tracking wale AR lens nahi hain; ye photo filters hain. */
+var STORY_FILTERS = [
+  { key: 'none',    label: 'Original', css: 'none' },
+  { key: 'warm',    label: 'Warm',     css: 'sepia(0.35) saturate(1.35) contrast(1.05)' },
+  { key: 'cool',    label: 'Cool',     css: 'hue-rotate(-15deg) saturate(1.25) brightness(1.05)' },
+  { key: 'bw',      label: 'B&W',      css: 'grayscale(1) contrast(1.15)' },
+  { key: 'vintage', label: 'Vintage',  css: 'sepia(0.55) saturate(0.85) contrast(0.95) brightness(1.05)' },
+  { key: 'vivid',   label: 'Vivid',    css: 'saturate(1.7) contrast(1.15)' },
+  { key: 'soft',    label: 'Soft',     css: 'brightness(1.08) saturate(0.95) contrast(0.92)' }
+];
+
+var storyDraftFile = null, storyDraftPreviewUrl = null, storyDraftMusic = null;
+var storyFilter = 'none', storyRotation = 0;
+
+function storyFilterCss() {
+  for (var i = 0; i < STORY_FILTERS.length; i++) {
+    if (STORY_FILTERS[i].key === storyFilter) return STORY_FILTERS[i].css;
+  }
+  return 'none';
+}
 
 async function onStoryFilePicked(e) {
   var file = e.target.files && e.target.files[0];
@@ -525,15 +624,76 @@ async function onStoryFilePicked(e) {
   if (file.type.indexOf('image/') !== 0) { LWApp.toast(window.t('onlyImageErr'), 'error'); return; }
   if (file.size > 15 * 1024 * 1024) { LWApp.toast(window.t('photoSizeErr'), 'error'); return; }
 
-  LWApp.toast(window.t('uploadingPhotoMsg'));
+  // Upload ab publish ke waqt hota hai, yahan nahi. Do fayde: filter aur
+  // rotation asli file me bake ho jaate hain (viewer ko kuch samajhna nahi
+  // padta), aur cancel karne par bekaar photo storage me nahi padi rehti.
+  if (storyDraftPreviewUrl) URL.revokeObjectURL(storyDraftPreviewUrl);
+  storyDraftFile = file;
+  storyDraftPreviewUrl = URL.createObjectURL(file);
+  storyDraftMusic = null;
+  storyFilter = 'none';
+  storyRotation = 0;
+
+  document.getElementById('storyCaptionInput').value = '';
+  document.getElementById('storyMusicPreview').style.display = 'none';
+  renderStoryFilters();
+  applyStoryPreview();
+  document.getElementById('storyComposeModal').classList.add('open');
+}
+
+function renderStoryFilters() {
+  document.getElementById('storyFilterRow').innerHTML = STORY_FILTERS.map(function (f) {
+    return '<button type="button" class="sfilter' + (f.key === storyFilter ? ' on' : '') +
+      '" onclick="setStoryFilter(\'' + f.key + '\')">' +
+      '<img src="' + storyDraftPreviewUrl + '" alt="" style="filter:' + f.css + '">' +
+      '<small>' + LWApp.esc(f.label) + '</small></button>';
+  }).join('');
+}
+
+function setStoryFilter(k) {
+  storyFilter = k;
+  renderStoryFilters();
+  applyStoryPreview();
+}
+
+function rotateStory() {
+  storyRotation = (storyRotation + 90) % 360;
+  applyStoryPreview();
+}
+
+// Preview bhi usi canvas se banta hai jo upload karta hai — isliye jo dikh raha
+// hai theek wahi post hota hai (rotate ke baad bhi).
+function renderStoryCanvas() {
+  return new Promise(function (resolve, reject) {
+    var img = new Image();
+    img.onload = function () {
+      var MAX = 1440;                    // story ke liye kaafi; badi file bekaar hai
+      var scale = Math.min(1, MAX / Math.max(img.naturalWidth, img.naturalHeight));
+      var w = Math.round(img.naturalWidth * scale);
+      var h = Math.round(img.naturalHeight * scale);
+      var swap = (storyRotation === 90 || storyRotation === 270);
+      var c = document.createElement('canvas');
+      c.width  = swap ? h : w;
+      c.height = swap ? w : h;
+      var x = c.getContext('2d');
+      x.translate(c.width / 2, c.height / 2);
+      x.rotate(storyRotation * Math.PI / 180);
+      x.filter = storyFilterCss();
+      x.drawImage(img, -w / 2, -h / 2, w, h);
+      resolve(c);
+    };
+    img.onerror = function () { reject(new Error('photo load nahi hui')); };
+    img.src = storyDraftPreviewUrl;
+  });
+}
+
+async function applyStoryPreview() {
+  var el = document.getElementById('storyComposePreview');
   try {
-    storyDraftUrl = await LWApp.uploadPostMedia(file);
-    storyDraftMusic = null;
-    document.getElementById('storyComposePreview').src = storyDraftUrl;
-    document.getElementById('storyMusicPreview').style.display = 'none';
-    document.getElementById('storyComposeModal').classList.add('open');
+    var c = await renderStoryCanvas();
+    el.src = c.toDataURL('image/jpeg', 0.9);
   } catch (er) {
-    LWApp.toast('❌ ' + LWApp.err(er), 'error');
+    el.src = storyDraftPreviewUrl;       // canvas na chale to bina filter hi dikha do
   }
 }
 
@@ -556,32 +716,58 @@ function removeStoryMusic() {
 
 function closeStoryCompose() {
   document.getElementById('storyComposeModal').classList.remove('open');
-  storyDraftUrl = null;
+  if (storyDraftPreviewUrl) URL.revokeObjectURL(storyDraftPreviewUrl);
+  storyDraftPreviewUrl = null;
+  storyDraftFile = null;
   storyDraftMusic = null;
+  storyFilter = 'none';
+  storyRotation = 0;
 }
 
 async function publishStory() {
-  if (!storyDraftUrl) return;
+  if (!storyDraftFile) return;
   var btn = document.getElementById('storyPostBtn');
   btn.disabled = true; btn.textContent = window.t('postingMsg');
 
-  var entry = {
-    kind: 'story', media_url: storyDraftUrl, visibility: 'friends',
-    expires_at: new Date(Date.now() + 86400000).toISOString()
-  };
-  if (storyDraftMusic) {
-    entry.song_title = storyDraftMusic.title;
-    entry.song_artist = storyDraftMusic.artist;
-    entry.song_url = storyDraftMusic.url;
+  try {
+    // filter + rotation yahin bake hokar upload hote hain
+    var canvas = await renderStoryCanvas();
+    var blob = await new Promise(function (res) { canvas.toBlob(res, 'image/jpeg', 0.9); });
+    if (!blob) throw new Error('photo process nahi ho payi');
+
+    var name = (storyDraftFile.name || 'story').replace(/\.[^.]+$/, '') + '.jpg';
+    var file;
+    try {
+      file = new File([blob], name, { type: 'image/jpeg' });
+    } catch (e) {
+      // purane WebView me File constructor nahi hota; uploadPostMedia ko bas
+      // name/type chahiye, isliye blob par hi laga dete hain
+      file = blob; file.name = name;
+    }
+
+    var entry = {
+      kind: 'story', media_url: await LWApp.uploadPostMedia(file), visibility: 'friends',
+      expires_at: new Date(Date.now() + 86400000).toISOString()
+    };
+    var caption = document.getElementById('storyCaptionInput').value.trim();
+    if (caption) entry.content = caption;      // viewer ise pehle se dikhata hai
+    if (storyDraftMusic) {
+      entry.song_title = storyDraftMusic.title;
+      entry.song_artist = storyDraftMusic.artist;
+      entry.song_url = storyDraftMusic.url;
+    }
+
+    var r = await LWApp.createPost(entry);
+    if (r.error) throw r.error;
+
+    LWApp.toast(window.t('storyAddedMsg'));
+    closeStoryCompose();
+    loadStories();
+  } catch (er) {
+    LWApp.toast('❌ ' + LWApp.err(er), 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = window.t('postSubmit');
   }
-
-  var r = await LWApp.createPost(entry);
-  btn.disabled = false; btn.textContent = window.t('postSubmit');
-  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
-
-  LWApp.toast(window.t('storyAddedMsg'));
-  closeStoryCompose();
-  loadStories();
 }
 
 function openStoryViewer(authorId) {
@@ -704,6 +890,9 @@ document.addEventListener('DOMContentLoaded', async function () {
   if (!me) return;
 
   LWApp.shell('feed');
+  // Settings > Dashboard mein chuni hui default visibility — customSelect
+  // se PEHLE set karo, warna custom dropdown purani value dikhata rahega
+  document.getElementById('postVis').value = LWApp.pref('prefDefaultPostVis', 'friends');
   LWApp.customSelect(document.getElementById('postKind'));
   LWApp.customSelect(document.getElementById('postVis'));
   document.getElementById('myAv').innerHTML   = LWApp.avatarHtml(me);

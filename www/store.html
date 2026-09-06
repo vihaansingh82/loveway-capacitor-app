@@ -4,11 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Store — Loveway</title>
-<link rel="stylesheet" href="lw-styles.css?v=2">
+<link rel="stylesheet" href="lw-styles.css?v=4">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="config.js"></script>
-<script src="lw-core.js?v=3"></script>
-<script src="lw-app.js?v=9"></script>
+<script src="config.js?v=2"></script>
+<script src="lw-core.js?v=7"></script>
+<script src="lw-festivals.js?v=2"></script>
+<script src="lw-spotify.js?v=6"></script>
+<script src="lw-app.js?v=15"></script>
+<link rel="stylesheet" href="lw-responsive.css?v=5">
+<link rel="stylesheet" href="lw-clay.css?v=1">
+<script src="lw-responsive.js?v=2" defer></script>
 </head>
 <body data-theme="ocean">
 
@@ -27,22 +32,83 @@
   <div class="page-head">
     <h2>🛍️ Loveway Store</h2>
     <span class="spacer"></span>
+    <button class="btn primary" onclick="openSubmit()">➕ Apna product add karo</button>
   </div>
-  <p class="muted" style="margin:-8px 0 16px">Custom gifts, T-shirts, mugs aur bhi bahut kuch — apne pyaar ke liye. Abhi Cash on Delivery hi available hai.</p>
+  <p class="muted" style="margin:-8px 0 16px">Custom gifts, T-shirts, mugs aur bhi bahut kuch — apne pyaar ke liye. Abhi Cash on Delivery hi available hai.<br>
+    Apna saamaan bechna hai? <b>Request bhejo</b> — Loveway admin approve karega, phir wo tumhari dukaan ke naam se yahin dikhega.</p>
 
   <div class="tabs" id="viewTabs">
     <div class="tab active" onclick="setView('products',this)">🛍️ Products</div>
+    <div class="tab" onclick="setView('mine',this)">🏪 Mere Products</div>
     <div class="tab" onclick="setView('orders',this)">📦 Mere Orders</div>
   </div>
 
   <div id="catTabs" class="tabs" style="margin-top:-6px"></div>
 
   <div id="productsView">
+    <!-- ek seller ki dukaan dekh rahe ho to uska header yahan aata hai -->
+    <div id="sellerBanner" style="display:none" class="card"></div>
     <div class="grid-3" id="productGrid"><div class="spinner">Load ho raha hai…</div></div>
+  </div>
+
+  <div id="mineView" style="display:none">
+    <div id="myProductsList"><div class="spinner">Load ho raha hai…</div></div>
   </div>
 
   <div id="ordersView" style="display:none">
     <div id="ordersList"><div class="spinner">Load ho raha hai…</div></div>
+  </div>
+</div>
+
+<!-- product add request modal -->
+<div class="modal-bg" id="smodal" onclick="if(event.target===this)closeSubmit()">
+  <div class="modal">
+    <h3 id="sModalTitle">➕ Store mein apna product bhejo</h3>
+    <p class="muted" style="font-size:.85rem;margin:-4px 0 12px">
+      Bhejne ke baad Loveway admin ise dekhega. Approve hote hi product store par
+      <b id="sStoreNameHint">tumhare naam</b> se live ho jaayega.
+    </p>
+
+    <label class="fl">Product ka naam</label>
+    <input type="text" id="sName" placeholder="Jaise: Custom Photo Mug">
+
+    <label class="fl">Description</label>
+    <textarea id="sDesc" rows="2" placeholder="Kya hai, kaise banega, kya customize ho sakta hai…"></textarea>
+
+    <div class="row-2">
+      <div>
+        <label class="fl">Category</label>
+        <select id="sCategory">
+          <option value="tshirt">👕 T-Shirt</option>
+          <option value="mug">☕ Mug</option>
+          <option value="album">📸 Album</option>
+          <option value="frame">🖼️ Frame</option>
+          <option value="card">💌 Card</option>
+          <option value="gift">🎁 Gift</option>
+          <option value="other" selected>✨ Aur</option>
+        </select>
+      </div>
+      <div>
+        <label class="fl">Price (₹)</label>
+        <input type="number" id="sPrice" min="0" step="1" placeholder="299">
+      </div>
+    </div>
+
+    <label class="fl">Product ki photo</label>
+    <div id="sPreviewWrap" style="display:none;margin-bottom:8px;max-width:160px">
+      <img id="sPreview" src="" alt="" style="max-width:100%;border-radius:12px;display:block">
+    </div>
+    <button type="button" class="btn" onclick="document.getElementById('sFile').click()">📷 Photo upload karo</button>
+    <input type="file" id="sFile" accept="image/*" style="display:none" onchange="onProductPhotoPicked(event)">
+
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px">
+      <input type="checkbox" id="sCustomizable" checked style="width:auto"> <span>Customize ho sakta hai</span>
+    </label>
+
+    <div class="foot">
+      <button class="btn" onclick="closeSubmit()">Cancel</button>
+      <button class="btn primary" id="sSendBtn" onclick="submitProduct()">Request bhejo</button>
+    </div>
   </div>
 </div>
 
@@ -89,6 +155,7 @@
 
 <script>
 var me = null, products = [], currentCategory = 'all', currentProduct = null, customPhotoUrl = null;
+var currentSeller = null, submitPhotoUrl = null;
 
 var CATEGORIES = [
   { val: 'all',    label: 'Sab' },
@@ -105,9 +172,11 @@ function setView(name, el) {
   document.querySelectorAll('#viewTabs .tab').forEach(function (t) { t.classList.remove('active'); });
   if (el) el.classList.add('active');
   document.getElementById('productsView').style.display = name === 'products' ? '' : 'none';
+  document.getElementById('mineView').style.display      = name === 'mine'     ? '' : 'none';
   document.getElementById('ordersView').style.display    = name === 'orders'   ? '' : 'none';
-  document.getElementById('catTabs').style.display        = name === 'products' ? 'flex' : 'none';
+  document.getElementById('catTabs').style.display       = name === 'products' ? 'flex' : 'none';
   if (name === 'orders') loadOrders();
+  if (name === 'mine') loadMyProducts();
 }
 
 function renderCatTabs() {
@@ -123,11 +192,27 @@ function setCategory(cat, el) {
   renderProducts();
 }
 
+/* Har product ke saath uske seller ki store-profile — "Loveway" ka apna
+   saamaan admin ka hai, baaki har product kisi user ki dukaan ka. Seller
+   par click karne se sirf usi ki dukaan dikhti hai. */
+function sellerChipHtml(p) {
+  if (!p.seller_id) return '';
+  var name = p.seller_name || (p.seller_username ? '@' + p.seller_username : 'Loveway');
+  var badge = p.seller_is_admin ? ' ✅' : '';
+  return '<div class="muted" style="display:flex;align-items:center;gap:6px;font-size:.78rem;margin-top:8px;cursor:pointer" ' +
+    'onclick="viewSeller(\'' + p.seller_id + '\')" title="Is seller ki poori dukaan dekho">' +
+    (p.seller_avatar
+      ? '<img src="' + LWApp.esc(p.seller_avatar) + '" alt="" style="width:20px;height:20px;border-radius:50%;object-fit:cover">'
+      : '<span>🏪</span>') +
+    '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + LWApp.esc(name) + badge + '</span></div>';
+}
+
 function productCardHtml(p) {
   return '<div class="card" style="margin:0">' +
     (p.image_url ? '<div class="post-media" style="margin:-18px -18px 12px"><img src="' + LWApp.esc(p.image_url) + '" alt="" loading="lazy"></div>' : '') +
     '<h3 style="cursor:pointer" onclick="openOrder(' + p.id + ')">' + LWApp.esc(p.name) + '</h3>' +
     (p.description ? '<div class="muted" style="margin:6px 0;min-height:34px">' + LWApp.esc((p.description || '').slice(0, 90)) + '</div>' : '') +
+    sellerChipHtml(p) +
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px">' +
     '<b style="font-size:1.05rem">₹' + Number(p.base_price).toFixed(0) + '</b>' +
     '<button class="btn sm primary" onclick="openOrder(' + p.id + ')">🛒 Order karo</button>' +
@@ -135,17 +220,152 @@ function productCardHtml(p) {
 }
 
 function renderProducts() {
-  var list = currentCategory === 'all' ? products : products.filter(function (p) { return p.category === currentCategory; });
+  var list = products;
+  if (currentSeller) list = list.filter(function (p) { return p.seller_id === currentSeller; });
+  if (currentCategory !== 'all') list = list.filter(function (p) { return p.category === currentCategory; });
+
   var el = document.getElementById('productGrid');
   el.innerHTML = list.length
     ? list.map(productCardHtml).join('')
-    : '<div class="empty" style="grid-column:1/-1"><span class="ic">🛍️</span>Is category mein abhi koi product nahi hai.</div>';
+    : '<div class="empty" style="grid-column:1/-1"><span class="ic">🛍️</span>Yahan abhi koi product nahi hai.</div>';
+}
+
+// ek seller ki dukaan — uska naam, bio aur sirf uske products
+function viewSeller(sellerId) {
+  currentSeller = sellerId;
+  var one = products.filter(function (p) { return p.seller_id === sellerId; })[0] || {};
+  var banner = document.getElementById('sellerBanner');
+  banner.style.display = '';
+  banner.innerHTML =
+    '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">' +
+      (one.seller_avatar
+        ? '<img src="' + LWApp.esc(one.seller_avatar) + '" alt="" style="width:52px;height:52px;border-radius:50%;object-fit:cover">'
+        : '<div style="font-size:2rem">🏪</div>') +
+      '<div style="flex:1;min-width:160px">' +
+        '<h3 style="margin:0">' + LWApp.esc(one.seller_name || 'Dukaan') + (one.seller_is_admin ? ' ✅' : '') + '</h3>' +
+        (one.seller_username ? '<div class="muted" style="font-size:.82rem">@' + LWApp.esc(one.seller_username) + '</div>' : '') +
+        (one.seller_bio ? '<div class="muted" style="margin-top:4px">' + LWApp.esc(one.seller_bio) + '</div>' : '') +
+      '</div>' +
+      (one.seller_username
+        ? '<a class="btn sm" href="profile.html?u=' + encodeURIComponent(one.seller_username) + '">👤 Profile</a>'
+        : '') +
+      '<button class="btn sm" onclick="clearSeller()">✕ Poora store</button>' +
+    '</div>';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  renderProducts();
+}
+
+function clearSeller() {
+  currentSeller = null;
+  document.getElementById('sellerBanner').style.display = 'none';
+  renderProducts();
 }
 
 async function loadProducts() {
   products = await LWApp.storeProducts();
   renderCatTabs();
   renderProducts();
+}
+
+/* ---------- Apna product store mein bhejne ki request ---------- */
+function openSubmit() {
+  submitPhotoUrl = null;
+  document.getElementById('sName').value = '';
+  document.getElementById('sDesc').value = '';
+  document.getElementById('sCategory').value = 'other';
+  document.getElementById('sPrice').value = '';
+  document.getElementById('sCustomizable').checked = true;
+  document.getElementById('sPreview').src = '';
+  document.getElementById('sPreviewWrap').style.display = 'none';
+  document.getElementById('sStoreNameHint').textContent =
+    me.store_name || me.full_name || ('@' + (me.username || 'tumhare naam'));
+  document.getElementById('smodal').classList.add('open');
+}
+function closeSubmit() { document.getElementById('smodal').classList.remove('open'); }
+
+async function onProductPhotoPicked(e) {
+  var file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  if (file.type.indexOf('image/') !== 0) { LWApp.toast('Sirf image chalegi', 'error'); return; }
+  if (file.size > 15 * 1024 * 1024) { LWApp.toast('Photo 15MB se badi hai', 'error'); return; }
+  LWApp.toast('Photo upload ho rahi hai…');
+  try {
+    submitPhotoUrl = await LWApp.uploadStoreMedia(file);
+    document.getElementById('sPreview').src = submitPhotoUrl;
+    document.getElementById('sPreviewWrap').style.display = '';
+    LWApp.toast('Photo ready hai');
+  } catch (er) {
+    LWApp.toast('❌ ' + LWApp.err(er), 'error');
+  }
+}
+
+async function submitProduct() {
+  var name = document.getElementById('sName').value.trim();
+  var price = parseFloat(document.getElementById('sPrice').value);
+  if (name.length < 2) { LWApp.toast('Product ka naam daalo', 'error'); return; }
+  if (!(price >= 0)) { LWApp.toast('Sahi price daalo', 'error'); return; }
+
+  var btn = document.getElementById('sSendBtn');
+  btn.disabled = true; btn.textContent = 'Bhej rahe hain…';
+
+  var r = await LWApp.submitStoreProduct({
+    name: name,
+    description: document.getElementById('sDesc').value.trim(),
+    category: document.getElementById('sCategory').value,
+    base_price: price,
+    image_url: submitPhotoUrl,
+    customizable: document.getElementById('sCustomizable').checked
+  });
+
+  btn.disabled = false; btn.textContent = 'Request bhejo';
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+
+  LWApp.toast('🛍️ Request bhej di — admin ke approve karne ka wait karo');
+  closeSubmit();
+  setView('mine', document.querySelectorAll('#viewTabs .tab')[1]);
+}
+
+/* ---------- Meri bheji hui requests ---------- */
+var MY_STATUS = {
+  pending:  { chip: '⏳ Admin ke approve ka wait', cls: '' },
+  approved: { chip: '✅ Store par live hai', cls: '' },
+  rejected: { chip: '❌ Decline ho gaya', cls: 'locked' }
+};
+
+function myProductHtml(p) {
+  var st = MY_STATUS[p.status] || MY_STATUS.pending;
+  return '<div class="person">' +
+    (p.image_url
+      ? '<img src="' + LWApp.esc(p.image_url) + '" style="width:44px;height:44px;object-fit:cover;border-radius:10px;flex:none">'
+      : '<div class="avatar sm">🛍️</div>') +
+    '<div class="who"><b>' + LWApp.esc(p.name) + '</b>' +
+    '<small>₹' + Number(p.base_price).toFixed(0) + ' · ' + LWApp.esc(p.category) + ' · ' + LWApp.timeAgo(p.created_at) + '</small>' +
+    (p.admin_note ? '<div class="muted" style="margin-top:4px;font-size:.8rem">🛡️ ' + LWApp.esc(p.admin_note) + '</div>' : '') +
+    '</div><div class="acts"><span class="chip ' + st.cls + '">' + st.chip + '</span>' +
+    // approve hone ke baad seller khud badal nahi sakta (DB bhi rokta hai),
+    // isliye delete ka option sirf pending/rejected par dikhao
+    (p.status === 'approved' ? '' :
+      '<button class="btn sm danger" onclick="removeMyProduct(' + p.id + ')">Hatao</button>') +
+    '</div></div>';
+}
+
+async function loadMyProducts() {
+  var el = document.getElementById('myProductsList');
+  el.innerHTML = '<div class="spinner">Load ho raha hai…</div>';
+  var rows = await LWApp.myStoreProducts();
+  el.innerHTML = rows.length
+    ? rows.map(myProductHtml).join('')
+    : '<div class="empty"><span class="ic">🏪</span>Abhi tak koi product nahi bheja.<br><br>' +
+      '<button class="btn primary" onclick="openSubmit()">➕ Apna pehla product bhejo</button></div>';
+}
+
+async function removeMyProduct(id) {
+  if (!confirm('Ye request hata dein?')) return;
+  var r = await LWApp.deleteMyStoreProduct(id);
+  if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
+  LWApp.toast('Hata diya');
+  loadMyProducts();
 }
 
 function openOrder(productId) {
@@ -253,7 +473,10 @@ document.addEventListener('DOMContentLoaded', async function () {
   me = await LW.requireAuth();
   if (!me) return;
   LWApp.shell('store');
-  loadProducts();
+  await loadProducts();
+  // store.html?seller=<id> — seller chip aur profile se seedha uski dukaan khulti hai
+  var wanted = new URLSearchParams(location.search).get('seller');
+  if (wanted && products.some(function (p) { return p.seller_id === wanted; })) viewSeller(wanted);
 });
 </script>
 </body>

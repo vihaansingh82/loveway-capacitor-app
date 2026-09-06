@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Loveway — Spotify connect ho raha hai</title>
+<link rel="stylesheet" href="lw-styles.css?v=4">
+<style>
+  .glow{position:fixed;inset:0;background:radial-gradient(circle at 50% 40%,rgba(30,215,96,.16),transparent 60%);pointer-events:none}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js?v=2"></script>
+<script src="lw-core.js?v=7"></script>
+<script src="lw-spotify.js?v=6"></script>
+<link rel="stylesheet" href="lw-responsive.css?v=5">
+<link rel="stylesheet" href="lw-clay.css?v=1">
+<script src="lw-responsive.js?v=2" defer></script>
+</head>
+<body class="font-sans bg-bg text-text min-h-screen flex items-center justify-center px-5 py-8 text-center">
+<div class="glow"></div>
+<div class="relative max-w-[400px] w-full">
+  <div class="auth-logo h-[62px] max-[520px]:h-12"><img src="logo.png?v=2" alt="Loveway" width="340" height="185" class="h-full w-auto inline-block"><span class="lw-beta">Beta Version</span></div>
+  <h1 class="font-display text-[1.6rem] mt-4.5 mb-2" id="headline">🎵 Spotify jod rahe hain…</h1>
+  <p class="text-text-soft text-[.92rem] leading-[1.6]" id="sub">Ek second — tumhara Spotify account Loveway se connect ho raha hai.</p>
+  <div id="alertBox" class="alert text-left"></div>
+  <a href="settings.html#account" class="hidden inline-block mt-5 px-6.5 py-3 bg-primary text-white border-0 rounded-full text-[.9rem] font-medium no-underline cursor-pointer hover:bg-[#e03565]" id="retry">Settings par wapas</a>
+</div>
+
+<script>
+/* Spotify se code lekar wapas yahan aate hain. Yahan sirf ek kaam hota
+   hai — code ko access/refresh token se badalna — phir wapas usi page
+   par jahan se "Connect" dabaya tha. Loveway ka apna login is flow se
+   bilkul nahi chhuta (yahi purane tarike ki sabse badi dikkat thi). */
+
+function fail(msg) {
+  document.getElementById('headline').textContent = '❌ Spotify connect nahi ho paaya';
+  document.getElementById('sub').style.display = 'none';
+
+  var html = LW.escapeHtml(msg).replace(/\n/g, '<br>');
+
+  // "redirect_uri: Not matching configuration" — sabse aam dikkat. Yahan
+  // wahi URI dikha do jo browser sach mein bhejta hai, taaki user use
+  // seedha Spotify Dashboard mein paste kar sake.
+  if (/redirect|invalid_grant|not matching/i.test(msg) && window.LWSpotify) {
+    html += '<br><br>Spotify Dashboard &gt; apni app &gt; <b>Settings &gt; Redirect URIs</b> mein ' +
+      'bilkul ye line honi chahiye:<br>' +
+      '<code style="display:block;margin-top:6px;padding:7px 9px;border-radius:8px;' +
+      'background:rgba(0,0,0,.25);font-size:.8rem;overflow:auto">' +
+      LW.escapeHtml(LWSpotify.redirectUri()) + '</code>';
+  }
+
+  LW.alert('❌ ' + html, 'error');
+  document.getElementById('retry').classList.remove('hidden');
+}
+
+async function finish() {
+  var q = new URLSearchParams(window.location.search || window.location.hash.replace(/^#/, ''));
+
+  var err = q.get('error_description') || q.get('error');
+  if (err) {
+    // user ne khud "Cancel"/"Deny" dabaya — ise galti ki tarah mat dikhao
+    fail(err === 'access_denied'
+      ? 'Tumne Spotify ki permission cancel kar di. Dobara connect karna ho to Settings se try karo.'
+      : decodeURIComponent(err));
+    return;
+  }
+
+  var code = q.get('code');
+  if (!code) { fail('Spotify se koi code nahi mila.'); return; }
+
+  // token exchange ke waqt Loveway ka profile chahiye — token usi user ke
+  // naam par store hota hai (ek hi browser par doosre account ka Spotify na chale)
+  try { window.LW.profile = await LW.getProfile(); } catch (e) {}
+
+  try {
+    await LWSpotify.exchangeCode(code, q.get('state'));
+  } catch (e) {
+    fail(LW.errText(e));
+    return;
+  }
+
+  var who = '';
+  try {
+    var r = await LWSpotify.me();
+    if (r && r.data) who = r.data.display_name || r.data.email || r.data.id || '';
+  } catch (e) {}
+
+  document.getElementById('headline').textContent = '✅ Spotify jud gaya';
+  document.getElementById('sub').textContent = who ? ('Connected as ' + who) : 'Ab tumhara apna Spotify Loveway mein chalega.';
+  LW.alert('✅ ' + (who || 'Spotify connected'), 'success');
+
+  var back = LWSpotify.returnTarget();
+  setTimeout(function () { window.location.replace(LW.pageUrl(back)); }, 900);
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  finish().catch(function (e) { fail(LW.errText(e)); });
+});
+</script>
+</body>
+</html>

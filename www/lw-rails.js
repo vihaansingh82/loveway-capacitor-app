@@ -11,13 +11,18 @@
 /* ---------- Left rail: nearby couple-spots ---------- */
 /* img = representative category photo (Unsplash, free-to-use) — Overpass doesn't give per-venue
    photos, so one stock image per category is shown instead of the exact venue's real photo. */
+/* r = us category ka search radius (metre). Cafe/restaurant har mohalle me mil
+   jaate hain, par mall aur cinema kam hote hain — unhe 3 km me dhoondo to
+   aksar kuch milta hi nahi. Isliye har category ka apna daayra. */
 var SPOT_CATS = [
-  { key: 'amenity', val: 'cafe', ic: '☕', label: 'Cafes', img: 'https://images.unsplash.com/photo-1752756992329-961db6366376?w=400&h=300&fit=crop&q=70&auto=format' },
-  { key: 'amenity', val: 'restaurant', ic: '🍽️', label: 'Best Restaurants', img: 'https://images.unsplash.com/photo-1646473315764-c6cd47fe74c3?w=400&h=300&fit=crop&q=70&auto=format' },
-  { key: 'leisure', val: 'park', ic: '🌳', label: 'Parks', img: 'https://images.unsplash.com/photo-1766050589989-41a592b3f123?w=400&h=300&fit=crop&q=70&auto=format' },
-  { key: 'tourism', val: 'viewpoint', ic: '🌅', label: 'Viewpoints', img: 'https://images.unsplash.com/photo-1684690640456-381bc7183e86?w=400&h=300&fit=crop&q=70&auto=format' },
-  { key: 'amenity', val: 'cinema', ic: '🎬', label: 'Theatres', img: 'https://images.unsplash.com/photo-1631702825172-a9a848c473ad?w=400&h=300&fit=crop&q=70&auto=format' },
-  { key: 'tourism', val: 'attraction', ic: '✨', label: 'Attractions', img: 'https://images.unsplash.com/photo-1545562083-c583d014b4f2?w=400&h=300&fit=crop&q=70&auto=format' }
+  { key: 'amenity', val: 'cafe', r: 3000, ic: '☕', label: 'Cafes', img: 'https://images.unsplash.com/photo-1752756992329-961db6366376?w=400&h=300&fit=crop&q=70&auto=format' },
+  { key: 'amenity', val: 'restaurant', r: 3000, ic: '🍽️', label: 'Best Restaurants', img: 'https://images.unsplash.com/photo-1646473315764-c6cd47fe74c3?w=400&h=300&fit=crop&q=70&auto=format' },
+  { key: 'leisure', val: 'park', r: 3000, ic: '🌳', label: 'Parks', img: 'https://images.unsplash.com/photo-1766050589989-41a592b3f123?w=400&h=300&fit=crop&q=70&auto=format' },
+  { key: 'tourism', val: 'viewpoint', r: 5000, ic: '🌅', label: 'Viewpoints', img: 'https://images.unsplash.com/photo-1684690640456-381bc7183e86?w=400&h=300&fit=crop&q=70&auto=format' },
+  { key: 'amenity', val: 'cinema', r: 8000, ic: '🎬', label: 'Movie Theatres', img: 'https://images.unsplash.com/photo-1631702825172-a9a848c473ad?w=400&h=300&fit=crop&q=70&auto=format' },
+  // TODO: iska photo abhi Attractions wala hi hai — asli mall ki photo mile to badal dena
+  { key: 'shop', val: 'mall', r: 8000, ic: '🛍️', label: 'Malls', img: 'https://images.unsplash.com/photo-1545562083-c583d014b4f2?w=400&h=300&fit=crop&q=70&auto=format' },
+  { key: 'tourism', val: 'attraction', r: 5000, ic: '✨', label: 'Attractions', img: 'https://images.unsplash.com/photo-1545562083-c583d014b4f2?w=400&h=300&fit=crop&q=70&auto=format' }
 ];
 var SPOT_FALLBACK_IMG = SPOT_CATS[0].img;
 function spotSlide(btn, dir) {
@@ -43,22 +48,34 @@ function loadNearbySpots() {
   navigator.geolocation.getCurrentPosition(function (pos) {
     var lat = pos.coords.latitude, lng = pos.coords.longitude;
     setAllHtml('spots-body', '<div class="muted" style="font-size:.8rem">Best spots dhoonde ja rahe hain…</div>');
+    // nwr = node + way + relation. Mall, cinema aur bade park OSM me zyadatar
+    // building/polygon (way) hote hain, akela point (node) nahi. Pehle sirf
+    // `node` maanga jaata tha, isliye ye jagahein kabhi list me aati hi nahi
+    // thi. `out center` har way/relation ka beech ka point de deta hai.
     var filters = SPOT_CATS.map(function (c) {
-      return 'node[' + c.key + '=' + c.val + '](around:3000,' + lat + ',' + lng + ');';
+      return 'nwr[' + c.key + '=' + c.val + '](around:' + (c.r || 3000) + ',' + lat + ',' + lng + ');';
     }).join('');
-    var query = '[out:json][timeout:15];(' + filters + ');out center 30;';
+    // limit itni rakhi hai ki ghane ilaake ke cafe/restaurant saara quota kha kar
+    // mall/cinema ko bahar na kar dein
+    var query = '[out:json][timeout:25];(' + filters + ');out center 300;';
     fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: query })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        var els = (data.elements || []).filter(function (e) { return e.tags && e.tags.name && e.lat != null; });
+        var els = (data.elements || []).filter(function (e) {
+          if (!e.tags || !e.tags.name) return false;
+          // node ka coordinate seedha lat/lon me aata hai, way/relation ka center me
+          e._lat = e.lat != null ? e.lat : (e.center && e.center.lat);
+          e._lon = e.lon != null ? e.lon : (e.center && e.center.lon);
+          return e._lat != null && e._lon != null;
+        });
         els.forEach(function (e) {
-          e._dist = haversineKm(lat, lng, e.lat, e.lon);
+          e._dist = haversineKm(lat, lng, e._lat, e._lon);
           e._cat = SPOT_CATS.filter(function (c) { return e.tags[c.key] === c.val; })[0];
         });
         if (!els.length) { setAllHtml('spots-body', '<div class="muted" style="font-size:.8rem">Aas-paas koi spot nahi mila.</div>'); return; }
 
         function spotCardHtml(e) {
-          var mapUrl = 'https://www.openstreetmap.org/?mlat=' + e.lat + '&mlon=' + e.lon + '#map=17/' + e.lat + '/' + e.lon;
+          var mapUrl = 'https://www.openstreetmap.org/?mlat=' + e._lat + '&mlon=' + e._lon + '#map=17/' + e._lat + '/' + e._lon;
           return '<a class="spot-card" href="' + mapUrl + '" target="_blank" rel="noopener">' +
             '<div class="spot-card-img-wrap"><img src="' + (e._cat ? e._cat.img : SPOT_FALLBACK_IMG) + '" alt="" loading="lazy">' +
             '<span class="ic">' + (e._cat ? e._cat.ic : '📍') + '</span></div>' +
@@ -86,10 +103,32 @@ function loadNearbySpots() {
       .catch(function () {
         setAllHtml('spots-body', '<div class="muted" style="font-size:.8rem">Spots load nahi ho paaye, thodi der baad try karo.</div>');
       });
-  }, function () {
-    setAllHtml('spots-body', '<div class="muted" style="font-size:.8rem">Location permission nahi mili.</div>' +
+  }, function (err) {
+    var native = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    var msg;
+    if (err && err.code === 1) {
+      // Android par do baar deny karne ke baad system dobara dialog dikhata hi
+      // nahi — permission turant denied lautti hai. Aise me sirf "Retry" dena
+      // user ko chakkar me daal deta hai; use asli raasta batana padta hai.
+      msg = native
+        ? 'Location permission nahi mili. Agar dialog aaya hi nahi to Android ne dobara poochhna band kar diya hai — ' +
+          'phone ki <b>Settings → Apps → Loveway → Permissions → Location</b> me jaakar ' +
+          '"Allow only while using the app" chuno, phir neeche Retry dabao.'
+        : 'Location permission nahi mili. Address bar me 🔒 par tap karke Location ko Allow karo, phir Retry dabao.';
+    } else if (err && err.code === 3) {
+      msg = 'Location time par nahi mil payi. GPS on karke dobara try karo.';
+    } else {
+      msg = 'Location nahi mil payi. Phone ka location (GPS) on hai ya nahi, ek baar dekh lo.';
+    }
+    setAllHtml('spots-body', '<div class="muted" style="font-size:.8rem">' + msg + '</div>' +
       '<button class="btn sm" style="margin-top:8px;width:100%" onclick="loadNearbySpots()">🔄 Retry</button>');
-  });
+  },
+  // Bina options ke timeout Infinity hota hai — fix na mile to na success callback
+  // aata hai na error, aur widget hamesha "Location dhoonda ja raha hai…" par
+  // atka reh jaata hai. Yahi wajah thi ki feature "kuch karta hi nahi" lagta tha.
+  // Spot city-level hain, isliye high accuracy ki zarurat nahi; 5 min purana fix
+  // chalega to dobara khulne par turant load hoga.
+  { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 });
 }
 
 /* --- Right rail: curated song suggestions (Spotify embed play, no API key) ---------- */
@@ -458,7 +497,7 @@ async function railSearchTracks(query, inputEl) {
       (r.error === 'no-token'
         ? 'Pehle Spotify se sign-in/connect karo, tabhi search kaam karegi.'
         : 'Spotify session expire ho gaya lagta hai — dobara connect karo.') +
-      '<br><br><button class="btn primary" onclick="LW.spotify()">🎵 Spotify connect karo</button></div>';
+      '<br><br><button class="btn primary" onclick="LW.spotifyConnect()">🎵 Spotify connect karo</button></div>';
     return;
   }
   resultsBox.innerHTML = r.tracks.length
@@ -470,6 +509,9 @@ async function renderMusicRailCard() {
   var shell =
     '<div class="rail-card-head"><h3>🎵 Music</h3>' +
       '<button type="button" class="rail-refresh-btn" onclick="renderSongSuggestions()" title="Naye gaane dikhao">🔄</button></div>' +
+    // Spotify juda hai ya nahi — sabse upar, taaki search fail hone par
+    // user ko andaza lagana na pade ki dikkat kahan hai
+    '<div class="sp-status-row"></div>' +
     '<input type="search" style="margin-bottom:10px" placeholder="🔍 Gaana ya singer khojo…" oninput="debouncedRailSearch(this)" autocomplete="off">' +
     '<div class="music-search-results" style="display:none"></div>' +
     '<div class="song-sugg-body"></div>' +
@@ -477,15 +519,39 @@ async function renderMusicRailCard() {
       '<summary>❤️ Favorites</summary>' +
       '<div class="music-fav-body" style="margin-top:8px"></div>' +
     '</details>' +
+    // ⬇ user ke apne Spotify account ka asli data — pehle app sirf ek
+    //   hardcoded SONG_POOL dikhata tha, account ka kuch nahi
+    '<details class="sp-liked-details" style="margin-top:12px">' +
+      '<summary>💚 Spotify Liked Songs</summary>' +
+      '<div class="sp-liked-body" style="margin-top:8px"></div>' +
+    '</details>' +
+    '<details class="sp-top-details" style="margin-top:12px">' +
+      '<summary>🔥 Tumhare top gaane</summary>' +
+      '<div class="sp-top-body" style="margin-top:8px"></div>' +
+    '</details>' +
+    '<details class="sp-recent-details" style="margin-top:12px">' +
+      '<summary>🕐 Abhi-abhi suna</summary>' +
+      '<div class="sp-recent-body" style="margin-top:8px"></div>' +
+    '</details>' +
     '<details class="music-pl-details" style="margin-top:12px" open>' +
       '<summary>📋 My Playlists</summary>' +
       '<div class="music-pl-body" style="margin-top:8px"></div>' +
     '</details>';
   setAllHtml('music-rail-card', shell);
+  renderSpotifyStatusRow();
   await refreshFavIds();
   renderSongSuggestions();
   document.querySelectorAll('.music-fav-details').forEach(function (d) {
     d.addEventListener('toggle', function () { if (d.open) renderMusicFavorites(); });
+  });
+  // Spotify wale sections tabhi fetch karo jab user khole — har page-load
+  // par teen extra API call bekaar hain
+  [['sp-liked', 'liked'], ['sp-top', 'top'], ['sp-recent', 'recent']].forEach(function (pair) {
+    document.querySelectorAll('.' + pair[0] + '-details').forEach(function (d) {
+      d.addEventListener('toggle', function () {
+        if (d.open) renderSpotifyMine(pair[1], '.' + pair[0] + '-body');
+      });
+    });
   });
   renderMusicPlaylists();
 }
@@ -565,7 +631,10 @@ var RAIL_SHEET_HTML =
         '<a class="mp-fallback-link mp-fallback-link-big" href="#" target="_blank" rel="noopener" style="display:none">🔗 Spotify par kholo</a>' +
         '<div class="mp-embed-visible"><div id="mpEmbedHost"></div></div>' +
       '</div>' +
+      // Music player ke theek neeche Music card — pehle beech me
+      // Music of the Day aa jaata tha aur dono music wale hisse bat jaate the
       '<div class="rail-sheet-section music-rail-card"></div>' +
+      '<div class="rail-sheet-section motd-card"></div>' +
       '<div class="rail-sheet-section">' +
         '<h3>💑 Aas-paas ke best spots</h3>' +
         '<div class="spots-body">' +
@@ -586,23 +655,54 @@ function ensureRailSheet() {
 function openRailSheet() {
   ensureRailSheet();
   document.getElementById('railSheetOverlay').classList.add('open');
+  applyRailPrefs();
   updateMiniPlayerName();
-  loadNearbySpots();
-  renderMusicRailCard();
-  renderUpcomingRail();
+  if (railWidgetOn('prefDashSpots'))    loadNearbySpots();
+  if (railWidgetOn('prefDashMusic'))    renderMusicRailCard();
+  if (railWidgetOn('prefDashMotd'))     renderMotdCard();
+  if (railWidgetOn('prefDashUpcoming')) renderUpcomingRail();
 }
 function closeRailSheet() {
   var el = document.getElementById('railSheetOverlay');
   if (el) el.classList.remove('open');
 }
 
+/* ---------- Settings > Dashboard ke switches ----------
+   User ne jo widget band kar diya hai uska poora card hata do — sirf
+   render skip karne se khaali dabba reh jaata tha. */
+var RAIL_WIDGETS = [
+  { pref: 'prefDashSpots',    sel: '.spots-body' },
+  { pref: 'prefDashMusic',    sel: '.music-rail-card' },
+  { pref: 'prefDashMotd',     sel: '.motd-card' },
+  { pref: 'prefDashUpcoming', sel: '.upcoming-body' }
+];
+
+function railWidgetOn(prefKey) {
+  return !window.LWApp || !LWApp.pref ? true : LWApp.pref(prefKey, true);
+}
+
+function applyRailPrefs() {
+  RAIL_WIDGETS.forEach(function (w) {
+    var on = railWidgetOn(w.pref);
+    document.querySelectorAll(w.sel).forEach(function (el) {
+      var card = el.closest('.card, .rail-sheet-section') || el;
+      card.style.display = on ? '' : 'none';
+    });
+  });
+}
+
 /* ---------- Init helper: call from each page's DOMContentLoaded ---------- */
 function initSideRails() {
   ensureRailSheet();
+  applyRailPrefs();
+  // MOTD ab .container mein bhi ek card hoti hai (chhote screens ke liye),
+  // isliye ise 1680px waali side-rail-only gate se bahar rakha hai — warna
+  // wo card bhi kabhi load hi nahi hoti thi.
+  if (railWidgetOn('prefDashMotd')) renderMotdCard();
   if (window.innerWidth >= 1680) {
-    loadNearbySpots();
-    renderMusicRailCard();
-    renderUpcomingRail();
+    if (railWidgetOn('prefDashSpots'))    loadNearbySpots();
+    if (railWidgetOn('prefDashMusic'))    renderMusicRailCard();
+    if (railWidgetOn('prefDashUpcoming')) renderUpcomingRail();
   }
 }
 
@@ -615,7 +715,9 @@ window.onSpotifyIframeApiReady = function (IFrameAPI) {
   if (!el) return;
   // height 80 = sirf ek patli control bar; 152 par Spotify apna progress-bar/scrubber
   // bhi dikhata hai — "full mode" jaisa feel deta hai bina kuch naya banaye
-  var options = { uri: 'spotify:track:' + currentTrack.id, width: '300', height: '152' };
+  // width 100% — pehle 300px fix tha, jo 390px phone par sheet ke
+  // padding ke saath daayein se kat jaata tha
+  var options = { uri: 'spotify:track:' + currentTrack.id, width: '100%', height: '152' };
   IFrameAPI.createController(el, options, function (controller) {
     mpController = controller;
     // 'ready' event ka timing bharosemand nahi hai (kabhi der se aata hai, kabhi bilkul nahi) —
@@ -677,4 +779,195 @@ function miniPlayerPrev() {
   currentTrack = SONG_POOL[mpIndex];
   updateMiniPlayerName();
   whenPlayerReady(function () { mpController.loadUri('spotify:track:' + currentTrack.id); mpController.play(); });
+}
+
+/* ============================================================
+   Music of the Day — roz ek gaana, community ke vote se
+   ------------------------------------------------------------
+   `.motd-card` class wale har dabbe mein render hota hai (desktop
+   ka right side-rail + mobile ka rail-sheet — dono jagah wahi ek
+   card). Har user ka us din ka ek hi vote hota hai; dobara dabane
+   par vote hat jaata hai, doosre gaane par dabane par shift ho
+   jaata hai.
+   ============================================================ */
+var motdState = { rows: [], myVote: null, loading: false };
+
+function motdRowHtml(r, rank, myVote) {
+  var voted = myVote === r.id;
+  var who = r.nominator_name || (r.nominator_username ? '@' + r.nominator_username : 'kisi ne');
+  var medal = rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : '🎵';
+  var mine = window.LW && LW.profile && LW.profile.id === r.user_id;
+  return '<div class="motd-row' + (voted ? ' voted' : '') + (rank === 0 ? ' leading' : '') + '">' +
+    '<span class="motd-rank">' + medal + '</span>' +
+    '<div class="motd-song" onclick="playMusicTrack(' +
+      JSON.stringify({ id: r.spotify_track_id, title: r.song_title, artist: r.song_artist })
+        .replace(/"/g, '&quot;') + ')" title="Play">' +
+      '<b>' + LWApp.esc(r.song_title) + '</b>' +
+      '<small>' + LWApp.esc(r.song_artist || '') + ' · ' + LWApp.esc(who) + '</small>' +
+    '</div>' +
+    (mine && !r.vote_count
+      ? '<button type="button" class="icon-btn" onclick="motdRemove(' + r.id + ')" title="Apna nomination hatao">✕</button>'
+      : '') +
+    '<button type="button" class="motd-vote' + (voted ? ' on' : '') + '" onclick="motdToggleVote(' + r.id + ')" ' +
+      'title="' + (voted ? 'Vote wapas lo' : 'Isko vote do') + '">' +
+      (voted ? '💖' : '🤍') + '<span>' + (r.vote_count || 0) + '</span></button>' +
+  '</div>';
+}
+
+async function renderMotdCard() {
+  if (!document.querySelector('.motd-card')) return;
+
+  var shell =
+    '<div class="rail-card-head"><h3>🏆 Music of the Day</h3>' +
+      '<button type="button" class="rail-refresh-btn" onclick="renderMotdCard()" title="Refresh">🔄</button></div>' +
+    '<div class="motd-winner"></div>' +
+    '<div class="motd-body"><div class="spinner">Aaj ka round load ho raha hai…</div></div>' +
+    '<button type="button" class="btn sm primary" style="width:100%;margin-top:10px" onclick="motdNominateFlow()">' +
+      '➕ Apna gaana daalo</button>' +
+    '<div class="motd-foot muted">Har din ek vote — aadhi raat ko naya round.</div>';
+  setAllHtml('motd-card', shell);
+
+  try {
+    var board = await LWApp.motdBoard();
+    motdState.rows = board.rows;
+    motdState.myVote = board.myVote;
+  } catch (e) {
+    document.querySelectorAll('.motd-body').forEach(function (b) {
+      b.innerHTML = '<div class="muted" style="font-size:.8rem">Load nahi ho paaya. ' +
+        'Agar abhi-abhi schema update kiya hai to page refresh karo.</div>';
+    });
+    return;
+  }
+
+  var html = motdState.rows.length
+    ? motdState.rows.map(function (r, i) { return motdRowHtml(r, i, motdState.myVote); }).join('')
+    : '<div class="muted" style="font-size:.8rem">Aaj abhi tak koi gaana nahi aaya — pehla tum daalo! 🎶</div>';
+  document.querySelectorAll('.motd-body').forEach(function (b) { b.innerHTML = html; });
+
+  // kal ka jeeta hua gaana — chhota sa "winner" chip
+  try {
+    var w = await LWApp.motdWinner();
+    var chip = w
+      ? '<div class="motd-winner-chip" onclick="playMusicTrack(' +
+          JSON.stringify({ id: w.spotify_track_id, title: w.song_title, artist: w.song_artist })
+            .replace(/"/g, '&quot;') + ')">🏆 Kal ka winner: <b>' + LWApp.esc(w.song_title) + '</b>' +
+          '<small>' + (w.vote_count || 0) + ' vote</small></div>'
+      : '';
+    document.querySelectorAll('.motd-winner').forEach(function (b) { b.innerHTML = chip; });
+  } catch (e) {}
+}
+
+async function motdToggleVote(nominationId) {
+  if (motdState.loading) return;
+  motdState.loading = true;
+  var was = motdState.myVote;
+  try {
+    if (was === nominationId) { await LWApp.motdUnvote(); motdState.myVote = null; LWApp.toast('Vote wapas le liya'); }
+    else {
+      var r = await LWApp.motdVote(nominationId);
+      if (r && r.error) throw r.error;
+      motdState.myVote = nominationId;
+      LWApp.toast(was ? '💖 Vote shift kar diya' : '💖 Vote daal diya');
+    }
+  } catch (e) {
+    LWApp.toast('❌ ' + LWApp.err(e), 'error');
+  }
+  motdState.loading = false;
+  renderMotdCard();
+}
+
+function motdNominateFlow() {
+  LWApp.openSpotifyPicker(async function (track) {
+    try {
+      var r = await LWApp.motdNominate(track);
+      if (r && r.error) {
+        // unique (day, spotify_track_id) — matlab ye gaana already list mein hai
+        var dup = String(r.error.message || '').toLowerCase().indexOf('duplicate') >= 0;
+        LWApp.toast(dup ? 'Ye gaana aaj ki list mein pehle se hai — usi par vote daal do'
+                        : '❌ ' + LWApp.err(r.error), dup ? '' : 'error');
+      } else {
+        LWApp.toast('🎶 Gaana list mein aa gaya');
+      }
+    } catch (e) {
+      LWApp.toast('❌ ' + LWApp.err(e), 'error');
+    }
+    renderMotdCard();
+  }, { title: '🏆 Music of the Day ke liye gaana chuno' });
+}
+
+async function motdRemove(id) {
+  try {
+    await LWApp.motdRemoveNomination(id);
+    LWApp.toast('Nomination hata diya');
+  } catch (e) {
+    LWApp.toast('❌ ' + LWApp.err(e), 'error');
+  }
+  renderMotdCard();
+}
+
+/* ---------- Spotify connection ki halat — music card ke sabse upar ----------
+   Pehle user ko pata hi nahi chalta tha ki search kyun kaam nahi kar rahi.
+   Ab card khulte hi saaf dikhta hai ki Spotify juda hai ya nahi. */
+async function renderSpotifyStatusRow() {
+  var rows = document.querySelectorAll('.sp-status-row');
+  if (!rows.length) return;
+
+  function paint(html) { rows.forEach(function (r) { r.innerHTML = html; }); }
+
+  if (window.LWSpotify && !LWSpotify.configured()) {
+    paint('<span class="sp-dot off"></span><span class="sp-status-text">Spotify setup baaki hai (config.js)</span>');
+    return;
+  }
+  if (!window.LWSpotify || !LWSpotify.isConnected()) {
+    paint('<span class="sp-dot off"></span><span class="sp-status-text">Spotify juda nahi hai</span>' +
+      '<button type="button" class="btn sm primary" onclick="LW.spotifyConnect()">Connect</button>');
+    return;
+  }
+  paint('<span class="sp-dot"></span><span class="sp-status-text">Spotify check ho raha hai…</span>');
+  var r = await LWSpotify.me();
+  if (r.error) {
+    paint('<span class="sp-dot off"></span><span class="sp-status-text">Connection expire ho gaya</span>' +
+      '<button type="button" class="btn sm primary" onclick="LW.spotifyConnect()">Reconnect</button>');
+    return;
+  }
+  var name = r.data.display_name || r.data.email || r.data.id;
+  paint('<span class="sp-dot on"></span><span class="sp-status-text">✅ ' + LWApp.esc(name) + '</span>' +
+    '<button type="button" class="btn sm" onclick="railSpotifyDisconnect()">Hatao</button>');
+}
+
+function railSpotifyDisconnect() {
+  if (!confirm('Spotify ka connection hata dein? Search/playlists band ho jaayengi.')) return;
+  LWSpotify.disconnect();
+  LWApp.toast('Spotify hata diya');
+  renderSpotifyStatusRow();
+  renderMusicRailCard();
+}
+
+/* ---------- user ke apne Spotify account se: Liked / Top / Recent ---------- */
+async function renderSpotifyMine(kind, boxSel) {
+  var boxes = document.querySelectorAll(boxSel);
+  if (!boxes.length) return;
+  boxes.forEach(function (b) { b.innerHTML = '<div class="spinner">Load ho raha hai…</div>'; });
+
+  var r = kind === 'liked'  ? await LWSpotify.likedTracks(30)
+        : kind === 'top'    ? await LWSpotify.topTracks(20)
+        :                     await LWSpotify.recentlyPlayed(20);
+
+  if (r.error) {
+    boxes.forEach(function (b) {
+      b.innerHTML = '<div class="empty"><span class="ic">🎧</span>Apna Spotify jodo, phir yahan tumhare apne gaane aayenge.' +
+        '<br><br><button class="btn sm primary" onclick="LW.spotifyConnect()">🎵 Connect karo</button></div>';
+    });
+    return;
+  }
+
+  var items = (r.data && r.data.items) || [];
+  var tracks = items.map(function (i) { return i.track || i; }).filter(function (t) { return t && t.id; });
+  var html = tracks.length
+    ? tracks.map(function (t) {
+        var n = LWSpotify.normTrack(t);
+        return musicRowHtml({ id: n.id, t: n.title, a: n.artist, url: n.url }, 'search');
+      }).join('')
+    : '<div class="muted" style="font-size:.8rem">Yahan abhi kuch nahi hai.</div>';
+  boxes.forEach(function (b) { b.innerHTML = html; });
 }

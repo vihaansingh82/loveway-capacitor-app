@@ -3,10 +3,13 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Loveway — Login</title>
-<link rel="stylesheet" href="lw-styles.css?v=2">
+<link rel="stylesheet" href="lw-styles.css?v=4">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="config.js"></script>
-<script src="lw-core.js?v=3"></script>
+<script src="config.js?v=2"></script>
+<script src="lw-core.js?v=7"></script>
+<link rel="stylesheet" href="lw-responsive.css?v=5">
+<link rel="stylesheet" href="lw-clay.css?v=1">
+<script src="lw-responsive.js?v=2" defer></script>
 </head>
 <body class="font-sans bg-bg text-text min-h-screen flex items-center justify-center px-5 py-10 relative overflow-hidden">
 <div class="lang-switcher" aria-label="Language selector">
@@ -22,7 +25,7 @@
 <div class="auth-bg"></div>
 <div class="auth-bg-overlay"></div>
 <div class="auth-card">
-  <div class="auth-logo"><img src="logo.png" alt="Loveway"></div>
+  <div class="auth-logo"><img src="logo.png?v=2" alt="Loveway"><span class="lw-beta">Beta Version</span></div>
   <div class="auth-title" data-i18n="titleLogin"></div>
   <div class="auth-sub" data-i18n="subLogin"></div>
 

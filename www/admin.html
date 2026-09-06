@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Loveway — Admin</title>
-<link rel="stylesheet" href="lw-styles.css?v=2">
+<link rel="stylesheet" href="lw-styles.css?v=4">
 <style>
 /* Page-local, loaded after lw-styles.css so it wins cascade on this page —
    admin.html has its own bespoke panel/table design (renamed .btn/.tab/
@@ -77,11 +77,27 @@
   .empty{padding:70px 20px}
   .empty-icon{font-size:34px;display:block;margin-bottom:10px;opacity:.7}
   #loginGate{background:linear-gradient(145deg,rgba(61,30,48,.9),rgba(45,21,37,.8));box-shadow:0 25px 70px rgba(0,0,0,.3)}
+  .todo-card:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(255,79,123,.18)}
+  .todo-card{transition:.2s}
+  .fest-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .fest-card{position:relative;cursor:pointer;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(26,10,20,.45);transition:.2s;text-align:center}
+  .fest-card:hover{transform:translateY(-2px);border-color:rgba(255,79,123,.45)}
+  .fest-card.on{border-color:var(--primary);box-shadow:0 8px 24px rgba(255,79,123,.25)}
+  .fest-card .fe{font-size:1.6rem;display:block;margin-bottom:5px}
+  .fest-card b{display:block;font-size:.82rem;font-weight:500}
+  .fest-card small{display:block;color:var(--text-soft);font-size:.7rem;margin-top:3px}
+  .fest-sw{display:flex;gap:3px;justify-content:center;margin-top:7px}
+  .fest-sw i{width:14px;height:14px;border-radius:50%;display:block;border:1px solid rgba(255,255,255,.15)}
+  .fest-card.today::after{content:"aaj";position:absolute;top:6px;right:6px;font-size:.6rem;padding:1px 6px;border-radius:999px;background:var(--primary);color:#fff}
   @media(max-width:760px){.stats{grid-template-columns:1fr}.header-actions{width:100%;justify-content:flex-end}.toolbar{align-items:stretch}.search-wrap,.search{width:100%}body{padding:20px 12px 50px}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="config.js"></script>
-<script src="lw-core.js?v=3"></script>
+<script src="config.js?v=2"></script>
+<script src="lw-core.js?v=7"></script>
+<script src="lw-festivals.js?v=2"></script>
+<link rel="stylesheet" href="lw-responsive.css?v=5">
+<link rel="stylesheet" href="lw-clay.css?v=1">
+<script src="lw-responsive.js?v=2" defer></script>
 </head>
 <body>
 <div class="lang-switcher" aria-label="Language selector">
@@ -100,7 +116,7 @@
       <div class="admin-icon">🛡️</div>
       <div class="brand-copy">
         <small>Loveway Control Center</small>
-        <h1 data-i18n="adminTitle"></h1>
+        <h1 data-i18n="adminTitle"></h1><span class="lw-beta">Beta Version</span>
       </div>
     </div>
     <div class="header-actions">
@@ -115,13 +131,48 @@
     <div class="stat-card rejected-card"><div class="stat-label" data-i18n="rejected"></div><div class="stat-value" id="rejectedCount">—</div></div>
   </div>
   <div class="tabs" id="sectionTabs" style="margin-bottom:14px">
-    <div class="tab active" data-section="users" onclick="switchSection('users')">👥 Users</div>
+    <div class="tab active" data-section="dashboard" onclick="switchSection('dashboard')">🏠 Dashboard</div>
+    <div class="tab" data-section="users" onclick="switchSection('users')">👥 Users</div>
     <div class="tab" data-section="reports" onclick="switchSection('reports')">🚩 Reports</div>
+    <div class="tab" data-section="announcements" onclick="switchSection('announcements')">📢 Announcements <span class="badge pending" id="annPendingBadge" style="display:none">0</span></div>
     <div class="tab" data-section="analytics" onclick="switchSection('analytics')">📊 Analytics</div>
     <div class="tab" data-section="store" onclick="switchSection('store')">🛍️ Store</div>
+    <div class="tab" data-section="themes" onclick="switchSection('themes')">🎨 Themes</div>
   </div>
 
-  <div class="panel" id="usersPanel">
+  <!-- Admin ka apna dashboard — sabse pehle ye khulta hai: kahan kaam
+       pada hai, ek nazar mein. -->
+  <div class="panel" id="dashboardPanel">
+    <div class="toolbar">
+      <div class="toolbar-title">🏠 Loveway Control Center</div>
+      <button class="btn" onclick="loadAdminDashboard()">↻ Refresh</button>
+    </div>
+    <p class="muted" id="dashHello" style="margin:0 0 14px;font-size:.9rem">—</p>
+
+    <div class="stats" id="dashTodo" style="grid-template-columns:repeat(3,1fr)">
+      <div class="stat-card total-card todo-card" onclick="switchSection('announcements')" style="cursor:pointer">
+        <div class="stat-label">📢 Global announcements</div><div class="stat-value" id="dashAnn">—</div>
+        <div class="stat-label" style="text-transform:none;letter-spacing:0">approve karne baaki</div>
+      </div>
+      <div class="stat-card total-card todo-card" onclick="switchSection('store');switchStoreTab('requests')" style="cursor:pointer">
+        <div class="stat-label">🛍️ Product requests</div><div class="stat-value" id="dashProd">—</div>
+        <div class="stat-label" style="text-transform:none;letter-spacing:0">users ne bheje</div>
+      </div>
+      <div class="stat-card rejected-card todo-card" onclick="switchSection('reports')" style="cursor:pointer">
+        <div class="stat-label">🚩 Open reports</div><div class="stat-value" id="dashRep">—</div>
+        <div class="stat-label" style="text-transform:none;letter-spacing:0">dekhne baaki</div>
+      </div>
+    </div>
+
+    <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-top:6px">
+      <div class="stat-card approved-card"><div class="stat-label">Users</div><div class="stat-value" id="dashUsers">—</div></div>
+      <div class="stat-card approved-card"><div class="stat-label">Admins</div><div class="stat-value" id="dashAdmins">—</div></div>
+      <div class="stat-card approved-card"><div class="stat-label">Store products</div><div class="stat-value" id="dashProducts">—</div></div>
+      <div class="stat-card total-card"><div class="stat-label">New orders</div><div class="stat-value" id="dashOrders">—</div></div>
+    </div>
+  </div>
+
+  <div class="panel" id="usersPanel" style="display:none">
     <div class="toolbar">
       <div class="toolbar-title">👥 <span data-i18n="userManagement"></span></div>
       <div class="search-wrap"><span class="search-icon">⌕</span><input id="userSearch" class="search" type="search" data-i18n-placeholder="searchUsers" oninput="filterUsers()"></div>
@@ -145,6 +196,26 @@
     <div id="reportsTableWrap"><div class="empty" data-i18n="loading"></div></div>
   </div>
 
+  <!-- 🌍 Global announcements ka approval queue.
+       Recipient ki haan ke baad global announcements yahan aate hain —
+       tabhi wo poore Loveway par live hote hain. -->
+  <div class="panel" id="announcementsPanel" style="display:none">
+    <div class="toolbar">
+      <div class="toolbar-title">📢 Global announcements</div>
+    </div>
+    <p class="muted" style="margin:0 0 12px;font-size:.88rem">
+      Sirf <b>🌍 Sabhi (Global)</b> wale announcements yahan aate hain — friends/partner/private
+      wale bina admin ke hi chale jaate hain. Recipient ne haan kar di ho tabhi ye live ho sakta hai.
+    </p>
+    <div class="tabs">
+      <div class="tab active" data-astatus="pending" onclick="switchAnnTab('pending')">⏳ Pending</div>
+      <div class="tab" data-astatus="approved" onclick="switchAnnTab('approved')">✅ Approved</div>
+      <div class="tab" data-astatus="rejected" onclick="switchAnnTab('rejected')">❌ Rejected</div>
+      <div class="tab" data-astatus="all" onclick="switchAnnTab('all')">All</div>
+    </div>
+    <div id="annTableWrap"><div class="empty" data-i18n="loading"></div></div>
+  </div>
+
   <div class="panel" id="analyticsPanel" style="display:none">
     <div class="toolbar">
       <div class="toolbar-title">📊 Analytics</div>
@@ -161,6 +232,27 @@
     </div>
   </div>
 
+  <!-- 🎨 Festival themes — poore Loveway ka look, sabke liye ek saath -->
+  <div class="panel" id="themesPanel" style="display:none">
+    <div class="toolbar">
+      <div class="toolbar-title">🎨 Festival themes</div>
+      <div id="themeNow" class="muted" style="font-size:.85rem">—</div>
+    </div>
+    <p class="muted" style="margin:0 0 14px;font-size:.88rem">
+      Ye setting <b>sabke liye</b> hai — jo yahan chunoge wahi har user ko dikhega.
+      (User apne liye ise Settings &gt; Appearance se band bhi kar sakta hai.)
+    </p>
+
+    <div class="tabs" style="margin-bottom:16px">
+      <div class="tab" data-tmode="auto"  onclick="setThemeMode('auto')">🗓️ Auto (date ke hisaab se)</div>
+      <div class="tab" data-tmode="fixed" onclick="setThemeMode('fixed')">📌 Ek chuno</div>
+      <div class="tab" data-tmode="off"   onclick="setThemeMode('off')">🚫 Band</div>
+    </div>
+
+    <div id="festGrid" class="fest-grid"></div>
+    <div id="festImages" style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,.07)"></div>
+  </div>
+
   <div class="panel" id="storePanel" style="display:none">
     <div class="toolbar">
       <div class="toolbar-title">🛍️ Store</div>
@@ -168,10 +260,19 @@
     </div>
     <div class="tabs">
       <div class="tab active" data-stab="products" onclick="switchStoreTab('products')">Products</div>
+      <div class="tab" data-stab="requests" onclick="switchStoreTab('requests')">🙋 Requests <span class="badge pending" id="prodPendingBadge" style="display:none">0</span></div>
       <div class="tab" data-stab="orders" onclick="switchStoreTab('orders')">Orders</div>
     </div>
     <div id="storeProductsView">
       <div id="storeProductsWrap"><div class="empty" data-i18n="loading"></div></div>
+    </div>
+    <!-- Users ne jo products store mein bhejne ke liye bheje hain -->
+    <div id="storeRequestsView" style="display:none">
+      <p class="muted" style="margin:0 0 12px;font-size:.88rem">
+        Users ki bheji hui product requests. Approve karte hi wo store par
+        unki apni dukaan ke naam se live ho jaata hai.
+      </p>
+      <div id="storeRequestsWrap"><div class="empty" data-i18n="loading"></div></div>
     </div>
     <div id="storeOrdersView" style="display:none">
       <div id="storeOrdersWrap"><div class="empty" data-i18n="loading"></div></div>
@@ -246,13 +347,15 @@ function renderTable(rows) {
     return;
   }
   let html = '<div class="table-scroll"><table><thead><tr>' +
-    ['name', 'usernameCol', 'email', 'mobileCol', 'genderCol', 'dobCol', 'status', 'joined', 'action']
-      .map(k => '<th>' + t(k) + '</th>').join('') +
+    ['name', 'usernameCol', 'email', 'mobileCol', 'genderCol', 'dobCol', 'status'].map(k => '<th>' + t(k) + '</th>').join('') +
+    '<th>Role</th>' +
+    ['joined', 'action'].map(k => '<th>' + t(k) + '</th>').join('') +
     '</tr></thead><tbody>';
 
   const loc = LW_CURRENT === 'mr' ? 'mr-IN' : (LW_CURRENT === 'en' ? 'en-IN' : 'hi-IN');
 
   rows.forEach(u => {
+    const isMe = u.id === myId;
     html += '<tr>' +
       '<td><span class="user-name">' + escapeHtml(u.full_name || '—') + '</span></td>' +
       '<td class="muted"><span class="username-pill">@' + escapeHtml(u.username || '—') + '</span></td>' +
@@ -263,14 +366,40 @@ function renderTable(rows) {
       '<td><span class="badge ' + u.status + '"' +
         (u.status === 'rejected' && u.rejection_reason ? ' title="' + escapeHtml(u.rejection_reason) + '"' : '') +
         '>' + t(u.status) + '</span></td>' +
+      '<td>' + (u.is_admin ? '<span class="badge approved">🛡️ Admin</span>' : '<span class="muted">User</span>') + '</td>' +
       '<td class="muted">' + new Date(u.created_at).toLocaleDateString(loc) + '</td>' +
       '<td>' +
         (u.status !== 'approved' ? '<button class="btn-approve" onclick="act(\'' + u.id + '\',\'approved\')">' + t('approve') + '</button>' : '') +
         (u.status !== 'rejected' ? '<button class="btn-reject" onclick="act(\'' + u.id + '\',\'rejected\')">' + t('reject') + '</button>' : '') +
+        // Apne aap ko demote karne ka button jaan-boojh kar nahi hai —
+        // aakhri admin nikal jaaye to Control Center hamesha ke liye band.
+        // (DB par bhi lw_guard_last_admin_trg wahi rokta hai.)
+        (isMe ? '<span class="muted" style="font-size:.78rem">tum</span>'
+              : (u.is_admin
+                  ? '<button class="btn-reject" onclick="setAdmin(\'' + u.id + '\',false)">Admin hatao</button>'
+                  : '<button class="btn-approve" onclick="setAdmin(\'' + u.id + '\',true)">Admin banao</button>')) +
       '</td>' +
     '</tr>';
   });
   wrap.innerHTML = html + '</tbody></table></div>';
+}
+
+/* Kisi bhi user ko admin bana do / hata do.
+   RLS (profiles_update_admin) aur lw_protect_profile dono admin ko is_admin
+   badalne dete hain; aakhri admin hatane par DB khud exception deta hai. */
+async function setAdmin(userId, makeAdmin) {
+  const u = allRows.find(x => x.id === userId) || {};
+  const who = u.full_name || (u.username ? '@' + u.username : 'is user');
+  if (!confirm(makeAdmin
+      ? `${who} ko Loveway admin banayein? Unhe Control Center ka poora access mil jayega.`
+      : `${who} se admin rights wapas le lein?`)) return;
+
+  const { error } = await LW.sb.from('profiles').update({ is_admin: makeAdmin }).eq('id', userId);
+  if (error) { showAlert('❌ ' + LW.errText(error), 'error'); return; }
+  showAlert(makeAdmin ? '✅ Admin bana diya' : '✅ Admin rights hata diye', 'success');
+  const row = allRows.find(x => x.id === userId);
+  if (row) row.is_admin = makeAdmin;
+  renderTable(visibleRows());
 }
 
 function updateStats(rows) {
@@ -345,13 +474,295 @@ let analyticsLoaded = false;
 
 function switchSection(name) {
   document.querySelectorAll('#sectionTabs .tab').forEach(el => el.classList.toggle('active', el.dataset.section === name));
-  document.getElementById('usersPanel').style.display     = name === 'users'     ? '' : 'none';
-  document.getElementById('reportsPanel').style.display   = name === 'reports'   ? '' : 'none';
-  document.getElementById('analyticsPanel').style.display = name === 'analytics' ? '' : 'none';
-  document.getElementById('storePanel').style.display     = name === 'store'     ? '' : 'none';
+  document.getElementById('dashboardPanel').style.display      = name === 'dashboard'     ? '' : 'none';
+  document.getElementById('usersPanel').style.display          = name === 'users'         ? '' : 'none';
+  document.getElementById('reportsPanel').style.display        = name === 'reports'       ? '' : 'none';
+  document.getElementById('announcementsPanel').style.display  = name === 'announcements' ? '' : 'none';
+  document.getElementById('analyticsPanel').style.display      = name === 'analytics'     ? '' : 'none';
+  document.getElementById('storePanel').style.display          = name === 'store'         ? '' : 'none';
+  document.getElementById('themesPanel').style.display         = name === 'themes'        ? '' : 'none';
+  if (name === 'dashboard') loadAdminDashboard();
+  if (name === 'users' && !allRows.length) loadUsers();
   if (name === 'reports' && !reportRows.length) loadReports();
+  if (name === 'announcements') loadAdminAnnouncements();
   if (name === 'analytics' && !analyticsLoaded) loadAnalytics();
   if (name === 'store' && !storeProducts.length) loadStoreProducts();
+  if (name === 'themes') renderThemes();
+  history.replaceState(null, '', '#' + name);
+}
+
+/* ---------- 🎨 Festival themes ----------
+   Setting app_settings me jaati hai (RLS: likhna sirf admin), aur har
+   user ka browser use lw-festivals.js se padh kar apne aap laga leta
+   hai. Yahan sirf mode + festival chunna hai. */
+function themeSetting() { return window.LWFest ? LWFest.setting() : { mode: 'auto' }; }
+
+function renderThemes() {
+  if (!window.LWFest) {
+    document.getElementById('festGrid').innerHTML =
+      '<div class="empty">lw-festivals.js load nahi hua.</div>';
+    return;
+  }
+  const s = themeSetting();
+  const todayFest = LWFest.forToday();
+
+  document.querySelectorAll('#themesPanel .tabs .tab')
+    .forEach(el => el.classList.toggle('active', el.dataset.tmode === (s.mode || 'auto')));
+
+  // aaj kya lag raha hai — admin ko turant pata chale
+  const active = LWFest.active(s);
+  document.getElementById('themeNow').textContent = active
+    ? 'Abhi live: ' + active.emoji + ' ' + active.name
+    : 'Abhi koi festival theme nahi';
+
+  const grid = document.getElementById('festGrid');
+  if (s.mode === 'off') {
+    grid.innerHTML = '<div class="empty"><span class="empty-icon">🚫</span>' +
+      'Festival themes band hain — sabko apni chuni hui theme dikhegi.</div>';
+    return;
+  }
+  if (s.mode === 'auto') {
+    grid.innerHTML = '<div class="empty"><span class="empty-icon">🗓️</span>' +
+      'Auto mode: theme apne aap us din lagti hai jab tyohaar aata hai.' +
+      (todayFest ? '<br><br>Aaj chal raha hai: <b>' + todayFest.emoji + ' ' + escapeHtml(todayFest.name) + '</b>'
+                 : '<br><br>Aaj koi tyohaar nahi hai, isliye sabko apni theme dikh rahi hai.') +
+      '</div>';
+    return;
+  }
+
+  // fixed mode — poori list, jo chuna hai wo highlight
+  grid.innerHTML = LWFest.list.map(f => {
+    // palette ka rang seedha CSS variable se — do jagah likhne ki zarurat nahi
+    const probe = document.createElement('div');
+    probe.setAttribute('data-theme', 'fest-' + f.id);
+    probe.style.display = 'none';
+    document.body.appendChild(probe);
+    const cs = getComputedStyle(probe);
+    const sw = ['--primary', '--accent', '--bg2'].map(v => cs.getPropertyValue(v).trim());
+    probe.remove();
+
+    return '<div class="fest-card' + (s.festival === f.id ? ' on' : '') +
+      (todayFest && todayFest.id === f.id ? ' today' : '') +
+      '" onclick="pickFestival(\'' + f.id + '\')">' +
+      '<span class="fe">' + f.emoji + '</span>' +
+      '<b>' + escapeHtml(f.name) + '</b>' +
+      '<div class="fest-sw">' + sw.map(c => '<i style="background:' + c + '"></i>').join('') + '</div>' +
+      '<small>' + (f.md ? 'har saal ' + f.md.replace('-', '/') : (f.dates || [])[0] || '') + '</small>' +
+      '</div>';
+  }).join('');
+
+  renderFestImages();
+}
+
+/* ---------- Har festival ki apni image (dharmik chitra) ----------
+   Loveway apne saath koi deity artwork nahi bhejta — uska copyright
+   hamara nahi hai. Isliye default me sirf ek chinh (emoji) dikhta
+   hai, aur admin apni li hui / licensed image ka URL yahan laga
+   sakta hai. Wo image festival banner me chinh ki jagah aati hai. */
+function renderFestImages() {
+  const host = document.getElementById('festImages');
+  if (!host || !window.LWFest) return;
+  const imgs = LWFest.images();
+  const s = themeSetting();
+  // sirf usi festival ka row jo abhi chuna hua hai — poori list se page bhar jaata
+  const f = s.mode === 'fixed' ? LWFest.byId[s.festival] : LWFest.forToday();
+  if (!f) { host.innerHTML = ''; return; }
+
+  const cur = imgs[f.id] || '';
+  host.innerHTML =
+    '<div class="toolbar-title" style="margin-bottom:8px">🖼️ ' + escapeHtml(f.name) + ' ki image</div>' +
+    '<p class="muted" style="margin:0 0 10px;font-size:.85rem">' +
+      'Banner me chinh (' + f.sym + ') ki jagah apni image lagani ho to uska link yahan daalo. ' +
+      'Khaali chhodoge to chinh hi dikhega.</p>' +
+    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+      (cur ? '<img src="' + escapeHtml(cur) + '" alt="" style="width:52px;height:52px;object-fit:cover;border-radius:12px">' : '') +
+      '<input id="festImgUrl" class="search" style="flex:1;min-width:220px;padding-left:14px" ' +
+        'placeholder="https://…/ganesh.jpg" value="' + escapeHtml(cur) + '">' +
+      '<button class="btn-approve" onclick="saveFestImage(\'' + f.id + '\')">Save</button>' +
+      (cur ? '<button class="btn-reject" onclick="saveFestImage(\'' + f.id + '\',true)">Hatao</button>' : '') +
+    '</div>';
+}
+
+async function saveFestImage(id, clear) {
+  const url = clear ? '' : (document.getElementById('festImgUrl').value || '').trim();
+  if (url && !/^https?:\/\//i.test(url)) {
+    showAlert('❌ Poora link daalo (https:// se shuru)', 'error'); return;
+  }
+  const r = await LWFest.saveImage(id, url);
+  if (r && r.error) { showAlert('❌ ' + LW.errText(r.error), 'error'); return; }
+  showAlert(url ? '✅ Image lag gayi' : '✅ Image hata di', 'success');
+  renderFestImages();
+}
+
+async function setThemeMode(mode) {
+  const s = themeSetting();
+  const next = { mode: mode, festival: s.festival || 'diwali' };
+  const r = await LWFest.save(next);
+  if (r && r.error) { showAlert('❌ ' + LW.errText(r.error), 'error'); return; }
+  showAlert('✅ Theme setting save ho gayi', 'success');
+  renderThemes();
+}
+
+async function pickFestival(id) {
+  const r = await LWFest.save({ mode: 'fixed', festival: id });
+  if (r && r.error) { showAlert('❌ ' + LW.errText(r.error), 'error'); return; }
+  const f = LWFest.byId[id];
+  showAlert('✅ ' + (f ? f.emoji + ' ' + f.name : id) + ' theme sabke liye live hai', 'success');
+  renderThemes();
+}
+
+/* ---------- Admin ka apna dashboard ----------
+   "Kahan kaam pada hai" pehle, "kitna bada hai platform" baad mein.
+   Har todo-card apne panel par le jaata hai. */
+async function loadAdminDashboard() {
+  const count = (table, filters) => {
+    let q = LW.sb.from(table).select('id', { count: 'exact', head: true });
+    (filters || []).forEach(f => { q = q.eq(f[0], f[1]); });
+    return q.then(r => (r.error ? null : (r.count || 0))).catch(() => null);
+  };
+  const set = (id, v) => { document.getElementById(id).textContent = v == null ? '—' : v; };
+
+  const me = allRows.find(u => u.id === myId);
+  document.getElementById('dashHello').textContent =
+    'Namaste ' + ((me && (me.full_name || me.username)) || 'admin') + ' — neeche jo bhi 0 se zyada hai, wahan tumhara intezaar ho raha hai.';
+
+  const [ann, prod, rep, users, admins, products, orders] = await Promise.all([
+    count('announcements', [['visibility', 'public'], ['admin_status', 'pending']]),
+    count('store_products', [['status', 'pending']]),
+    count('reports', [['status', 'open']]),
+    count('profiles'),
+    count('profiles', [['is_admin', true]]),
+    count('store_products', [['status', 'approved']]),
+    count('store_orders', [['status', 'pending']])
+  ]);
+
+  set('dashAnn', ann); set('dashProd', prod); set('dashRep', rep);
+  set('dashUsers', users); set('dashAdmins', admins);
+  set('dashProducts', products); set('dashOrders', orders);
+
+  // tab badges bhi yahin se taaza ho jaate hain
+  const annBadge = document.getElementById('annPendingBadge');
+  annBadge.textContent = ann || 0; annBadge.style.display = ann ? '' : 'none';
+  const prodBadge = document.getElementById('prodPendingBadge');
+  prodBadge.textContent = prod || 0; prodBadge.style.display = prod ? '' : 'none';
+}
+
+/* ---------- 🌍 Global announcements ka approval queue ----------
+   Ye Loveway ka doosra gate hai: recipient ki haan ke baad global
+   announcement yahan rukta hai, aur approve hote hi asli post banti
+   hai (DB trigger lw_notify_announcement ye khud karta hai — yahan se
+   sirf admin_status badalna hota hai). */
+let annStatus = 'pending', annRows = [];
+
+const ANN_KIND_EMOJI = {
+  birthday: '🎂', anniversary: '💕', proposal: '💍',
+  love: '❤️', special_moment: '🎉', custom: '💌'
+};
+
+function switchAnnTab(status) {
+  annStatus = status;
+  document.querySelectorAll('#announcementsPanel .tabs .tab')
+    .forEach(el => el.classList.toggle('active', el.dataset.astatus === status));
+  loadAdminAnnouncements();
+}
+
+async function loadAdminAnnouncements() {
+  const wrap = document.getElementById('annTableWrap');
+  wrap.innerHTML = '<div class="empty">' + t('loading') + '</div>';
+
+  let q = LW.sb.from('announcements')
+    .select('id, sender_id, recipient_id, kind, message, media_url, visibility, status, admin_status, admin_note, created_at')
+    .eq('visibility', 'public');
+  if (annStatus !== 'all') q = q.eq('admin_status', annStatus);
+
+  const { data, error } = await q.order('created_at', { ascending: false }).limit(200);
+  if (error) {
+    wrap.innerHTML = '<div class="empty"><span class="empty-icon">⚠️</span>' + t('loadFail') + '</div>';
+    return;
+  }
+  annRows = data || [];
+
+  // sender + recipient ke naam ek hi query mein
+  const ids = [...new Set(annRows.flatMap(a => [a.sender_id, a.recipient_id]))];
+  if (ids.length) {
+    const { data: profs } = await LW.sb.from('lw_public_profiles')
+      .select('id, full_name, username').in('id', ids);
+    const by = {};
+    (profs || []).forEach(p => { by[p.id] = p; });
+    annRows.forEach(a => { a.sender = by[a.sender_id] || {}; a.recipient = by[a.recipient_id] || {}; });
+  }
+
+  renderAdminAnnouncements();
+  refreshAnnBadge();
+}
+
+async function refreshAnnBadge() {
+  const badge = document.getElementById('annPendingBadge');
+  const r = await LW.sb.from('announcements')
+    .select('id', { count: 'exact', head: true })
+    .eq('visibility', 'public').eq('admin_status', 'pending').eq('status', 'approved');
+  const n = (r && r.count) || 0;
+  badge.textContent = n;
+  badge.style.display = n ? '' : 'none';
+}
+
+function renderAdminAnnouncements() {
+  const wrap = document.getElementById('annTableWrap');
+  if (!annRows.length) {
+    wrap.innerHTML = '<div class="empty"><span class="empty-icon">🌸</span>Yahan kuch nahi hai.</div>';
+    return;
+  }
+
+  let html = '<div class="table-scroll"><table><thead><tr>' +
+    ['Bhejne wala', 'Kiske liye', 'Kis mauke par', 'Message', 'Recipient', 'Admin', 'Date', 'Action']
+      .map(k => '<th>' + k + '</th>').join('') +
+    '</tr></thead><tbody>';
+
+  annRows.forEach(a => {
+    // Recipient ki haan ke bina admin approve kare bhi to kuch publish nahi hota —
+    // isliye un rows par button dikhane ka koi matlab nahi
+    const waiting = a.status === 'pending';
+    const who = p => escapeHtml(p.full_name || (p.username ? '@' + p.username : '—'));
+    const adminBadge = a.admin_status === 'approved' ? 'approved'
+                     : a.admin_status === 'rejected' ? 'rejected' : 'pending';
+    const recBadge = a.status === 'approved' ? 'approved'
+                   : a.status === 'rejected' ? 'rejected' : 'pending';
+
+    html += '<tr>' +
+      '<td><span class="user-name">' + who(a.sender) + '</span>' +
+        (a.sender.username ? '<br><span class="username-pill">@' + escapeHtml(a.sender.username) + '</span>' : '') + '</td>' +
+      '<td><span class="user-name">' + who(a.recipient) + '</span></td>' +
+      '<td class="muted">' + (ANN_KIND_EMOJI[a.kind] || '💌') + ' ' + escapeHtml(a.kind) + '</td>' +
+      '<td class="muted">' + escapeHtml((a.message || '—').slice(0, 90)) +
+        (a.media_url ? ' <a href="' + escapeHtml(a.media_url) + '" target="_blank" rel="noopener">📷</a>' : '') + '</td>' +
+      '<td><span class="badge ' + recBadge + '">' + escapeHtml(a.status) + '</span></td>' +
+      '<td><span class="badge ' + adminBadge + '">' + escapeHtml(a.admin_status) + '</span>' +
+        (a.admin_note ? '<br><small class="muted">' + escapeHtml(a.admin_note) + '</small>' : '') + '</td>' +
+      '<td class="muted">' + new Date(a.created_at).toLocaleDateString() + '</td>' +
+      '<td>' +
+        (waiting
+          ? '<span class="muted" style="font-size:.8rem">Recipient ke jawab ka wait</span>'
+          : (a.admin_status !== 'approved' ? '<button class="btn-approve" onclick="actAnnouncement(' + a.id + ',true)">Approve</button>' : '') +
+            (a.admin_status !== 'rejected' ? '<button class="btn-reject" onclick="actAnnouncement(' + a.id + ',false)">Reject</button>' : '')) +
+      '</td>' +
+    '</tr>';
+  });
+  wrap.innerHTML = html + '</tbody></table></div>';
+}
+
+async function actAnnouncement(id, approve) {
+  let note = null;
+  if (!approve) {
+    note = prompt('Reject karne ki wajah (bhejne wale ko dikhegi) — chhod bhi sakte ho:', '');
+    if (note === null) return;   // cancel
+    note = note.trim() || null;
+  }
+  const { error } = await LW.sb.from('announcements')
+    .update({ admin_status: approve ? 'approved' : 'rejected', admin_note: note })
+    .eq('id', id);
+  if (error) { showAlert('❌ ' + LW.errText(error), 'error'); return; }
+  showAlert(approve ? '✅ Global announcement live ho gaya' : '❌ Reject kar diya', approve ? 'success' : 'error');
+  loadAdminAnnouncements();
 }
 
 async function loadAnalytics() {
@@ -473,7 +884,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   myId = p.id;
   document.getElementById('app').style.display = 'block';
   switchTab('all');
-  loadUsers();
+  await loadUsers();          // dashboard ka "Namaste <naam>" isi se aata hai
+  if (window.LWFest) await LWFest.load();
+  // notification seedha admin.html#announcements / #store par bhej sakti hai
+  const sec = location.hash.slice(1);
+  switchSection(sec && document.querySelector('[data-section="' + sec + '"]') ? sec : 'dashboard');
 });
 
 /* ---------- Store (product catalog + orders) — admin.html loads only
@@ -488,18 +903,126 @@ let productPhotoUrl = null;
 function switchStoreTab(name) {
   document.querySelectorAll('#storePanel .tabs .tab').forEach(el => el.classList.toggle('active', el.dataset.stab === name));
   document.getElementById('storeProductsView').style.display = name === 'products' ? '' : 'none';
+  document.getElementById('storeRequestsView').style.display = name === 'requests' ? '' : 'none';
   document.getElementById('storeOrdersView').style.display   = name === 'orders'   ? '' : 'none';
   if (name === 'orders' && !storeOrders.length) loadStoreOrders();
+  if (name === 'requests') loadStoreRequests();
+}
+
+/* ---------- Users ki product requests ----------
+   store_products mein status='pending' wali rows. Approve karte hi
+   status='approved' + is_active=true — tabhi wo lw_store_products view
+   (yaani asli storefront) mein aati hai. */
+let storeRequests = [];
+
+async function loadStoreRequests() {
+  const wrap = document.getElementById('storeRequestsWrap');
+  wrap.innerHTML = '<div class="empty">' + t('loading') + '</div>';
+
+  const { data, error } = await LW.sb.from('store_products')
+    .select('id, name, description, category, base_price, image_url, customizable, status, is_active, admin_note, seller_id, created_at')
+    .neq('status', 'approved')
+    .order('created_at', { ascending: false }).limit(200);
+  if (error) {
+    wrap.innerHTML = '<div class="empty"><span class="empty-icon">⚠️</span>' + t('loadFail') + '</div>';
+    return;
+  }
+  storeRequests = data || [];
+
+  const ids = [...new Set(storeRequests.map(p => p.seller_id).filter(Boolean))];
+  if (ids.length) {
+    const { data: profs } = await LW.sb.from('lw_public_profiles')
+      .select('id, full_name, username, avatar_url').in('id', ids);
+    const by = {};
+    (profs || []).forEach(p => { by[p.id] = p; });
+    storeRequests.forEach(p => { p.seller = by[p.seller_id] || {}; });
+  }
+  renderStoreRequests();
+  refreshProdBadge();
+}
+
+async function refreshProdBadge() {
+  const badge = document.getElementById('prodPendingBadge');
+  const r = await LW.sb.from('store_products')
+    .select('id', { count: 'exact', head: true }).eq('status', 'pending');
+  const n = (r && r.count) || 0;
+  badge.textContent = n;
+  badge.style.display = n ? '' : 'none';
+}
+
+function renderStoreRequests() {
+  const wrap = document.getElementById('storeRequestsWrap');
+  if (!storeRequests.length) {
+    wrap.innerHTML = '<div class="empty"><span class="empty-icon">🌸</span>Koi pending request nahi hai.</div>';
+    return;
+  }
+  let html = '<div class="table-scroll"><table><thead><tr>' +
+    ['Photo', 'Product', 'Seller', 'Category', 'Price', 'Status', 'Date', 'Action']
+      .map(k => '<th>' + k + '</th>').join('') +
+    '</tr></thead><tbody>';
+
+  storeRequests.forEach(p => {
+    const s = p.seller || {};
+    const badge = p.status === 'rejected' ? 'rejected' : 'pending';
+    html += '<tr>' +
+      '<td>' + (p.image_url ? '<img src="' + escapeHtml(p.image_url) + '" style="width:36px;height:36px;object-fit:cover;border-radius:8px">' : '—') + '</td>' +
+      '<td><span class="user-name">' + escapeHtml(p.name) + '</span>' +
+        (p.description ? '<br><small class="muted">' + escapeHtml(p.description.slice(0, 70)) + '</small>' : '') + '</td>' +
+      '<td><span class="user-name">' + escapeHtml(s.full_name || '—') + '</span>' +
+        (s.username ? '<br><span class="username-pill">@' + escapeHtml(s.username) + '</span>' : '') + '</td>' +
+      '<td class="muted">' + escapeHtml(p.category) + '</td>' +
+      '<td>₹' + Number(p.base_price).toFixed(0) + '</td>' +
+      '<td><span class="badge ' + badge + '">' + escapeHtml(p.status) + '</span>' +
+        (p.admin_note ? '<br><small class="muted">' + escapeHtml(p.admin_note) + '</small>' : '') + '</td>' +
+      '<td class="muted">' + new Date(p.created_at).toLocaleDateString() + '</td>' +
+      '<td>' +
+        (p.status !== 'approved' ? '<button class="btn-approve" onclick="actProductRequest(' + p.id + ',true)">Approve</button>' : '') +
+        (p.status !== 'rejected' ? '<button class="btn-reject" onclick="actProductRequest(' + p.id + ',false)">Reject</button>' : '') +
+      '</td>' +
+    '</tr>';
+  });
+  wrap.innerHTML = html + '</tbody></table></div>';
+}
+
+async function actProductRequest(id, approve) {
+  let note = null;
+  if (!approve) {
+    note = prompt('Reject karne ki wajah (seller ko dikhegi) — chhod bhi sakte ho:', '');
+    if (note === null) return;
+    note = note.trim() || null;
+  }
+  const patch = approve
+    ? { status: 'approved', is_active: true, admin_note: null }
+    : { status: 'rejected', is_active: false, admin_note: note };
+
+  const { error } = await LW.sb.from('store_products').update(patch).eq('id', id);
+  if (error) { showAlert('❌ ' + LW.errText(error), 'error'); return; }
+  showAlert(approve ? '✅ Product store par live ho gaya' : '❌ Request reject kar di', approve ? 'success' : 'error');
+  loadStoreRequests();
+  storeProducts = [];   // catalog stale ho gaya, agli baar dobara load hoga
 }
 
 async function loadStoreProducts() {
   document.getElementById('storeProductsWrap').innerHTML = '<div class="empty">' + t('loading') + '</div>';
-  const { data, error } = await LW.sb.from('store_products').select('*').order('created_at', { ascending: false });
+  // Sirf approved catalog yahan — jo abhi approve hone baaki hain wo
+  // alag "🙋 Requests" tab mein hain, warna dono list ek jaisi lagti hain
+  const { data, error } = await LW.sb.from('store_products').select('*')
+    .eq('status', 'approved').order('created_at', { ascending: false });
   if (error) {
     document.getElementById('storeProductsWrap').innerHTML = '<div class="empty"><span class="empty-icon">⚠️</span>' + t('loadFail') + '</div>';
     return;
   }
   storeProducts = data || [];
+
+  // kis seller ka product hai — admin ke apne products par seller khud admin hi hota hai
+  const ids = [...new Set(storeProducts.map(p => p.seller_id).filter(Boolean))];
+  if (ids.length) {
+    const { data: profs } = await LW.sb.from('lw_public_profiles')
+      .select('id, full_name, username').in('id', ids);
+    const by = {};
+    (profs || []).forEach(p => { by[p.id] = p; });
+    storeProducts.forEach(p => { p.seller = by[p.seller_id] || {}; });
+  }
   renderStoreProducts();
 }
 
@@ -510,13 +1033,15 @@ function renderStoreProducts() {
     return;
   }
   let html = '<div class="table-scroll"><table><thead><tr>' +
-    ['Photo', 'Name', 'Category', 'Price', 'Status', 'Action'].map(k => '<th>' + k + '</th>').join('') +
+    ['Photo', 'Name', 'Seller', 'Category', 'Price', 'Status', 'Action'].map(k => '<th>' + k + '</th>').join('') +
     '</tr></thead><tbody>';
 
   storeProducts.forEach(pr => {
+    const s = pr.seller || {};
     html += '<tr>' +
       '<td>' + (pr.image_url ? '<img src="' + escapeHtml(pr.image_url) + '" style="width:36px;height:36px;object-fit:cover;border-radius:8px">' : '—') + '</td>' +
       '<td><span class="user-name">' + escapeHtml(pr.name) + '</span></td>' +
+      '<td class="muted">' + (s.username ? '<span class="username-pill">@' + escapeHtml(s.username) + '</span>' : 'Loveway') + '</td>' +
       '<td class="muted">' + escapeHtml(pr.category) + '</td>' +
       '<td>₹' + Number(pr.base_price).toFixed(0) + '</td>' +
       '<td><span class="badge ' + (pr.is_active ? 'approved' : 'rejected') + '">' + (pr.is_active ? 'Active' : 'Hidden') + '</span></td>' +

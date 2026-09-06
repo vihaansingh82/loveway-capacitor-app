@@ -4,7 +4,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Loveway — दिल जुड़ैं, गीत बोलैं</title>
 <meta name="description" content="Loveway — a safe, verified community where hearts connect, songs speak and love travels. Free to join.">
-<link rel="stylesheet" href="lw-styles.css?v=2">
+<meta name="theme-color" content="#1a0a14">
+<link rel="icon" href="logo.png?v=2">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Loveway — दिल जुड़ैं, गीत बोलैं">
+<meta property="og:description" content="A verified community where hearts connect, songs speak and love travels. Free to join.">
+<meta property="og:image" content="logo.png?v=2">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="lw-styles.css?v=4">
 <style>
   /* page-specific decorative animations — not reused elsewhere, kept local */
   .hero-glow{background:radial-gradient(circle at 50% 30%,rgba(255,79,123,.22),transparent 55%),
@@ -19,12 +26,15 @@
     .hearts{display:none}
   }
 </style>
+<link rel="stylesheet" href="lw-responsive.css?v=5">
+<link rel="stylesheet" href="lw-clay.css?v=1">
+<script src="lw-responsive.js?v=2" defer></script>
 </head>
 <body class="font-sans bg-bg text-text leading-relaxed overflow-x-hidden">
 
 <nav>
   <a href="index.html" class="lw-brand" aria-label="Loveway home">
-    <img class="nav-logo" src="logo.png" alt="Loveway" width="340" height="185">
+    <img class="nav-logo" src="logo.png?v=2" alt="Loveway" width="340" height="185"><span class="lw-beta">Beta Version</span>
   </a>
   <ul>
     <li><a href="index.html" class="active">Home</a></li>
@@ -171,7 +181,7 @@
 
 <footer class="grid gap-11 px-10 pt-14 pb-0 bg-bg2 border-t border-primary/[.14]" style="grid-template-columns:1.5fr 1fr 1fr 1fr">
   <div>
-    <img class="footer-logo" src="logo.png" alt="Loveway" width="340" height="185">
+    <img class="footer-logo" src="logo.png?v=2" alt="Loveway" width="340" height="185">
     <p class="text-text-soft text-[.88rem] max-w-[280px]">Ek community jahan dil judte hain, gaane baat karte hain, aur pyaar safar karta hai.</p>
   </div>
   <div>
@@ -198,7 +208,7 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="config.js"></script>
-<script src="lw-core.js?v=3"></script>
+<script src="config.js?v=2"></script>
+<script src="lw-core.js?v=7"></script>
 <script src="lw-site.js?v=2"></script>
 </body></html>

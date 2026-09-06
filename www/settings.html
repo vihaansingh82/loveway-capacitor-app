@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Loveway — Settings ⚙️</title>
-<link rel="stylesheet" href="lw-styles.css?v=2">
+<link rel="stylesheet" href="lw-styles.css?v=4">
 <style>
 /* This page runs its own independent theme-variable set + setTheme()/
    setCustomColorSettings() implementation (see THEME_VARS below), separate
@@ -39,6 +39,14 @@
   --bg:#fff6ee;--bg2:#ffeadb;--card:#fff;--primary:#f4511e;
   --soft:#ffe8df;--accent:#ffb74d;--text:#3a2418;--muted:#a07862;
   --border:#ffdcc7;--grad:linear-gradient(135deg,#ffb74d,#f4511e);
+}
+/* Clay — is page ke apne variable naam (--soft/--muted) use karta hai.
+   Clay ka asli 3D look lw-clay.css se aata hai, jo iske baad load hoti hai. */
+[data-theme="clay"]{
+  --bg:#e9ecf7;--bg2:#dfe3f3;--card:#eef1fb;--primary:#ff6f91;
+  --soft:rgba(255,111,145,.15);--accent:#7c83fd;--text:#2f2b43;--muted:#7d78a0;
+  --border:transparent;--grad:linear-gradient(135deg,#ff6f91,#7c83fd);
+  --shadow:8px 8px 18px rgba(158,165,205,.5),-6px -6px 16px rgba(255,255,255,.95);
 }
 *{box-sizing:border-box;margin:0;padding:0;font-family:Segoe UI,system-ui,sans-serif}
 body{background:var(--bg);color:var(--text);min-height:100vh;transition:.25s}
@@ -113,6 +121,17 @@ header{
 .ocean{background:linear-gradient(135deg,#26c6da,#0288d1)}
 .sunset{background:linear-gradient(135deg,#ffb74d,#f4511e)}
 .modern{background:linear-gradient(135deg,#FF4D6D,#6C5CE7)}
+/* swatch khud clay jaisa dikhe — flat gradient ke bajaye phoola hua */
+.theme.clay{
+  background:#eef1fb;
+  box-shadow:5px 5px 12px rgba(158,165,205,.55),-4px -4px 10px #fff,
+             inset -3px -3px 7px rgba(158,165,205,.3),inset 3px 3px 7px rgba(255,255,255,.9)
+}
+.theme.clay::after{
+  content:"";display:block;width:26px;height:26px;margin:14px auto 0;border-radius:999px;
+  background:linear-gradient(135deg,#ff6f91,#7c83fd);
+  box-shadow:3px 3px 7px rgba(158,165,205,.5),-2px -2px 6px #fff
+}
 .badge{font-size:.72rem;background:var(--soft);color:var(--primary);padding:4px 8px;border-radius:10px}
 .toast{
   position:fixed;left:50%;bottom:25px;transform:translateX(-50%);
@@ -145,14 +164,19 @@ body.bg-photo[data-theme="dark"]{
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="config.js"></script>
-<script src="lw-core.js?v=3"></script>
-<script src="lw-app.js?v=9"></script>
+<script src="config.js?v=2"></script>
+<script src="lw-core.js?v=7"></script>
+<script src="lw-festivals.js?v=2"></script>
+<script src="lw-spotify.js?v=6"></script>
+<script src="lw-app.js?v=15"></script>
+<link rel="stylesheet" href="lw-responsive.css?v=5">
+<link rel="stylesheet" href="lw-clay.css?v=1">
+<script src="lw-responsive.js?v=2" defer></script>
 </head>
 <body data-theme="ocean">
 
 <header>
-  <div class="brand"><span>💕</span><h1>Loveway</h1></div>
+  <div class="brand"><span>💕</span><h1>Loveway</h1><span class="lw-beta">Beta Version</span></div>
   <div class="header-right">
     <div class="lang">🌐
       <select id="languageQuick"><option value="en">English</option><option value="hi">हिंदी</option><option value="braj">ब्रज</option><option value="raj">राजस्थानी</option><option value="bho">भोजपुरी</option><option value="hyd">हैदराबादी</option><option value="mr">मराठी</option><option value="ta">தமிழ்</option><option value="te">తెలుగు</option><option value="bn">বাংলা</option><option value="pa">ਪੰਜਾਬੀ</option><option value="gu">ગુજરાતી</option></select>
@@ -178,6 +202,11 @@ body.bg-photo[data-theme="dark"]{
   <div class="layout">
     <aside class="menu">
       <button class="active" data-tab="account">👤 <span data-i18n="accountTab">Account</span></button>
+      <button data-tab="profile">📝 <span data-i18n="profileTab">Profile edit</span></button>
+      <button data-tab="dashboard">🏠 <span data-i18n="dashboardTab">Dashboard</span></button>
+      <button data-tab="store">🏪 <span data-i18n="storeTab">Meri Dukaan</span></button>
+      <!-- sirf admin ko dikhta hai (JS se unhide hota hai) -->
+      <button data-tab="control" id="controlTabBtn" style="display:none">🛡️ <span data-i18n="controlTab">Control Center</span></button>
       <button data-tab="privacy">🔒 <span data-i18n="privacyTab">Privacy</span></button>
       <button data-tab="notifications">🔔 <span data-i18n="notificationTab">Notifications</span></button>
       <button data-tab="appearance">🎨 <span data-i18n="appearanceTab">Appearance</span></button>
@@ -200,8 +229,135 @@ body.bg-photo[data-theme="dark"]{
         </div>
         <div class="card" style="margin-top:12px">
           <div class="row"><div><strong data-i18n="spotifyLabel">🎵 Spotify</strong><small id="spotifyStatus" data-i18n="spotifyChecking">Checking…</small></div><button class="btn secondary" id="spotifyBtn">…</button></div>
+          <small id="spotifyHelp" style="display:block;color:var(--muted);margin-top:8px;font-size:.8rem"></small>
         </div>
         <button class="btn primary" onclick="save()">💾 <span data-i18n="save">Save Changes</span></button>
+      </div>
+
+      <!-- ===== Profile edit — pehle ye sirf profile.html ke "✏️ Edit" tab
+           mein tha, Settings se koi raasta nahi jaata tha. Ab dono jagah
+           wahi fields hain aur dono ek doosre se linked hain. ===== -->
+      <div class="section" id="profile">
+        <div class="section-head"><h3 data-i18n="profileEditTitle">Profile edit karo</h3><p data-i18n="profileEditDesc">Bio, kahani, hobbies, favourites aur pinned song — sab yahin se.</p></div>
+
+        <div class="grid2">
+          <div><label data-i18n="professionLabel">Profession</label><input id="pfProfession" class="input" placeholder="Teacher, Business, Student…"></div>
+          <div><label data-i18n="dobLabel">Birthday</label><input id="pfDob" class="input" type="date"></div>
+          <div>
+            <label data-i18n="relationshipLabel">Relationship status</label>
+            <select id="pfRel" class="select">
+              <option value="">—</option>
+              <option value="single">Single</option>
+              <option value="in_relationship">In a relationship</option>
+              <option value="engaged">Engaged</option>
+              <option value="married">Married</option>
+              <option value="complicated">It's complicated</option>
+            </select>
+          </div>
+          <div><label data-i18n="pincodeLabel">Pincode</label><input id="pfPincode" class="input"></div>
+        </div>
+
+        <div style="margin-top:12px"><label data-i18n="bioLabel">Bio</label><textarea id="pfBio" class="input" rows="2" placeholder="Ek line apne baare mein…"></textarea></div>
+        <div style="margin-top:12px"><label data-i18n="storyLabel">Meri kahani</label><textarea id="pfStory" class="input" rows="4"></textarea></div>
+        <div style="margin-top:12px"><label data-i18n="hobbiesLabel">Hobbies (comma se alag)</label><input id="pfHobbies" class="input" placeholder="Music, Travel, Cooking"></div>
+
+        <div class="grid2" style="margin-top:12px">
+          <div><label data-i18n="favFoodLabel">🍲 Favourite khana</label><input id="pfFavFood" class="input"></div>
+          <div><label data-i18n="favMovieLabel">🎬 Favourite movie</label><input id="pfFavMovie" class="input"></div>
+          <div><label data-i18n="favPlaceLabel">🏞️ Favourite jagah</label><input id="pfFavPlace" class="input"></div>
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <strong>🎵 <span data-i18n="pinnedSongLabel">Pinned Song</span></strong>
+          <small style="display:block;color:var(--muted);margin:4px 0 10px" data-i18n="pinnedSongDesc">Tumhari profile par sabse upar yahi gaana chipka rehta hai.</small>
+          <div id="pfPinnedRow" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"></div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <div class="row">
+            <div><strong>💑 <span data-i18n="partnerLabel">Partner</span></strong><small id="pfPartner">—</small></div>
+            <a class="btn secondary" href="friends.html" data-i18n="manageBtn">Manage</a>
+          </div>
+        </div>
+
+        <button class="btn primary" onclick="saveProfileSection()">💾 <span data-i18n="save">Save Changes</span></button>
+
+        <div class="card" style="margin-top:14px">
+          <div class="row">
+            <div><strong data-i18n="moreProfileLabel">Aur cheezein</strong><small data-i18n="moreProfileDesc">Photo, cover, timeline aur posts profile page par hain.</small></div>
+            <a class="btn secondary" href="profile.html#edit" data-i18n="openProfileBtn">Profile kholo →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Dashboard edit — kaun se widgets dikhein, default post
+           visibility, wagairah. Pehle inka koi control tha hi nahi. ===== -->
+      <div class="section" id="dashboard">
+        <div class="section-head"><h3 data-i18n="dashboardTitle">Dashboard</h3><p data-i18n="dashboardDesc">Home page par kya-kya dikhe, yahan se tay karo.</p></div>
+
+        <div class="card row"><div><strong data-i18n="dashTickerLabel">📢 Announcements ticker</strong><small data-i18n="dashTickerDesc">Header mein chalti hui announcement patti</small></div><label class="switch"><input type="checkbox" id="prefDashTicker" checked><span class="slider"></span></label></div>
+        <div class="card row"><div><strong data-i18n="dashSpotsLabel">💑 Aas-paas ke spots</strong><small data-i18n="dashSpotsDesc">Left rail ka nearby couple-spots widget</small></div><label class="switch"><input type="checkbox" id="prefDashSpots" checked><span class="slider"></span></label></div>
+        <div class="card row"><div><strong data-i18n="dashMusicLabel">🎵 Music widget</strong><small data-i18n="dashMusicDesc">Search, favorites, playlists aur tumhara Spotify</small></div><label class="switch"><input type="checkbox" id="prefDashMusic" checked><span class="slider"></span></label></div>
+        <div class="card row"><div><strong data-i18n="dashMotdLabel">🏆 Music of the Day</strong><small data-i18n="dashMotdDesc">Roz ka gaana aur uski voting</small></div><label class="switch"><input type="checkbox" id="prefDashMotd" checked><span class="slider"></span></label></div>
+        <div class="card row"><div><strong data-i18n="dashUpcomingLabel">🎉 Festival & birthdays</strong><small data-i18n="dashUpcomingDesc">Aane wale mauke</small></div><label class="switch"><input type="checkbox" id="prefDashUpcoming" checked><span class="slider"></span></label></div>
+
+        <div class="card row" style="margin-top:12px">
+          <div><strong data-i18n="defaultVisLabel">Nayi post ki default visibility</strong><small data-i18n="defaultVisDesc">Composer khulte hi yahi chuna hua milega</small></div>
+          <select id="prefDefaultPostVis" class="select" style="max-width:170px">
+            <option value="friends">👥 Dost</option>
+            <option value="public">🌍 Sabhi</option>
+            <option value="partner">💑 Partner</option>
+            <option value="private">🔒 Sirf main</option>
+          </select>
+        </div>
+
+        <button class="btn primary" onclick="saveDashboard()">💾 <span data-i18n="save">Save Changes</span></button>
+
+        <div class="card" style="margin-top:14px">
+          <div class="row">
+            <div><strong data-i18n="openDashLabel">Dashboard</strong><small data-i18n="openDashDesc">Badlav dekhne ke liye home kholo</small></div>
+            <a class="btn secondary" href="dashboard.html" data-i18n="openDashBtn">Dashboard kholo →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Meri Dukaan — store par jo naam dikhega, aur meri
+           bheji hui product requests ka status ===== -->
+      <div class="section" id="store">
+        <div class="section-head"><h3 data-i18n="storeTitle">Meri Dukaan</h3><p data-i18n="storeDesc">Loveway Store par apna saamaan bechna hai? Yahan se apni dukaan ka naam set karo aur product bhejo.</p></div>
+
+        <div class="grid2">
+          <div><label data-i18n="storeNameLabel">Dukaan ka naam</label><input id="stName" class="input" placeholder="Jaise: Riya's Craft Corner"><small class="hint" data-i18n="storeNameHint">Khaali chhodo to tumhara apna naam dikhega.</small></div>
+          <div><label data-i18n="storeBioLabel">Ek line mein dukaan</label><input id="stBio" class="input" placeholder="Handmade gifts aur photo frames"></div>
+        </div>
+        <button class="btn primary" onclick="saveStore()">💾 <span data-i18n="save">Save Changes</span></button>
+
+        <div class="card" style="margin-top:16px">
+          <div class="row">
+            <div><strong data-i18n="myProductsLabel">📦 Mere products</strong><small id="stCounts">—</small></div>
+            <a class="btn secondary" href="store.html" data-i18n="openStoreBtn">Store kholo →</a>
+          </div>
+          <div id="stProducts" style="margin-top:10px"></div>
+        </div>
+      </div>
+
+      <!-- ===== Loveway Control Center — sirf admin ko ===== -->
+      <div class="section" id="control">
+        <div class="section-head"><h3>🛡️ Loveway Control Center</h3><p data-i18n="controlDesc">Tum Loveway ke admin ho. Yahan se poora platform manage karo.</p></div>
+
+        <div class="card" style="border-color:var(--primary)">
+          <div class="row">
+            <div><strong>🛡️ Control Center</strong><small data-i18n="controlOpenDesc">Users, reports, global announcements, store aur analytics — sab ek jagah.</small></div>
+            <a class="btn primary" href="admin.html">Kholo →</a>
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top:12px">
+          <a class="card row" href="admin.html#users" style="text-decoration:none;color:inherit"><div><strong>👥 Users</strong><small id="ctlUsers">—</small></div><span>→</span></a>
+          <a class="card row" href="admin.html#announcements" style="text-decoration:none;color:inherit"><div><strong>📢 Global announcements</strong><small id="ctlAnn">—</small></div><span>→</span></a>
+          <a class="card row" href="admin.html#store" style="text-decoration:none;color:inherit"><div><strong>🛍️ Product requests</strong><small id="ctlProd">—</small></div><span>→</span></a>
+          <a class="card row" href="admin.html#reports" style="text-decoration:none;color:inherit"><div><strong>🚩 Reports</strong><small id="ctlRep">—</small></div><span>→</span></a>
+        </div>
       </div>
 
       <div class="section" id="privacy">
@@ -229,12 +385,25 @@ body.bg-photo[data-theme="dark"]{
 
       <div class="section" id="appearance">
         <div class="section-head"><h3 data-i18n="appearanceTitle">Appearance</h3><p data-i18n="appearanceDesc">Loveway ka look apne hisaab se set karo.</p></div>
+
+        <!-- Festival theme admin lagata hai (sabke liye), par user
+             apne liye band kar sakta hai — tab uski apni theme wapas -->
+        <div class="card row" id="festCard" style="display:none">
+          <div><strong id="festLabel">🎉 Festival theme</strong><small id="festDesc">—</small></div>
+          <label class="switch"><input type="checkbox" id="prefFestivalOn" onchange="onFestivalToggle(this.checked)"><span class="slider"></span></label>
+        </div>
+        <div class="card row" id="festFxCard" style="display:none">
+          <div><strong>✨ Festival animation</strong><small>Screen par halki si sajawat — diye, phool, barf</small></div>
+          <label class="switch"><input type="checkbox" id="prefFestivalFx" onchange="onFestivalFxToggle(this.checked)"><span class="slider"></span></label>
+        </div>
+
         <div class="card"><strong data-i18n="themeLabel">Theme</strong><div class="theme-list" style="margin-top:12px">
           <button class="theme romantic" data-theme="romantic" title="Romantic" data-i18n-title="themeRomanticTitle"></button>
           <button class="theme dark" data-theme="dark" title="Dark" data-i18n-title="themeDarkTitle"></button>
           <button class="theme ocean active" data-theme="ocean" title="Ocean" data-i18n-title="themeOceanTitle"></button>
           <button class="theme sunset" data-theme="sunset" title="Sunset" data-i18n-title="themeSunsetTitle"></button>
           <button class="theme modern" data-theme="modern" title="Modern" data-i18n-title="themeModernTitle"></button>
+          <button class="theme clay" data-theme="clay" title="Clay" data-i18n-title="themeClayTitle"></button>
           <label class="theme" id="customColorDot" title="Custom color" data-i18n-title="customColorTitle"
             style="position:relative;overflow:hidden;display:block;cursor:pointer;
             background:conic-gradient(from 0deg,#ff595e,#ffca3a,#8ac926,#1982c4,#6a4c93,#ff595e)">
@@ -629,6 +798,246 @@ async function savePrefKeys(keys){
 }
 
 function savePrivacy(){savePrefKeys(["prefProfileVis","prefOnlineStatus","prefLastSeen","prefAllowFriendReq"])}
+
+/* ---------- Profile edit section ----------
+   Wahi fields jo profile.html ke "✏️ Edit" tab mein hain — ab Settings se
+   bhi. Dono ek hi LWApp.saveProfile() par jaate hain, isliye kahin se bhi
+   badlo, doosri jagah wahi dikhega. */
+function paintProfileSection(p){
+ const f = p.favourites || {};
+ const set=(id,v)=>{const el=document.getElementById(id); if(el) el.value = v==null?"":v;};
+ set("pfProfession", p.profession);
+ set("pfDob", p.dob);
+ set("pfRel", p.relationship_status);
+ set("pfPincode", p.pincode);
+ set("pfBio", p.bio);
+ set("pfStory", p.story);
+ set("pfHobbies", (p.hobbies||[]).join(", "));
+ set("pfFavFood", f.food);
+ set("pfFavMovie", f.movie);
+ set("pfFavPlace", f.place);
+ paintPinnedSongRow(p);
+ paintPartnerRow(p);
+}
+
+function paintPartnerRow(p){
+ const el=document.getElementById("pfPartner");
+ if(!el) return;
+ if(!p.partner_id){
+  el.textContent="Abhi koi partner add nahi kiya — 💑 wali visibility friend list par chali jaati hai.";
+  return;
+ }
+ el.textContent="Load ho raha hai…";
+ LW.sb.from("lw_public_profiles").select("full_name, username").eq("id",p.partner_id).maybeSingle()
+   .then(r=>{
+     const q=(r&&r.data)||{};
+     el.textContent = q.full_name || (q.username?"@"+q.username:"Partner set hai");
+   })
+   .catch(()=>{ el.textContent="Partner set hai"; });
+}
+
+function paintPinnedSongRow(p){
+ const row=document.getElementById("pfPinnedRow");
+ if(!row) return;
+ row.innerHTML = p.pinned_song_title
+  ? '<span class="badge">🎵 '+LW.escapeHtml(p.pinned_song_title)+
+      (p.pinned_song_artist?" — "+LW.escapeHtml(p.pinned_song_artist):"")+'</span>'+
+    '<button type="button" class="btn secondary" onclick="pickPinnedSong()">🔄 Badlo</button>'+
+    '<button type="button" class="btn secondary" onclick="clearPinnedSong()">✕ Hatao</button>'
+  : '<button type="button" class="btn primary" onclick="pickPinnedSong()">🎵 Gaana pin karo</button>';
+}
+
+function pickPinnedSong(){
+ // picker ab search-first khulta hai — Spotify juda na ho tab bhi
+ // "link paste karo" wala rasta usi modal mein hai
+ LWApp.openSpotifyPicker(async track=>{
+  const me=window.LW_ME;
+  try{
+   const r=await LWApp.updateProfilePinnedSong(track);
+   if(r&&r.error) throw r.error;
+   me.pinned_spotify_track_id=track.id;
+   me.pinned_song_title=track.title;
+   me.pinned_song_artist=track.artist||null;
+   me.pinned_song_url=track.url||null;
+   if(window.LW) window.LW.profile=me;
+   paintPinnedSongRow(me);
+   toast("🎵 Song pin ho gaya");
+  }catch(e){ toast("❌ "+LW.errText(e)); }
+ },{ title:"🎵 Profile par pin karne ke liye gaana chuno" });
+}
+
+async function clearPinnedSong(){
+ const me=window.LW_ME;
+ try{
+  const r=await LWApp.updateProfilePinnedSong(null);
+  if(r&&r.error) throw r.error;
+  me.pinned_spotify_track_id=me.pinned_song_title=me.pinned_song_artist=me.pinned_song_url=null;
+  if(window.LW) window.LW.profile=me;
+  paintPinnedSongRow(me);
+  toast("Pin hata diya");
+ }catch(e){ toast("❌ "+LW.errText(e)); }
+}
+
+async function saveProfileSection(){
+ const me=window.LW_ME; if(!me) return;
+ const val=id=>{const el=document.getElementById(id); return el?el.value.trim():"";};
+ const patch={
+  profession: val("pfProfession")||null,
+  dob: val("pfDob")||null,
+  relationship_status: val("pfRel")||null,
+  pincode: val("pfPincode")||null,
+  bio: val("pfBio")||null,
+  story: val("pfStory")||null,
+  hobbies: val("pfHobbies").split(",").map(s=>s.trim()).filter(Boolean),
+  // purana free-text favourites.song chhedna nahi hai — pinned song alag
+  // columns mein rehta hai, dono ko mila diya to ek hi cheez do baar dikhti
+  favourites: Object.assign({}, me.favourites||{}, {
+    food: val("pfFavFood")||null,
+    movie: val("pfFavMovie")||null,
+    place: val("pfFavPlace")||null
+  })
+ };
+ const r=await LWApp.saveProfile(patch);
+ if(r.error){ toast("❌ "+LW.errText(r.error)); return; }
+ Object.assign(me,patch);
+ if(window.LW) window.LW.profile=me;
+ toast((translations[getLang()]||translations.en).saved);
+}
+
+/* ---------- Festival theme (admin ne jo set kiya, wo yahan dikhta hai) ---------- */
+function paintFestival(){
+ const card=document.getElementById("festCard");
+ if(!card || !window.LWFest) return;
+
+ // admin ne band kar rakha ho to card dikhane ka matlab hi nahi
+ const s=LWFest.setting();
+ const wouldShow = s.mode!=="off" &&
+   (s.mode==="fixed" ? !!LWFest.byId[s.festival] : !!LWFest.forToday());
+ if(!wouldShow){ card.style.display="none"; return; }
+
+ // opt-out ke bawajood naam dikhana hai, isliye setting se seedha nikaalo
+ const f = s.mode==="fixed" ? LWFest.byId[s.festival] : LWFest.forToday();
+ card.style.display="";
+ document.getElementById("festLabel").textContent = f.emoji+" "+f.name+" theme";
+ document.getElementById("festDesc").textContent =
+   LWFest.userOptedOut()
+     ? "Abhi band hai — tumhari apni theme chal rahi hai."
+     : "Loveway abhi is tyohaar ke rang me hai. Band karoge to tumhari apni theme wapas aa jayegi.";
+ document.getElementById("prefFestivalOn").checked = !LWFest.userOptedOut();
+
+ // animation ka toggle tabhi dikhao jab festival theme sach me chalu ho
+ const fxCard=document.getElementById("festFxCard");
+ if(fxCard){
+  fxCard.style.display = LWFest.userOptedOut() ? "none" : "";
+  document.getElementById("prefFestivalFx").checked = LWFest.fxOn();
+ }
+}
+
+function onFestivalFxToggle(on){
+ LWFest.setFxOn(on);
+ toast(on?"✨ Animation on":"Animation band");
+}
+
+function onFestivalToggle(on){
+ LWFest.setUserOptOut(!on);
+ paintFestival();
+ // theme badal gayi — swatch ka active state bhi sahi karo
+ const cur=document.body.dataset.theme||"";
+ document.querySelectorAll(".theme[data-theme]").forEach(x=>x.classList.toggle("active",x.dataset.theme===cur));
+ toast(on?"🎉 Festival theme on":"Apni theme wapas");
+}
+
+/* ---------- Meri Dukaan ---------- */
+const ST_STATUS = {
+ pending:  "⏳ Admin ke approve ka wait",
+ approved: "✅ Store par live",
+ rejected: "❌ Decline ho gaya"
+};
+
+function paintStore(p){
+ const n=document.getElementById("stName"), b=document.getElementById("stBio");
+ if(n) n.value = p.store_name || "";
+ if(b) b.value = p.store_bio || "";
+ loadMyStoreProducts();
+}
+
+async function saveStore(){
+ const me=window.LW_ME; if(!me) return;
+ const patch={
+  store_name: document.getElementById("stName").value.trim() || null,
+  store_bio:  document.getElementById("stBio").value.trim()  || null
+ };
+ const r=await LWApp.saveStoreProfile(patch);
+ if(r.error){ toast("❌ "+LW.errText(r.error)); return; }
+ Object.assign(me,patch);
+ if(window.LW) window.LW.profile=me;
+ toast((translations[getLang()]||translations.en).saved);
+}
+
+async function loadMyStoreProducts(){
+ const box=document.getElementById("stProducts");
+ if(!box) return;
+ let rows=[];
+ try{ rows=await LWApp.myStoreProducts(); }
+ catch(e){ box.innerHTML='<small style="color:var(--muted)">Load nahi ho paaya.</small>'; return; }
+
+ const n={pending:0,approved:0,rejected:0};
+ rows.forEach(r=>{ if(n[r.status]!==undefined) n[r.status]++; });
+ document.getElementById("stCounts").textContent =
+   rows.length ? `${n.approved} live · ${n.pending} pending · ${n.rejected} declined`
+               : "Abhi tak koi product nahi bheja";
+
+ box.innerHTML = rows.length
+  ? rows.slice(0,8).map(p=>
+      '<div class="row" style="padding:7px 0;border-top:1px solid var(--border)">'+
+      '<div><strong>'+LW.escapeHtml(p.name)+'</strong><small>₹'+Number(p.base_price).toFixed(0)+
+      (p.admin_note?" · 🛡️ "+LW.escapeHtml(p.admin_note):"")+'</small></div>'+
+      '<span class="badge">'+(ST_STATUS[p.status]||p.status)+'</span></div>'
+    ).join("")
+  : '<small style="color:var(--muted)">Store page se "➕ Apna product add karo" dabao.</small>';
+}
+
+/* ---------- Loveway Control Center (sirf admin) ---------- */
+async function paintControlCenter(p){
+ const btn=document.getElementById("controlTabBtn");
+ if(!p.is_admin){ if(btn) btn.style.display="none"; return; }
+ if(btn) btn.style.display="";
+
+ // chhote-chhote counts — admin ko pata rahe ki kahan kaam pada hai
+ const count=(table,filters)=>{
+  let q=LW.sb.from(table).select("id",{count:"exact",head:true});
+  (filters||[]).forEach(f=>{ q=q.eq(f[0],f[1]); });
+  return q.then(r=>r.count||0).catch(()=>null);
+ };
+ const set=(id,txt)=>{const el=document.getElementById(id); if(el) el.textContent=txt;};
+
+ const [users,ann,prod,rep]=await Promise.all([
+  count("profiles"),
+  count("announcements",[["visibility","public"],["admin_status","pending"]]),
+  count("store_products",[["status","pending"]]),
+  count("reports",[["status","open"]])
+ ]);
+ set("ctlUsers", users==null?"—":users+" registered");
+ set("ctlAnn",   ann==null?"—":(ann?ann+" approve karne baaki":"Sab clear"));
+ set("ctlProd",  prod==null?"—":(prod?prod+" request pending":"Sab clear"));
+ set("ctlRep",   rep==null?"—":(rep?rep+" open":"Sab clear"));
+}
+
+/* ---------- Dashboard section ---------- */
+function paintDashboard(p){
+ const prefs=p.preferences||{};
+ const setChk=(id,def)=>{const el=document.getElementById(id); if(el) el.checked = prefs[id]===undefined ? def : !!prefs[id];};
+ setChk("prefDashTicker", true);
+ setChk("prefDashSpots", true);
+ setChk("prefDashMusic", true);
+ setChk("prefDashMotd", true);
+ setChk("prefDashUpcoming", true);
+ const vis=document.getElementById("prefDefaultPostVis");
+ if(vis) vis.value = prefs.prefDefaultPostVis || "friends";
+}
+function saveDashboard(){
+ savePrefKeys(["prefDashTicker","prefDashSpots","prefDashMusic","prefDashMotd","prefDashUpcoming","prefDefaultPostVis"]);
+}
 function saveNotifications(){savePrefKeys(["prefNotifMessages","prefNotifFriendReq","prefNotifBirthdays","prefNotifSongs","prefNotifAnnouncements"])}
 function saveSecurity(){savePrefKeys(["prefOtpLogin","prefLoginAlerts"])}
 
@@ -651,23 +1060,101 @@ async function logoutAll(){
  LW.logout();
 }
 
-// koi bhi chat khole bina — Spotify login abhi kaam kar raha hai ya nahi, yahin se pata chale
+/* Spotify ab Loveway ke login se alag hai — koi bhi user (email, Google,
+   kisi bhi tarah se aaya ho) apna Spotify jod sakta hai, aur jodne se
+   Loveway ka session bilkul nahi badalta. Token refresh bhi apne aap hota
+   hai, isliye har ghante dobara login karne ki zarurat nahi. */
 async function checkSpotify(){
  const statusEl=document.getElementById("spotifyStatus");
  const btn=document.getElementById("spotifyBtn");
+ const help=document.getElementById("spotifyHelp");
+ if(!statusEl||!btn) return;
+
+ if(help) help.innerHTML=redirectHelpHtml();
+
+ // config.js mein client id hi nahi hai to connect kabhi chalega hi nahi —
+ // "connect karo" dikhana bekaar hai, asli wajah batao
+ if(window.LWSpotify && !LWSpotify.configured()){
+  statusEl.textContent="⚙️ Setup baaki hai — config.js mein SPOTIFY_CLIENT_ID daalein";
+  btn.textContent="Kaise?";
+  btn.onclick=()=>{ if(help) help.innerHTML=
+    'developer.spotify.com/dashboard &gt; app &gt; Settings &gt; <b>Client ID</b> copy karke '+
+    'config.js mein daalein.'+redirectHelpHtml(); };
+  return;
+ }
+
  statusEl.textContent=tl("spotifyChecking");
  btn.disabled=true;
  const r=await LW.spotifyApi("/me");
  btn.disabled=false;
+
  if(r.error){
   statusEl.textContent=r.error==="no-token"?tl("spotifyNotConnected"):tl("spotifyExpired");
   btn.textContent=tl("spotifyConnectBtn");
-  btn.onclick=()=>LW.spotify();
+  btn.onclick=()=>LW.spotifyConnect();
+  if(help) help.innerHTML="Jodne par search, playlists, liked songs aur Music of the Day — sab tumhare apne Spotify se chalenge."+redirectHelpHtml();
  } else {
   statusEl.textContent="✅ "+tl("spotifyConnectedAs")+" "+(r.data.display_name||r.data.email||r.data.id);
-  btn.textContent=tl("spotifyRecheckBtn");
-  btn.onclick=checkSpotify;
+  btn.textContent="Disconnect";
+  btn.onclick=disconnectSpotify;
+  if(help) help.innerHTML='<a href="#" onclick="checkSpotify();return false">Dobara check karo</a>'+redirectHelpHtml();
  }
+}
+
+/* "redirect_uri: Not matching configuration" ki wajah hamesha ek hi hoti hai —
+   jo URI browser bhejta hai wo Spotify Dashboard mein register nahi hai. Dono
+   ka EXACT match chahiye (https, www, port, path — sab). Isliye jo browser
+   sach mein bhejega, wahi yahan copy karne ke liye dikha dete hain. */
+function redirectHelpHtml(){
+ if(!window.LWSpotify) return "";
+ const problem = LWSpotify.redirectProblem();
+
+ // DO alag-alag URI chahiye, kyunki do alag flow hain:
+ //   1. "🎵 Spotify se login" (login/signup page) → Supabase ka OAuth,
+ //      uska callback Supabase par hota hai
+ //   2. "Connect" (yahan Settings se) → apna PKCE flow, callback
+ //      spotify-callback.html par
+ // Sirf ek register karne par doosra "redirect_uri: Not matching
+ // configuration" deta hai — isliye dono dikha rahe hain.
+ const sup = (window.LOVEWAY_CONFIG && LOVEWAY_CONFIG.SUPABASE_URL || "").replace(/\/+$/,"");
+ const rows = [
+  { id:"spRedirUri",     label:"Connect ke liye (Settings ka button)", uri: LWSpotify.redirectUri() },
+  { id:"spRedirUriAuth", label:'"Spotify se login" ke liye',           uri: sup ? sup+"/auth/v1/callback" : "" }
+ ].filter(r=>r.uri);
+
+ return '<div style="margin-top:10px;padding:10px;border:1px solid var(--border);border-radius:10px">'+
+   '<div style="font-size:.78rem;margin-bottom:8px">Spotify Dashboard &gt; apni app &gt; <b>Settings &gt; Redirect URIs</b> mein ye <b>dono</b> lines honi chahiye:</div>'+
+   rows.map(r=>
+     '<div style="margin-bottom:8px">'+
+       '<div style="font-size:.72rem;color:var(--muted);margin-bottom:3px">'+r.label+'</div>'+
+       '<div style="display:flex;gap:6px;align-items:center">'+
+         '<code id="'+r.id+'" style="flex:1;min-width:0;overflow:auto;white-space:nowrap;background:var(--bg2);padding:6px 8px;border-radius:8px;font-size:.76rem">'+
+         LW.escapeHtml(r.uri)+'</code>'+
+         '<button type="button" class="btn secondary" style="flex:none;padding:6px 12px;font-size:.75rem" onclick="copyRedirectUri(\''+r.id+'\')">Copy</button>'+
+       '</div>'+
+     '</div>').join('')+
+   (problem ? '<div style="margin-top:4px;font-size:.78rem;color:#ff8080">⚠️ '+LW.escapeHtml(problem)+'</div>' : '')+
+   '<div style="margin-top:4px;font-size:.72rem;color:var(--muted)">Add karke <b>Save</b> dabana mat bhoolna. Ek-ek akshar match hona chahiye — https/http, www, port aur aakhir ka .html bhi.</div>'+
+ '</div>';
+}
+
+function copyRedirectUri(id){
+ const el=document.getElementById(id||"spRedirUri");
+ const uri=el?el.textContent:"";
+ if(navigator.clipboard && navigator.clipboard.writeText){
+  navigator.clipboard.writeText(uri).then(()=>toast("📋 Copy ho gaya"),()=>toast("❌ Copy nahi hua"));
+ } else if(el){
+  // purane/insecure context wale browser — user khud select kar le
+  const r=document.createRange(); r.selectNodeContents(el);
+  const s=getSelection(); s.removeAllRanges(); s.addRange(r); toast("Select ho gaya — Ctrl+C dabao");
+ }
+}
+
+function disconnectSpotify(){
+ if(!confirm("Spotify ka connection hata dein?")) return;
+ if(window.LWSpotify) LWSpotify.disconnect();
+ toast("Spotify hata diya");
+ checkSpotify();
 }
 
 // native <select> ka dropdown popup style nahi ho sakta (OS/browser control karta hai) —
@@ -735,11 +1222,16 @@ async function unblockSettings(friendshipId){
 document.addEventListener("DOMContentLoaded",async()=>{
  const p=await LW.requireAuth({allowBlocked:true});
  if(!p) return;
- window.LW_ME=p; paintMe(p); paintPrefs(p);
+ window.LW_ME=p; window.LW.profile=p;
+ paintMe(p); paintPrefs(p); paintProfileSection(p); paintDashboard(p); paintStore(p); paintControlCenter(p);
+ if(window.LWFest) LWFest.load().then(paintFestival);
+ paintFestival();
  loadBlockedSettings();
  checkSpotify();
  enhanceSelect(document.getElementById("languageQuick"));
  enhanceSelect(document.getElementById("languageMain"));
+ enhanceSelect(document.getElementById("pfRel"));
+ enhanceSelect(document.getElementById("prefDefaultPostVis"));
 });
 function saveLanguage(){setLanguage(document.getElementById("languageMain").value);toast((translations[getLang()]||translations.en).saved)}
 document.getElementById("languageQuick").addEventListener("change",e=>setLanguage(e.target.value));

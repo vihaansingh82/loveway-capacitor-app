@@ -4,11 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Announcements — Loveway</title>
-<link rel="stylesheet" href="lw-styles.css?v=2">
+<link rel="stylesheet" href="lw-styles.css?v=4">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="config.js"></script>
-<script src="lw-core.js?v=3"></script>
-<script src="lw-app.js?v=9"></script>
+<script src="config.js?v=2"></script>
+<script src="lw-core.js?v=7"></script>
+<script src="lw-festivals.js?v=2"></script>
+<script src="lw-spotify.js?v=6"></script>
+<script src="lw-app.js?v=15"></script>
+<link rel="stylesheet" href="lw-responsive.css?v=5">
+<link rel="stylesheet" href="lw-clay.css?v=1">
+<script src="lw-responsive.js?v=2" defer></script>
 </head>
 <body data-theme="ocean">
 
@@ -29,7 +34,8 @@
     <span class="spacer"></span>
     <button class="btn primary" onclick="openForm()">+ Naya Announcement</button>
   </div>
-  <p class="muted" style="margin:-8px 0 16px">Birthday, anniversary, proposal ya koi bhi special wish bhejo — recipient approve karega tabhi sabko dikhega.</p>
+  <p class="muted" style="margin:-8px 0 16px">Birthday, anniversary, proposal ya koi bhi special wish bhejo — recipient approve karega tabhi dikhega.<br>
+    <b>🌍 Sabhi (Global)</b> wale announcements poore Loveway par jaate hain, isliye unke liye Loveway admin ki bhi ek approval lagti hai.</p>
 
   <div class="tabs">
     <div class="tab active" onclick="setTab('pending',this)">🎁 Pending approvals</div>
@@ -71,12 +77,13 @@
     <textarea id="aMessage" rows="3" placeholder="Apna dil ki baat likho…"></textarea>
 
     <label class="fl">Approve hone ke baad kaun dekh sakta hai?</label>
-    <select id="aVisibility">
+    <select id="aVisibility" onchange="onVisibilityChange()">
       <option value="friends">👥 Dost</option>
-      <option value="public">🌍 Sabhi</option>
+      <option value="public">🌍 Sabhi (Global)</option>
       <option value="partner">💑 Partner</option>
       <option value="private">🔒 Sirf tum dono</option>
     </select>
+    <div id="aVisHint" class="muted" style="font-size:.8rem;margin-top:6px"></div>
 
     <div class="foot">
       <button class="btn" onclick="closeForm()">Cancel</button>
@@ -105,6 +112,7 @@ function openForm() {
   document.getElementById('aRecipientChosen').style.display = 'none';
   document.getElementById('aMessage').value = '';
   document.getElementById('aVisibility').value = 'friends';
+  onVisibilityChange();
   document.getElementById('aPreview').src = '';
   document.getElementById('aPreviewWrap').style.display = 'none';
   document.querySelectorAll('.kind-opt').forEach(function (x) { x.classList.toggle('active', x.dataset.val === 'birthday'); });
@@ -116,6 +124,29 @@ function pickKind(el) {
   document.querySelectorAll('.kind-opt').forEach(function (x) { x.classList.remove('active'); });
   el.classList.add('active');
   selectedKind = el.dataset.val;
+}
+
+/* Kaun kya dekhega, aur kiski approval lagegi — bhejne se PEHLE saaf
+   bata do. Pehle user ko sirf reject hone ke baad pata chalta tha. */
+function onVisibilityChange() {
+  var v = document.getElementById('aVisibility').value;
+  var hint = document.getElementById('aVisHint');
+  var noPartner = me && !me.partner_id;
+
+  if (v === 'public') {
+    hint.innerHTML = '🛡️ <b>Global announcement</b> poore Loveway par dikhta hai, isliye ' +
+      'recipient ki haan ke baad ek baar <b>Loveway admin</b> bhi dekhta hai. Approve hote hi live ho jaayega.';
+  } else if (v === 'partner' && noPartner) {
+    hint.innerHTML = '💡 Tumne abhi tak partner add nahi kiya, isliye ye announcement tumhari ' +
+      '<b>friend list</b> ko dikhega. Partner add karne ke liye ' +
+      '<a href="settings.html#profile">Settings</a> par jao.';
+  } else if (v === 'partner') {
+    hint.textContent = '💑 Sirf tumhare partner ko dikhega.';
+  } else if (v === 'friends') {
+    hint.textContent = '👥 Tumhari friend list ko dikhega — koi admin approval nahi lagti.';
+  } else {
+    hint.textContent = '🔒 Sirf tum dono dekh paoge.';
+  }
 }
 
 function onRecipientSearch() {
@@ -203,11 +234,17 @@ function setTab(name, el) {
 
 function pendingHtml(x) {
   var meta = KIND_META[x.kind] || KIND_META.custom;
+  var VIS = { public: '🌍 Sabhi (Global)', friends: '👥 Dost', partner: '💑 Partner', private: '🔒 Sirf tum dono' };
   return '<div class="person">' + LWApp.avatarHtml(x.sender, 'sm') +
     '<div class="who"><b>' + meta.emoji + ' ' + LWApp.esc(meta.label) + '</b>' +
-    '<small>' + LWApp.esc(x.sender.full_name || x.sender.username || '—') + ' · ' + LWApp.timeAgo(x.created_at) + '</small>' +
+    '<small>' + LWApp.esc(x.sender.full_name || x.sender.username || '—') +
+    (x.sender.username ? ' (@' + LWApp.esc(x.sender.username) + ')' : '') +
+    ' · ' + LWApp.timeAgo(x.created_at) + '</small>' +
     (x.message ? '<div class="muted" style="margin-top:4px">' + LWApp.esc(x.message) + '</div>' : '') +
-    '</div><div class="acts">' +
+    // recipient ko pehle hi dikha do ki approve karne par kitni door jaayega
+    '<div class="muted" style="margin-top:4px;font-size:.8rem">Dikhega: ' + (VIS[x.visibility] || x.visibility) +
+      (x.visibility === 'public' ? ' — tumhare approve ke baad Loveway admin bhi review karega' : '') +
+    '</div></div><div class="acts">' +
     '<button class="btn sm primary" onclick="answer(' + x.id + ',true)">Approve</button>' +
     '<button class="btn sm" onclick="answer(' + x.id + ',false)">Reject</button>' +
     '</div></div>';
@@ -215,13 +252,16 @@ function pendingHtml(x) {
 
 function sentHtml(x) {
   var meta = KIND_META[x.kind] || KIND_META.custom;
-  var statusChip = x.status === 'approved' ? '<span class="chip">✅ Approved</span>'
-    : x.status === 'rejected' ? '<span class="chip locked">❌ Rejected</span>'
-    : '<span class="chip">⏳ Pending</span>';
+  // ab do gate hain (recipient + global walon ke liye admin) — ek hi
+  // "Pending" chip se pata nahi chalta tha ki atka kahan hai
+  var stage = LWApp.announcementStage(x);
+  var visChip = x.visibility === 'public' ? '<span class="chip">🌍 Global</span>' : '';
   return '<div class="person">' + LWApp.avatarHtml(x.recipient, 'sm') +
     '<div class="who"><b>' + meta.emoji + ' ' + LWApp.esc(meta.label) + '</b>' +
-    '<small>' + LWApp.esc(x.recipient.full_name || x.recipient.username || '—') + ' · ' + LWApp.timeAgo(x.created_at) + '</small></div>' +
-    '<div class="acts">' + statusChip + '</div></div>';
+    '<small>' + LWApp.esc(x.recipient.full_name || x.recipient.username || '—') + ' · ' + LWApp.timeAgo(x.created_at) + '</small>' +
+    (x.admin_note ? '<div class="muted" style="margin-top:4px;font-size:.8rem">🛡️ ' + LWApp.esc(x.admin_note) + '</div>' : '') +
+    '</div><div class="acts">' + visChip +
+    '<span class="chip ' + stage.cls + '">' + LWApp.esc(stage.chip) + '</span></div></div>';
 }
 
 async function loadPending() {

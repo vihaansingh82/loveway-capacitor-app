@@ -1,0 +1,280 @@
+/* ============================================================
+   Loveway — Claymorphism theme
+   ------------------------------------------------------------
+   Poori file [data-theme="clay"] ke andar scoped hai. Koi doosra
+   theme isse chhua nahi jaata — Clay chuno tabhi ye lagta hai.
+
+   Alag file isliye hai, lw-styles.css me nahi, kyunki wo ek
+   compiled artifact maana jaata hai aur rebuild par uske andar
+   ke changes ud jaate. Ye har page par lw-responsive.css ke
+   BAAD load hoti hai, taaki clay ke rules jeet sakein.
+
+   Clay ka look teen cheezon se banta hai:
+     1. bahut badi radii (chhoti radii par clay plastic lagta hai)
+     2. do bahar wali shadow — neeche-daayen gehri, upar-baayen safed
+     3. andar wali (inset) highlight, jisse cheez "phooli hui" lage
+   ============================================================ */
+
+[data-theme="clay"] {
+  /* Ground card se GEHRA hona chahiye. Pehle dono lagbhag ek jaise the
+     (#e9ecf7 vs #eef1fb) aur clay ka uthaav dikhta hi nahi tha — sab
+     dhula-dhula lagta tha. Ab card saaf taur par ubhra hua lagta hai. */
+  --bg:           #dbe0f1;
+  --bg2:          #ced5eb;
+  --card:         #eaeefb;
+  --primary:      #ff6f91;
+  --primary-soft: #ff6f9126;
+  --accent:       #7c83fd;
+  --text:         #2f2b43;
+  --text-soft:    #736e96;
+  --border:       #ffffff00;          /* clay me line ki jagah shadow boundary banati hai */
+  --grad:         linear-gradient(135deg, #ff6f91, #7c83fd);
+  --pink-light:   #ffa7bd;
+  color-scheme:   light;
+
+  /* dono taraf ki roshni — yahi clay ka asli signature hai */
+  --clay-dark:  rgba(133, 142, 190, 0.58);
+  --clay-light: rgba(255, 255, 255, 0.95);
+
+  --clay-out:
+     9px  9px 20px var(--clay-dark),
+    -7px -7px 18px var(--clay-light);
+  --clay-in:
+    inset -4px -4px 10px rgba(133, 142, 190, 0.32),
+    inset  4px  4px 10px rgba(255, 255, 255, 0.88);
+
+  /* buttons chhote hote hain — unhe chhoti shadow chahiye, warna wo apne
+     card ke kinare se bahar nikal kar cut lagti hai */
+  --clay-out-sm:
+     5px  5px 12px var(--clay-dark),
+    -4px -4px 10px var(--clay-light);
+
+  --shadow: var(--clay-out);
+  --clay-r: 26px;
+}
+
+/* ---------- surfaces ---------- */
+
+[data-theme="clay"] body,
+body[data-theme="clay"] {
+  background: var(--bg);
+}
+
+[data-theme="clay"] .card,
+[data-theme="clay"] .modal,
+[data-theme="clay"] .chat-wrap,
+[data-theme="clay"] .app-sidebar,
+[data-theme="clay"] .side-rail > .card {
+  background: var(--card);
+  border: 0;
+  border-radius: var(--clay-r);
+  box-shadow: var(--clay-out), var(--clay-in);
+}
+
+/* Sidebar screen ke kinare chipka hota hai, to sirf andar wali taraf gol */
+[data-theme="clay"] .app-sidebar {
+  border-radius: 0 var(--clay-r) var(--clay-r) 0;
+}
+
+/* Card ke andar card — dono ko ubhaarne par dher lagta hai aur gandi lagti
+   hai. Andar wale ko dhansa hua dikhate hain, jisse hierarchy saaf rehti hai. */
+[data-theme="clay"] .card .card {
+  background: var(--bg2);
+  box-shadow: var(--clay-in);
+}
+
+[data-theme="clay"] header {
+  background: var(--card);
+  border: 0;
+  border-radius: 0 0 var(--clay-r) var(--clay-r);
+  box-shadow: var(--clay-out);
+}
+
+/* ---------- buttons ---------- */
+
+[data-theme="clay"] .btn,
+[data-theme="clay"] button.btn {
+  border: 0;
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--text);
+  box-shadow: var(--clay-out-sm), var(--clay-in);
+  transition: box-shadow .18s, transform .18s;
+}
+
+[data-theme="clay"] .btn:hover {
+  transform: translateY(-1px);
+}
+
+/* dabane par cheez andar dhansti hui lage — clay ka sabse pehchana jaane
+   wala effect. Bahar wali shadow hata kar sirf gehri inset chhodte hain. */
+[data-theme="clay"] .btn:active {
+  transform: translateY(1px);
+  box-shadow:
+    inset  6px  6px 12px rgba(158, 165, 205, 0.55),
+    inset -5px -5px 12px rgba(255, 255, 255, 0.85);
+}
+
+[data-theme="clay"] .btn.primary {
+  background: var(--grad);
+  color: #fff;
+  box-shadow:
+     8px  8px 18px rgba(255, 111, 145, 0.42),
+    -5px -5px 14px var(--clay-light),
+    inset -3px -3px 8px rgba(180, 70, 100, 0.28),
+    inset  3px  3px 8px rgba(255, 255, 255, 0.40);
+}
+
+[data-theme="clay"] .icon-btn,
+[data-theme="clay"] .header-action {
+  border: 0;
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: var(--clay-out-sm), var(--clay-in);
+}
+
+/* ---------- inputs: yahan ulta — andar dhansa hua ---------- */
+
+[data-theme="clay"] input[type="text"],
+[data-theme="clay"] input[type="email"],
+[data-theme="clay"] input[type="password"],
+[data-theme="clay"] input[type="search"],
+[data-theme="clay"] input[type="tel"],
+[data-theme="clay"] input[type="number"],
+[data-theme="clay"] input[type="date"],
+[data-theme="clay"] textarea,
+[data-theme="clay"] select {
+  background: var(--bg2);
+  border: 0;
+  border-radius: 18px;
+  color: var(--text);
+  box-shadow:
+    inset  5px  5px 11px rgba(158, 165, 205, 0.42),
+    inset -4px -4px 10px rgba(255, 255, 255, 0.90);
+}
+
+[data-theme="clay"] input:focus,
+[data-theme="clay"] textarea:focus,
+[data-theme="clay"] select:focus {
+  outline: 0;
+  box-shadow:
+    inset  5px  5px 11px rgba(158, 165, 205, 0.42),
+    inset -4px -4px 10px rgba(255, 255, 255, 0.90),
+    0 0 0 3px var(--primary-soft);
+}
+
+/* ---------- pills, tabs, chips ---------- */
+
+[data-theme="clay"] .tabs {
+  background: transparent;
+  border: 0;
+  gap: 8px;
+}
+
+[data-theme="clay"] .tab {
+  border: 0;
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: var(--clay-out-sm);
+}
+
+[data-theme="clay"] .tab.active {
+  color: #fff;
+  background: var(--grad);
+  box-shadow:
+     6px  6px 14px rgba(255, 111, 145, 0.40),
+    -4px -4px 12px var(--clay-light);
+}
+
+[data-theme="clay"] .chip {
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--clay-out-sm);
+}
+
+/* ---------- misc surfaces jo card jaisi dikhni chahiye ---------- */
+
+[data-theme="clay"] .song-card,
+[data-theme="clay"] .spot-card,
+[data-theme="clay"] .empty,
+[data-theme="clay"] .msg-song {
+  border: 0;
+  border-radius: 20px;
+  background: var(--card);
+  box-shadow: var(--clay-out);
+}
+
+[data-theme="clay"] .story-ring {
+  box-shadow: var(--clay-out);
+}
+
+/* avatar bhi clay jaisa gol aur phoola hua */
+[data-theme="clay"] .avatar,
+[data-theme="clay"] .avatar img {
+  border: 0;
+  box-shadow: var(--clay-out);
+}
+
+/* ---------- Music of the Day ---------- */
+
+[data-theme="clay"] .rail-refresh-btn {
+  background: var(--card);
+  box-shadow: var(--clay-out-sm);
+}
+
+[data-theme="clay"] .motd-winner-chip {
+  border: 0;
+  border-radius: 16px;
+  box-shadow: var(--clay-out-sm);
+}
+
+/* Row card ke andar hai, isliye upar wali .card .card jaisa hi — dhansa
+   hua slot, aur ussi slot ke andar rank/vote alag rang se bataate hain. */
+[data-theme="clay"] .motd-row {
+  border-bottom: 0;
+  border-radius: 14px;
+  background: var(--bg2);
+  box-shadow: var(--clay-in);
+  margin-bottom: 6px;
+}
+
+[data-theme="clay"] .motd-row.leading {
+  background: linear-gradient(135deg, rgba(255, 196, 0, .22), rgba(255, 111, 145, .14));
+}
+
+[data-theme="clay"] .motd-row.voted {
+  background: linear-gradient(135deg, var(--primary-soft), rgba(124, 131, 253, .14));
+}
+
+/* Vote button us dhanse hue slot ke UPAR ubhra hua button hai — dabaane
+   par (.on) andar dhans jaata hai, baaki buttons ki tarah. */
+[data-theme="clay"] .motd-vote {
+  border: 0;
+  background: var(--card);
+  box-shadow: var(--clay-out-sm);
+}
+
+[data-theme="clay"] .motd-vote.on {
+  background: var(--grad);
+  color: #fff;
+  box-shadow:
+    inset  4px  4px 10px rgba(180, 70, 100, .35),
+    inset -3px -3px 8px rgba(255, 255, 255, .35);
+}
+
+/* Clay ki gehri shadows ko saans lene ki jagah chahiye — warna wo aapas me
+   ghul kar gandi lagti hain. Isliye clay me thoda zyada gap. */
+[data-theme="clay"] .card + .card,
+[data-theme="clay"] .side-rail > .card + .card {
+  margin-top: 18px;
+}
+
+/* Jo log motion kam chahte hain unke liye press wala transform band */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="clay"] .btn,
+  [data-theme="clay"] .btn:hover,
+  [data-theme="clay"] .btn:active {
+    transform: none;
+    transition: none;
+  }
+}

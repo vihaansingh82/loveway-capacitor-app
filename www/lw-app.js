@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    Loveway — app data layer
    Har page ke Supabase calls yahan hain. Page sirf UI banata hai.
    lw-core.js ke baad load karein.
@@ -79,7 +79,8 @@
     search:    '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
     sun:       '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>',
     heart:     '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>',
-    gift:      '<polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>'
+    gift:      '<polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>',
+    bag:       '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>'
   };
 
   function icon(name, size) {
@@ -285,12 +286,31 @@
     if (dot) dot.classList.add('active');
   }
 
+  // Phone/tablet browser ya Android app (Capacitor) — dono ke liye Clay
+  // default hai; bade desktop screen par Ocean hi default rehta hai.
+  // Isi tarah ka native-check lw-rails.js/lw-spotify.js me bhi hai.
+  function isMobileOrNative() {
+    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) return true;
+    if (location.protocol === 'capacitor:') return true;
+    if (location.hostname === 'localhost' && !location.port) return true;
+    return !!(window.matchMedia && window.matchMedia('(max-width: 899px)').matches);
+  }
+
   function restoreTheme() {
-    var saved = 'ocean', customColor = null;
+    // Admin ne koi festival theme chalu kar rakhi hai to wahi jeetegi.
+    // Ye check yahan hona zaruri hai: shell() har page par restoreTheme()
+    // chalata hai, aur wo lw-festivals.js ke apply() ke BAAD chalta tha —
+    // isliye festival theme lagti thi aur turant overwrite ho jaati thi.
+    // (LWFest.apply() festival na hone par isi function ko wapas bulata
+    //  hai, par tab active() falsy hota hai — recursion nahi hoti.)
+    if (window.LWFest && window.LWFest.active()) { window.LWFest.apply(); return; }
+
+    var saved = null, customColor = null;
     try {
-      saved = localStorage.getItem('loveway_theme') || 'ocean';
+      saved = localStorage.getItem('loveway_theme');
       customColor = localStorage.getItem('loveway_custom_color');
     } catch (e) {}
+    if (!saved) saved = isMobileOrNative() ? 'clay' : 'ocean';
     if (saved === 'custom' && customColor) setCustomColor(customColor);
     else setTheme(saved);
     restoreBgPhoto();
@@ -327,9 +347,12 @@
       { id: 'profile',    href: 'profile.html',    ic: 'profile',   label: 'Profile' }
     ];
 
+    // logo ke baad "Beta Version" — har app page ka header yahin se banta
+    // hai, isliye ek jagah likhne se sab jagah lag jaata hai
     var h1 = document.querySelector('header h1');
     if (h1 && !h1.querySelector('img')) {
-      h1.innerHTML = '<img src="logo.png" alt="Loveway" class="lw-logo-icon">';
+      h1.innerHTML = '<img src="logo.png" alt="Loveway" class="lw-logo-icon">' +
+                     '<span class="lw-beta">Beta Version</span>';
     }
 
     var head = document.querySelector('header .header-tools');
@@ -469,6 +492,7 @@
     { id: 'activities',    href: 'activities.html',    icon: 'pin',       label: 'navBoard' },
     { id: 'journey',       href: 'journey.html',       icon: 'chain',     label: 'navLifeChain' },
     { id: 'announcements', href: 'announcements.html', icon: 'gift',      label: 'Announcements' },
+    { id: 'store',         href: 'store.html',         icon: 'bag',       label: 'Store' },
     { id: 'goals',         href: 'goals.html',         icon: 'target',    label: 'navGoals' },
     { id: 'friends',       href: 'friends.html',       icon: 'friends',   label: 'navFriends' },
     { id: 'chat',          href: 'messages.html',      icon: 'chat',      label: 'navChat' },
@@ -484,6 +508,7 @@
     sidebar.innerHTML =
       '<div class="app-sidebar-brand">' +
         '<a href="dashboard.html"><img src="logo.png" alt="Loveway" class="lw-logo-icon"></a>' +
+        '<span class="lw-beta">Beta Version</span>' +
         '<button type="button" class="app-sidebar-toggle" onclick="LWApp.toggleSidebar()" title="Sidebar collapse/expand">' +
           icon('chevron', 16) +
         '</button>' +
@@ -494,6 +519,11 @@
           icon(p.icon) + '<span data-i18n="' + p.label + '">' +
           (window.t ? window.t(p.label) : p.id) + '</span></a>';
       }).join('') +
+      // Admin ab normal Loveway hi use karta hai, isliye Control Center ka
+      // raasta yahin se — sirf admin ko dikhta hai
+      (me && me.is_admin
+        ? '<a href="admin.html" class="app-sidebar-admin">🛡️<span>Control Center</span></a>'
+        : '') +
       '</div>' +
       '<a href="profile.html" class="app-sidebar-profile">' +
         avatarHtml(me || {}, 'sm') +
@@ -511,10 +541,14 @@
     var head = document.querySelector('header');
     if (!head || head.querySelector('.app-topbar-search')) return;
     var wrap = document.createElement('div');
+    // Default me sirf ek chhota icon-button. Tap karne par hi poori patti
+    // khulti hai — header me baaki icons ke liye jagah bach jaati hai.
     wrap.className = 'app-topbar-search';
     wrap.innerHTML =
-      icon('search', 16) +
-      '<input type="search" id="topbarSearch" placeholder="Search Loveway…" autocomplete="off">' +
+      '<button type="button" class="app-search-btn" aria-label="Search" aria-expanded="false">' +
+        icon('search', 16) +
+      '</button>' +
+      '<input type="search" id="topbarSearch" placeholder="Search Loveway…" autocomplete="off" tabindex="-1">' +
       '<div class="app-search-results" style="display:none"></div>';
     var h1 = head.querySelector('h1');
     if (h1 && h1.nextSibling) head.insertBefore(wrap, h1.nextSibling);
@@ -538,8 +572,42 @@
         });
       }, 350);
     });
+    /* ---------- khulna / band hona ---------- */
+    var btn = wrap.querySelector('.app-search-btn');
+
+    function openSearch() {
+      wrap.classList.add('open');
+      btn.setAttribute('aria-expanded', 'true');
+      input.tabIndex = 0;
+      input.focus();
+    }
+    function closeSearch() {
+      wrap.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+      input.tabIndex = -1;
+      input.value = '';
+      results.style.display = 'none';
+      results.innerHTML = '';
+    }
+
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (wrap.classList.contains('open')) closeSearch();
+      else openSearch();
+    });
+
+    // Esc se band; kuch likha ho to pehla Esc sirf text saaf kare
+    input.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      if (this.value) { this.value = ''; results.style.display = 'none'; }
+      else closeSearch();
+    });
+
     document.addEventListener('click', function (e) {
-      if (!wrap.contains(e.target)) { results.style.display = 'none'; }
+      if (wrap.contains(e.target)) return;
+      results.style.display = 'none';
+      // bahar click par band, par likha hua kuch ho to khula rehne do
+      if (!input.value) closeSearch();
     });
   }
 
@@ -574,10 +642,11 @@
     }).catch(function () {});
   }
 
-  /* ---------- Quick theme-cycle button (topbar) — cycles through all 5
+  /* ---------- Quick theme-cycle button (topbar) — cycles through all
      data-theme values using the existing setTheme(), no new light/dark
-     concept introduced ---------- */
-  var THEME_CYCLE = ['romantic', 'dark', 'ocean', 'sunset', 'modern'];
+     concept introduced. 'clay' ka 3D look lw-clay.css se aata hai; yahan
+     wo baaki themes jaisa ek normal naam hi hai. ---------- */
+  var THEME_CYCLE = ['romantic', 'dark', 'ocean', 'sunset', 'modern', 'clay'];
   function cycleTheme() {
     var cur = document.body.getAttribute('data-theme') || 'romantic';
     var i = THEME_CYCLE.indexOf(cur);
@@ -613,6 +682,14 @@
       .or('username.ilike.%' + t + '%,full_name.ilike.%' + t + '%')
       .limit(25)
       .then(function (r) { return r.data || []; });
+  }
+
+  // Settings > Dashboard/Privacy/Notifications ke toggles profiles.preferences
+  // (jsonb) mein rehte hain. Har page yahin se padhta hai, taaki default
+  // value ek hi jagah tay ho.
+  function pref(key, def) {
+    var p = (window.LW && window.LW.profile && window.LW.profile.preferences) || {};
+    return p[key] === undefined ? def : p[key];
   }
 
   function saveProfile(patch) {
@@ -839,8 +916,58 @@
   /* ---------- Announcements (birthday/anniversary/proposal/... — approval-gated,
      recipient must approve before it becomes a real post) ---------- */
   function createAnnouncement(a) {
-    a.sender_id = window.LW.profile.id;
+    var me = window.LW.profile;
+    a.sender_id = me.id;
+    // Jisne abhi tak partner set nahi kiya, uske liye "💑 Partner" wali
+    // visibility ka koi matlab hi nahi tha — announcement approve hone ke
+    // baad bhi kisi ko dikhta hi nahi tha. Ab wo chupchaap friend-list par
+    // chala jaata hai, taaki mehnat se bheja gaana/message zaaya na ho.
+    if (a.visibility === 'partner' && !me.partner_id) a.visibility = 'friends';
     return sb().from('announcements').insert(a).select().maybeSingle();
+  }
+
+  // 🌍 Sabhi (global) announcement ke liye recipient ki haan ke baad Loveway
+  // admin ki bhi approval lagti hai — poore platform par dikhne wali cheez
+  // hai. Baaki visibilities (friends/partner/private) turant chali jaati hain.
+  function announcementNeedsAdmin(visibility) { return visibility === 'public'; }
+
+  function announcementStage(x) {
+    if (x.status === 'rejected') return { chip: '❌ Recipient ne reject kiya', cls: 'locked' };
+    if (x.admin_status === 'rejected') return { chip: '❌ Admin ne reject kiya', cls: 'locked' };
+    if (x.status === 'pending') return { chip: '⏳ Recipient ke approve ka wait', cls: '' };
+    if (x.admin_status === 'pending') return { chip: '🛡️ Admin approval ka wait', cls: '' };
+    return { chip: '✅ Live hai', cls: '' };
+  }
+
+  /* ---------- Admin: global (🌍 Sabhi) announcements ka approval queue ---------- */
+  function adminPendingAnnouncements(state) {
+    var q = sb().from('announcements')
+      .select('id, sender_id, recipient_id, kind, message, media_url, visibility, status, admin_status, admin_note, created_at')
+      .eq('visibility', 'public');
+    q = (state === 'all') ? q : q.eq('admin_status', state || 'pending');
+    return q.order('created_at', { ascending: false }).limit(100).then(function (r) {
+      var rows = r.data || [];
+      if (!rows.length) return [];
+      var ids = [];
+      rows.forEach(function (x) { ids.push(x.sender_id, x.recipient_id); });
+      return sb().from('lw_public_profiles')
+        .select('id, full_name, username, avatar_url').in('id', ids)
+        .then(function (p) {
+          var by = {};
+          (p.data || []).forEach(function (x) { by[x.id] = x; });
+          return rows.map(function (x) {
+            x.sender = by[x.sender_id] || {};
+            x.recipient = by[x.recipient_id] || {};
+            return x;
+          });
+        });
+    });
+  }
+
+  function adminAnswerAnnouncement(id, approve, note) {
+    return sb().from('announcements')
+      .update({ admin_status: approve ? 'approved' : 'rejected', admin_note: note || null })
+      .eq('id', id);
   }
 
   // announcements/<user_id>/<file> — "announcements" bucket, path jaisa posts/journey mein hai
@@ -877,7 +1004,7 @@
 
   function sentAnnouncements() {
     return sb().from('announcements')
-      .select('id, recipient_id, kind, message, media_url, visibility, status, created_at')
+      .select('id, recipient_id, kind, message, media_url, visibility, status, admin_status, admin_note, created_at')
       .eq('sender_id', window.LW.profile.id)
       .order('created_at', { ascending: false })
       .then(function (r) {
@@ -909,6 +1036,90 @@
       reason: reason,
       details: details || null
     });
+  }
+
+  /* ---------- Loveway Store — catalog + orders (no payment gateway yet, order
+     status flow works like Cash on Delivery: admin confirms/ships/delivers manually) ---------- */
+  // lw_store_products view = approved + active products, seller ki public
+  // store-profile ke saath. (Seedha store_products se seller ka naam nahi
+  // mil sakta — profiles par RLS tight hai.)
+  function storeProducts(filters) {
+    var q = sb().from('lw_store_products').select('*').order('created_at', { ascending: false });
+    if (filters && filters.category) q = q.eq('category', filters.category);
+    if (filters && filters.seller) q = q.eq('seller_id', filters.seller);
+    return q.then(function (r) { return r.data || []; });
+  }
+
+  /* ---------- Store sellers — koi bhi user product add karne ki request
+     bhej sakta hai; admin ki haan ke baad hi wo store par dikhta hai.
+     status/is_active/seller_id client se bheje bhi jaayein to DB trigger
+     (lw_protect_store_product) unhe overwrite kar deta hai — isliye yahan
+     bhejna sirf UI ki safai ke liye hai, security ke liye nahi. ---------- */
+  function submitStoreProduct(p) {
+    return sb().from('store_products').insert({
+      name: p.name,
+      description: p.description || null,
+      category: p.category || 'other',
+      base_price: p.base_price,
+      image_url: p.image_url || null,
+      customizable: p.customizable !== false,
+      seller_id: window.LW.profile.id,
+      status: 'pending',
+      is_active: false
+    }).select().maybeSingle();
+  }
+
+  // apni bheji hui saari requests — pending/approved/rejected sab
+  function myStoreProducts() {
+    return sb().from('store_products')
+      .select('id, name, description, category, base_price, image_url, customizable, status, is_active, admin_note, created_at')
+      .eq('seller_id', window.LW.profile.id)
+      .order('created_at', { ascending: false })
+      .then(function (r) { return r.data || []; });
+  }
+
+  // sirf pending/rejected request hi badli ja sakti hai (RLS + trigger dono se)
+  function updateMyStoreProduct(id, patch) {
+    return sb().from('store_products').update(patch)
+      .eq('id', id).eq('seller_id', window.LW.profile.id);
+  }
+
+  function deleteMyStoreProduct(id) {
+    return sb().from('store_products').delete()
+      .eq('id', id).eq('seller_id', window.LW.profile.id);
+  }
+
+  // seller ki dukaan ki identity (Settings > Store se set hoti hai)
+  function saveStoreProfile(patch) {
+    return saveProfile({
+      store_name: patch.store_name || null,
+      store_bio: patch.store_bio || null
+    });
+  }
+
+  // store/<user_id>/<file> — customization photo upload (user) ya product photo (admin)
+  function uploadStoreMedia(file) {
+    var safe = (file.name || 'file').replace(/[^a-zA-Z0-9._-]/g, '_');
+    var path = window.LW.profile.id + '/' + Date.now() + '-' + safe;
+    return sb().storage.from('store')
+      .upload(path, file, { contentType: file.type || undefined })
+      .then(function (r) {
+        if (r.error) throw r.error;
+        return sb().storage.from('store').getPublicUrl(path).data.publicUrl;
+      });
+  }
+
+  function placeStoreOrder(o) {
+    o.user_id = window.LW.profile.id;
+    return sb().from('store_orders').insert(o).select().maybeSingle();
+  }
+
+  function myStoreOrders() {
+    return sb().from('store_orders')
+      .select('id, product_id, quantity, customization, total_price, status, shipping_address, contact_mobile, created_at')
+      .eq('user_id', window.LW.profile.id)
+      .order('created_at', { ascending: false })
+      .then(function (r) { return r.data || []; });
   }
 
   /* ---------- Location picker (Leaflet + OpenStreetMap Nominatim, no API key) ---------- */
@@ -1095,12 +1306,26 @@
     closeLocationPicker();
   }
 
-  /* ---------- Spotify track picker (reusable — story music, dedications, etc) ---------- */
+  /* ---------- Spotify track picker (reusable — story music, pinned song,
+     dedications, Music of the Day nomination) ----------
+
+     Pehle ye picker khulte hi seedha "meri playlists" load karta tha. Agar
+     user ka Spotify juda nahi hai to wahin `no-token` aa jaata tha aur
+     search box kabhi kaam hi nahi karta tha — Pinned Song wali dikkat yahi
+     thi. Ab picker SEARCH-first hai: khulte hi cursor search box mein hota
+     hai, playlists/liked alag tab hain, aur agar connection nahi hai to
+     Spotify jodne ka button + "seedha link paste karo" ka rasta dono milte hain. */
   var _spotifyPickCallback = null;
+  var _spotifyPickerOpts = {};
 
   function spotifyEmbedUrl(url) {
     var m = /open\.spotify\.com\/(track|album|playlist|episode)\/([a-zA-Z0-9]+)/.exec(url || '');
     return m ? 'https://open.spotify.com/embed/' + m[1] + '/' + m[2] + '?utm_source=loveway' : null;
+  }
+
+  function spotifyTrackId(url) {
+    var m = /(?:open\.spotify\.com\/track\/|spotify:track:)([a-zA-Z0-9]+)/.exec(url || '');
+    return m ? m[1] : null;
   }
 
   var _spotifySearchTimer = null;
@@ -1112,9 +1337,21 @@
     modal.id = 'lwSpotifyModal';
     modal.innerHTML =
       '<div class="modal">' +
-        '<h3>🎵 Spotify se gaana chuno</h3>' +
-        '<input type="text" id="lwSpotifySearch" placeholder="🔍 Gaana ya singer ka naam likho…" style="margin-top:10px" autocomplete="off">' +
-        '<div id="lwSpotifyBody" style="margin-top:10px"><div class="spinner">Load ho raha hai…</div></div>' +
+        '<h3 id="lwSpotifyTitle">🎵 Gaana chuno</h3>' +
+        '<input type="search" id="lwSpotifySearch" placeholder="🔍 Gaana ya singer ka naam likho…" style="margin-top:10px" autocomplete="off">' +
+        '<div class="tabs" style="margin:10px 0 0">' +
+          '<div class="tab active" id="lwSpTabSearch" onclick="LWApp.spotifyPickerTab(\'search\')">🔍 Search</div>' +
+          '<div class="tab" id="lwSpTabPlaylists" onclick="LWApp.spotifyPickerTab(\'playlists\')">📋 Meri playlists</div>' +
+          '<div class="tab" id="lwSpTabLiked" onclick="LWApp.spotifyPickerTab(\'liked\')">❤️ Liked</div>' +
+        '</div>' +
+        '<div id="lwSpotifyBody" style="margin-top:10px"></div>' +
+        '<details style="margin-top:10px">' +
+          '<summary style="cursor:pointer;font-size:.85rem;color:var(--muted)">🔗 Ya seedha Spotify ka link paste karo</summary>' +
+          '<div style="display:flex;gap:8px;margin-top:8px">' +
+            '<input type="text" id="lwSpotifyLink" placeholder="https://open.spotify.com/track/…" style="flex:1" autocomplete="off">' +
+            '<button type="button" class="btn primary" onclick="LWApp.pickSpotifyLink()">Lo</button>' +
+          '</div>' +
+        '</details>' +
         '<div class="foot"><button class="btn" onclick="LWApp.closeSpotifyPicker()">Band karo</button></div>' +
       '</div>';
     document.body.appendChild(modal);
@@ -1123,17 +1360,78 @@
       var q = this.value.trim();
       clearTimeout(_spotifySearchTimer);
       _spotifySearchTimer = setTimeout(function () {
-        if (q) searchSpotifyTracks(q); else loadSpotifyPlaylists();
+        spotifyPickerTab('search');
+        if (q) searchSpotifyTracks(q);
+        else renderSpotifySearchIdle();
       }, 400);
+    });
+    document.getElementById('lwSpotifyLink').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); pickSpotifyLink(); }
     });
   }
 
-  function openSpotifyPicker(onPick) {
+  /* opts: { title, mode } — mode 'search' (default) | 'playlists' | 'liked' */
+  function openSpotifyPicker(onPick, opts) {
     ensureSpotifyModal();
     _spotifyPickCallback = onPick;
+    _spotifyPickerOpts = opts || {};
+    document.getElementById('lwSpotifyTitle').textContent = _spotifyPickerOpts.title || '🎵 Gaana chuno';
     document.getElementById('lwSpotifyModal').classList.add('open');
-    document.getElementById('lwSpotifySearch').value = '';
-    loadSpotifyPlaylists();
+    var input = document.getElementById('lwSpotifySearch');
+    input.value = '';
+    document.getElementById('lwSpotifyLink').value = '';
+    spotifyPickerTab(_spotifyPickerOpts.mode || 'search');
+    // mobile keyboard turant na khule isliye halka sa delay
+    setTimeout(function () { try { input.focus(); } catch (e) {} }, 120);
+  }
+
+  function spotifyPickerTab(name) {
+    var map = { search: 'lwSpTabSearch', playlists: 'lwSpTabPlaylists', liked: 'lwSpTabLiked' };
+    Object.keys(map).forEach(function (k) {
+      var el = document.getElementById(map[k]);
+      if (el) el.classList.toggle('active', k === name);
+    });
+    if (name === 'playlists') loadSpotifyPlaylists();
+    else if (name === 'liked') loadSpotifyLiked();
+    else {
+      var q = (document.getElementById('lwSpotifySearch').value || '').trim();
+      if (q) searchSpotifyTracks(q); else renderSpotifySearchIdle();
+    }
+  }
+
+  function renderSpotifySearchIdle() {
+    document.getElementById('lwSpotifyBody').innerHTML =
+      '<div class="empty"><span class="ic">🔍</span>Upar gaane ya singer ka naam likho — Spotify ki poori library se milega.</div>';
+  }
+
+  // "Spotify juda nahi hai" wala box — ab ye Loveway ke login ko chhue bina
+  // sirf Spotify jodta hai, isliye har user (Google/email wale bhi) connect kar sakta hai
+  function spotifyConnectBox(errorCode) {
+    var connected = !!(window.LWSpotify && window.LWSpotify.isConnected());
+    var msg, showConnect = true;
+    if (errorCode === 'forbidden') {
+      // Spotify app abhi "Development mode" me hai — allowlist ke bahar wale
+      // account ko Spotify khud 403 deta hai. Yahan connect button dikhana
+      // bekaar hai: dabane par bhi kabhi juda nahi karega, bas user chakkar
+      // kaatta rahega. Isliye button hata kar asli wajah bata dete hain.
+      msg = esc(window.t('devModeHint'));
+      showConnect = false;
+    } else if (errorCode === 'rate-limited') {
+      // Spotify ne thodi der rok diya hai. Reconnect se isse koi fayda nahi,
+      // isliye button chhupa kar intezaar karne ko kehte hain.
+      msg = 'Spotify ne thodi der ke liye rok diya hai (bahut zyada requests ek saath). ' +
+            'Ek-do minute baad dobara try karo.';
+      showConnect = false;
+    } else if (errorCode === 'no-token' || !connected) {
+      msg = 'Apna Spotify account jodo — phir search, playlists aur liked songs sab yahin milenge.';
+    } else {
+      msg = 'Spotify se baat nahi ho paayi — ek baar dobara connect karke dekho.';
+    }
+    return '<div class="empty"><span class="ic">🎧</span>' + msg +
+      (showConnect
+        ? '<br><br><button type="button" class="btn primary" onclick="LW.spotifyConnect()">🎵 Spotify connect karo</button>'
+        : '') +
+      '<div class="muted" style="margin-top:10px;font-size:.78rem">Ya neeche "🔗 Spotify ka link paste karo" se bina connect kiye bhi gaana chun sakte ho.</div></div>';
   }
 
   // Spotify /search ka fetch-only hissa — modal (searchSpotifyTracks) aur
@@ -1146,92 +1444,156 @@
   }
 
   // free-text song search (Spotify /search) — alag se query type karke gaana dhoondo,
-  // playlist mein dhoondhne ke bajaye
+  // sirf apni playlists tak seemit na raho
   async function searchSpotifyTracks(query) {
     var box = document.getElementById('lwSpotifyBody');
     box.innerHTML = '<div class="spinner">"' + esc(query) + '" khoja ja raha hai…</div>';
     var r = await fetchSpotifyTracks(query);
-    if (r.error) {
-      box.innerHTML =
-        '<div class="empty"><span class="ic">🎧</span>' +
-        (r.error === 'no-token'
-          ? 'Pehle Spotify se sign-in/connect karo, tabhi search kaam karegi.'
-          : 'Spotify session expire ho gaya lagta hai — dobara connect karo.') +
-        '<br><br><button class="btn primary" onclick="LW.spotify()">🎵 Spotify connect karo</button></div>';
-      return;
-    }
+    if (r.error) { box.innerHTML = spotifyConnectBox(r.error); return; }
     renderSpotifyTrackResults(r.tracks, 'Kuch nahi mila. Doosra naam try karo.');
   }
 
   function closeSpotifyPicker() {
     var m = document.getElementById('lwSpotifyModal');
     if (m) m.classList.remove('open');
+    _spotifyPickCallback = null;
   }
 
   async function loadSpotifyPlaylists() {
     var box = document.getElementById('lwSpotifyBody');
-    box.innerHTML = '<div class="spinner">Spotify se connect ho raha hai…</div>';
+    box.innerHTML = '<div class="spinner">Tumhari playlists aa rahi hain…</div>';
     var r = await window.LW.spotifyApi('/me/playlists?limit=50');
-    if (r.error) {
-      box.innerHTML =
-        '<div class="empty"><span class="ic">🎧</span>' +
-        (r.error === 'no-token'
-          ? 'Pehle Spotify se sign-in/connect karo, tabhi playlist dikhegi.'
-          : 'Spotify session expire ho gaya lagta hai — dobara connect karo.') +
-        '<br><br><button class="btn primary" onclick="LW.spotify()">🎵 Spotify connect karo</button></div>';
-      return;
-    }
+    if (r.error) { box.innerHTML = spotifyConnectBox(r.error); return; }
     renderSpotifyPlaylists((r.data && r.data.items) || []);
   }
 
+  // user ke apne Spotify "Liked Songs" — ye pehle kahin nahi dikhte the
+  async function loadSpotifyLiked() {
+    var box = document.getElementById('lwSpotifyBody');
+    box.innerHTML = '<div class="spinner">Liked songs aa rahe hain…</div>';
+    var r = await window.LW.spotifyApi('/me/tracks?limit=50');
+    if (r.error) { box.innerHTML = spotifyConnectBox(r.error); return; }
+    // playlist wale raaste ki tarah yahan bhi local file / podcast episode chhod
+    // do: unke paas id nahi hoti, to na embed banta hai aur na favorites me save
+    // ho sakte hain (spotify_track_id not null hai)
+    var tracks = ((r.data && r.data.items) || []).map(function (i) { return i.track; })
+      .filter(function (t) { return t && t.id && t.type !== 'episode'; });
+    renderSpotifyTrackResults(tracks, 'Spotify par abhi koi liked song nahi hai.');
+  }
+
+  // Playlist ka naam PEHLE onclick attribute ke andar chipkaya jaata tha.
+  // Browser attribute ke entities decode karta hai aur uske BAAD JS parse
+  // karta hai — to "Riya's Favourites" jaise kisi bhi naam mein `&#39;`
+  // wapas `'` ban kar JS string tod deta tha, aur click par kuch hota hi
+  // nahi tha (personal playlists mein apostrophe bahut aam hai). Ab naam
+  // attribute mein jaata hi nahi — sirf index jaata hai.
+  var _spotifyPlaylists = [];
+
   function renderSpotifyPlaylists(items) {
     var box = document.getElementById('lwSpotifyBody');
-    if (!items.length) {
-      box.innerHTML = '<div class="empty"><span class="ic">🎧</span>Koi playlist nahi mili.</div>';
+    _spotifyPlaylists = items || [];
+    if (!_spotifyPlaylists.length) {
+      box.innerHTML = '<div class="empty"><span class="ic">📋</span>Tumhare Spotify par koi playlist nahi mili.</div>';
       return;
     }
-    box.innerHTML = items.map(function (p) {
+    box.innerHTML = _spotifyPlaylists.map(function (p, i) {
       var img = (p.images && p.images[0] && p.images[0].url) || '';
-      var safeName = esc(String(p.name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
-      return '<div class="sp-item" onclick="LWApp.openSpotifyPlaylistTracks(\'' + p.id + '\',\'' + safeName + '\')">' +
-        (img ? '<img src="' + esc(img) + '">' : '<div class="avatar sm">🎵</div>') +
-        '<div style="min-width:0"><b>' + esc(p.name) + '</b><br><small class="muted">' +
-        (p.tracks ? p.tracks.total : 0) + ' gaane</small></div></div>';
+      return '<div class="sp-item" onclick="LWApp.openSpotifyPlaylistTracks(' + i + ')">' +
+        (img ? '<img src="' + img + '" alt="">' : '<span class="ic">📋</span>') +
+        '<div style="min-width:0"><b>' + esc(p.name) + '</b><br>' +
+        '<small class="muted">' + ((p.tracks && p.tracks.total) || 0) + ' gaane</small></div></div>';
     }).join('');
   }
 
-  async function openSpotifyPlaylistTracks(playlistId, name) {
+  async function openSpotifyPlaylistTracks(index) {
+    var pl = _spotifyPlaylists[index];
+    if (!pl) return;
     var box = document.getElementById('lwSpotifyBody');
-    box.innerHTML = '<div class="spinner">"' + esc(name) + '" load ho raha hai…</div>';
-    var r = await window.LW.spotifyApi('/playlists/' + encodeURIComponent(playlistId) + '/tracks?limit=50');
-    if (r.error) { box.innerHTML = '<div class="empty"><span class="ic">🎧</span>Load nahi ho paaya.</div>'; return; }
+    box.innerHTML = '<div class="spinner">' + esc(pl.name) + ' khul rahi hai…</div>';
 
-    var tracks = ((r.data && r.data.items) || []).map(function (it) { return it.track; }).filter(Boolean);
-    renderSpotifyTrackResults(tracks, 'Is playlist mein gaane nahi hain.', true);
-  }
+    var r = await window.LW.spotifyApi(
+      '/playlists/' + encodeURIComponent(pl.id) + '/items?limit=50&additional_types=track');
 
-  function backToSpotifyPlaylists() { loadSpotifyPlaylists(); }
-
-  // playlist tracks aur free-text search — dono jagah gaano ki list ek jaisi dikhti hai
-  function renderSpotifyTrackResults(tracks, emptyMsg, showBackBtn) {
-    var box = document.getElementById('lwSpotifyBody');
-    var backBtn = showBackBtn
-      ? '<div class="foot" style="justify-content:flex-start;margin:0 0 8px">' +
-        '<button class="btn" onclick="LWApp.backToSpotifyPlaylists()">⬅ Playlists</button></div>'
-      : '';
-    if (!tracks.length) {
-      box.innerHTML = backBtn + '<div class="empty"><span class="ic">🎧</span>' + esc(emptyMsg) + '</div>';
+    if (r.error) {
+      // Spotify ki apni editorial/algorithmic playlists (Discover Weekly,
+      // Today's Top Hits…) naye apps ko 404 deti hain — usme user ki koi
+      // galti nahi, isliye alag se saaf batao
+      if (r.status === 404) {
+        box.innerHTML = '<div class="empty"><span class="ic">🔒</span>' +
+          'Ye Spotify ki apni banayi playlist hai — Spotify ne apps ke liye inhe band kar rakha hai. ' +
+          'Apni khud ki playlist khol kar dekho, ya upar search se gaana dhoondo.' +
+          '<div style="margin-top:10px"><button class="btn" onclick="LWApp.backToSpotifyPlaylists()">⬅ Playlists</button></div></div>';
+        return;
+      }
+      box.innerHTML = spotifyConnectBox(r.error);
       return;
     }
-    box.innerHTML = backBtn + tracks.map(function (t) {
-      var img = (t.album && t.album.images && t.album.images[t.album.images.length - 1] && t.album.images[t.album.images.length - 1].url) || '';
-      var artists = (t.artists || []).map(function (a) { return a.name; }).join(', ');
-      return '<div class="sp-item" onclick="LWApp.pickSpotifyTrack(' + JSON.stringify({
-          id: t.id, title: t.name, artist: artists, url: (t.external_urls && t.external_urls.spotify) || ''
-        }).replace(/"/g, '&quot;') + ')">' +
-        (img ? '<img src="' + esc(img) + '">' : '<div class="avatar sm">🎵</div>') +
-        '<div style="min-width:0"><b>' + esc(t.name) + '</b><br><small class="muted">' + esc(artists) + '</small></div></div>';
-    }).join('');
+
+    var items = (r.data && r.data.items) || [];
+    // track null ho sakta hai (local file / hata diya gaya gaana), aur podcast
+    // episode ke paas id/album nahi hote — dono ko chhod do warna row khaali dikhti
+    var tracks = items.map(function (i) { return i.track; })
+      .filter(function (t) { return t && t.id && t.type !== 'episode'; });
+
+    if (!tracks.length && items.length) {
+      box.innerHTML = '<div class="empty"><span class="ic">🎧</span>' +
+        'Is playlist mein ' + items.length + ' item hain, par unmein koi bajne layak Spotify track nahi hai ' +
+        '(local file ya podcast ho sakte hain).' +
+        '<div style="margin-top:10px"><button class="btn" onclick="LWApp.backToSpotifyPlaylists()">⬅ Playlists</button></div></div>';
+      return;
+    }
+
+    var total = (r.data && r.data.total) || tracks.length;
+    renderSpotifyTrackResults(tracks, 'Is playlist mein gaane nahi hain.', true,
+      total > tracks.length ? ('Pehle ' + tracks.length + ' gaane dikhaye ja rahe hain (kul ' + total + ').') : null);
+  }
+
+  function backToSpotifyPlaylists() { spotifyPickerTab('playlists'); }
+
+  function renderSpotifyTrackResults(tracks, emptyMsg, showBackBtn, note) {
+    var box = document.getElementById('lwSpotifyBody');
+    if (!tracks.length) {
+      box.innerHTML = '<div class="empty"><span class="ic">🎧</span>' + esc(emptyMsg) + '</div>' +
+        (showBackBtn ? '<div style="margin-top:10px">' +
+          '<button class="btn" onclick="LWApp.backToSpotifyPlaylists()">⬅ Playlists</button></div>' : '');
+      return;
+    }
+    box.innerHTML = (showBackBtn
+      ? '<div style="margin-bottom:8px"><button class="btn sm" onclick="LWApp.backToSpotifyPlaylists()">⬅ Playlists</button></div>'
+      : '') +
+      (note ? '<div class="muted" style="font-size:.78rem;margin-bottom:8px">' + esc(note) + '</div>' : '') +
+      tracks.map(function (t) {
+        var imgs = (t.album && t.album.images) || [];
+        var img = (imgs.length && imgs[imgs.length - 1].url) || '';
+        var artists = (t.artists || []).map(function (a) { return a.name; }).join(', ');
+        return '<div class="sp-item" onclick="LWApp.pickSpotifyTrack(' + JSON.stringify({
+            id: t.id, title: t.name, artist: artists, url: (t.external_urls && t.external_urls.spotify) || ''
+          }).replace(/"/g, '&quot;') + ')">' +
+          (img ? '<img src="' + img + '" alt="">' : '<span class="ic">🎵</span>') +
+          '<div style="min-width:0"><b>' + esc(t.name) + '</b><br><small class="muted">' + esc(artists) + '</small></div></div>';
+      }).join('');
+  }
+
+  // bina Spotify jode bhi gaana chun sako — link se id nikaal kar naam/artist
+  // Spotify ke oEmbed se le lete hain (ye endpoint bina kisi token ke khulta hai)
+  async function pickSpotifyLink() {
+    var input = document.getElementById('lwSpotifyLink');
+    var url = (input.value || '').trim();
+    var id = spotifyTrackId(url);
+    if (!id) { toast('❌ Ye Spotify track ka link nahi lag raha', 'error'); return; }
+
+    var track = { id: id, title: 'Spotify track', artist: '', url: 'https://open.spotify.com/track/' + id };
+    try {
+      var r = await fetch('https://open.spotify.com/oembed?url=https://open.spotify.com/track/' + id);
+      if (r.ok) {
+        var j = await r.json();
+        // oEmbed ka title "Gaana" ya "Gaana - song by Artist" jaisa aata hai
+        var m = /^(.*?)\s+[-–]\s+song(?: and lyrics)? by\s+(.*?)(?:\s+\|.*)?$/i.exec(j.title || '');
+        if (m) { track.title = m[1]; track.artist = m[2]; }
+        else if (j.title) track.title = j.title;
+      }
+    } catch (e) {}
+    pickSpotifyTrack(track);
   }
 
   function pickSpotifyTrack(track) {
@@ -1307,6 +1669,85 @@
       pinned_song_artist: track ? (track.artist || null) : null,
       pinned_song_url: track ? (track.url || null) : null
     }).eq('id', window.LW.profile.id);
+  }
+
+  /* ---------- Music of the Day — roz ek gaana, sab vote karke chunte hain ----------
+     Har din ka apna alag round hota hai (day = date). Koi bhi apna gaana
+     nominate kar sakta hai, aur har user ke paas us din ka SIRF EK vote
+     hota hai (vote badalna allowed hai — purana apne aap hat jaata hai).
+     Aadhi raat ko round apne aap reset ho jaata hai; kal ka winner
+     "Kal ka winner" ban kar dikhta hai. */
+
+  // Din ki seema IST par tay hai — DB ka lw_motd_day() bhi yahi maanta hai.
+  // (Browser ka local date use karne par videsh mein baithe user ka insert
+  //  RLS se reject ho jaata, aur UTC use karne par India mein raat 12 se
+  //  5:30 tak "kal" ka round khulta rehta.)
+  var IST_OFFSET_MS = 330 * 60000;
+  function istDate(daysAgo) {
+    var d = new Date(Date.now() + IST_OFFSET_MS - (daysAgo || 0) * 86400000);
+    return d.getUTCFullYear() + '-' +
+      String(d.getUTCMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getUTCDate()).padStart(2, '0');
+  }
+  function motdToday()     { return istDate(0); }
+  function motdYesterday() { return istDate(1); }
+
+  // leaderboard + "maine kis par vote kiya" — dono ek hi call mein
+  function motdBoard(day) {
+    var d = day || motdToday();
+    return sb().from('lw_motd_board')
+      .select('id, day, user_id, spotify_track_id, song_title, song_artist, song_url, vote_count, created_at')
+      .eq('day', d)
+      .order('vote_count', { ascending: false })
+      .order('created_at', { ascending: true })
+      .limit(25)
+      .then(function (r) {
+        var rows = r.data || [];
+        if (!rows.length) return { rows: [], myVote: null };
+        return sb().from('motd_votes')
+          .select('nomination_id')
+          .eq('day', d).eq('user_id', window.LW.profile.id).maybeSingle()
+          .then(function (v) {
+            return { rows: rows, myVote: (v && v.data && v.data.nomination_id) || null };
+          })
+          .catch(function () { return { rows: rows, myVote: null }; });
+      });
+  }
+
+  function motdNominate(track) {
+    return sb().from('motd_nominations').insert({
+      day: motdToday(),
+      user_id: window.LW.profile.id,
+      spotify_track_id: track.id,
+      song_title: track.title || track.t || 'Untitled',
+      song_artist: track.artist || track.a || null,
+      song_url: track.url || (track.id ? 'https://open.spotify.com/track/' + track.id : null)
+    }).select().maybeSingle();
+  }
+
+  // ek user = ek vote per day. upsert isliye ki vote badalna bhi wahi call ho.
+  function motdVote(nominationId) {
+    return sb().from('motd_votes').upsert({
+      day: motdToday(),
+      user_id: window.LW.profile.id,
+      nomination_id: nominationId
+    }, { onConflict: 'day,user_id' }).select().maybeSingle();
+  }
+
+  function motdUnvote() {
+    return sb().from('motd_votes').delete()
+      .eq('day', motdToday()).eq('user_id', window.LW.profile.id);
+  }
+
+  function motdRemoveNomination(id) {
+    return sb().from('motd_nominations').delete().eq('id', id);
+  }
+
+  // kal ka jeeta hua gaana — sabse upar "🏆 Kal ka winner" chip ke liye
+  function motdWinner(day) {
+    return motdBoard(day || motdYesterday()).then(function (b) {
+      return (b.rows && b.rows.length && b.rows[0].vote_count > 0) ? b.rows[0] : null;
+    });
   }
 
   /* ---------- Life Chain (couple's shared journey) ---------- */
@@ -1890,6 +2331,7 @@
     restoreBgPhoto: restoreBgPhoto,
     shell: shell, refreshNotifCount: refreshNotifCount, customSelect: customSelect, toggleSidebar: toggleSidebar, toggleRail: toggleRail,
 
+    pref: pref,
     publicProfile: publicProfile, searchPeople: searchPeople, saveProfile: saveProfile,
     suggestedPeople: suggestedPeople, nearbyPeople: nearbyPeople,
 
@@ -1905,8 +2347,16 @@
     uploadPostMedia: uploadPostMedia, storiesFeed: storiesFeed,
 
     createAnnouncement: createAnnouncement, uploadAnnouncementMedia: uploadAnnouncementMedia,
+    announcementNeedsAdmin: announcementNeedsAdmin, announcementStage: announcementStage,
+    adminPendingAnnouncements: adminPendingAnnouncements, adminAnswerAnnouncement: adminAnswerAnnouncement,
     pendingAnnouncements: pendingAnnouncements, sentAnnouncements: sentAnnouncements,
     answerAnnouncement: answerAnnouncement, reportContent: reportContent,
+
+    storeProducts: storeProducts, uploadStoreMedia: uploadStoreMedia,
+    placeStoreOrder: placeStoreOrder, myStoreOrders: myStoreOrders,
+    submitStoreProduct: submitStoreProduct, myStoreProducts: myStoreProducts,
+    updateMyStoreProduct: updateMyStoreProduct, deleteMyStoreProduct: deleteMyStoreProduct,
+    saveStoreProfile: saveStoreProfile,
 
     journeyEntries: journeyEntries, createJourneyEntry: createJourneyEntry,
     deleteJourneyEntry: deleteJourneyEntry, uploadJourneyMedia: uploadJourneyMedia,
@@ -1918,11 +2368,16 @@
     openSpotifyPicker: openSpotifyPicker, closeSpotifyPicker: closeSpotifyPicker,
     openSpotifyPlaylistTracks: openSpotifyPlaylistTracks, backToSpotifyPlaylists: backToSpotifyPlaylists,
     pickSpotifyTrack: pickSpotifyTrack, spotifyEmbedUrl: spotifyEmbedUrl, fetchSpotifyTracks: fetchSpotifyTracks,
+    spotifyPickerTab: spotifyPickerTab, pickSpotifyLink: pickSpotifyLink, spotifyTrackId: spotifyTrackId,
 
     myFavorites: myFavorites, favoriteSong: favoriteSong, unfavoriteSong: unfavoriteSong,
     myPlaylists: myPlaylists, createPlaylist: createPlaylist, deletePlaylist: deletePlaylist,
     playlistTracks: playlistTracks, addToPlaylist: addToPlaylist, removeFromPlaylist: removeFromPlaylist,
     updateProfilePinnedSong: updateProfilePinnedSong,
+
+    motdToday: motdToday, motdYesterday: motdYesterday, motdBoard: motdBoard,
+    motdNominate: motdNominate, motdVote: motdVote, motdUnvote: motdUnvote,
+    motdRemoveNomination: motdRemoveNomination, motdWinner: motdWinner,
 
     myConversations: myConversations, openDirect: openDirect, messages: messages,
     sendMessage: sendMessage, createGroup: createGroup, markRead: markRead,

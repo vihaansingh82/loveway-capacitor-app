@@ -12,8 +12,8 @@
 <script src="lw-spotify.js?v=6"></script>
 <script src="lw-app.js?v=17"></script>
 <script src="lw-rails.js?v=7"></script>
-<script src="lw-camera.js?v=1"></script>
-<link rel="stylesheet" href="lw-camera.css?v=1">
+<script src="lw-camera.js?v=2"></script>
+<link rel="stylesheet" href="lw-camera.css?v=2">
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 <link rel="stylesheet" href="lw-responsive.css?v=5">
 <link rel="stylesheet" href="lw-clay.css?v=2">
@@ -660,10 +660,15 @@ function openChatCamera() {
   if (!active) { LWApp.toast('❌ Pehle koi chat chuno', 'error'); return; }
   LWCamera.open({
     mode: 'chat',
-    onCapture: function (blob) {
+    // kind 'image' ya 'video' — naam aur type usi hisaab se, kyunki
+    // sendMediaFile file.type dekh kar message ka kind decide karta hai
+    onCapture: function (blob, kind) {
+      var vid  = kind === 'video';
+      var type = blob.type || (vid ? 'video/webm' : 'image/jpeg');
+      var name = vid ? ('clip.' + (type.indexOf('mp4') >= 0 ? 'mp4' : 'webm')) : 'photo.jpg';
       var file;
-      try { file = new File([blob], 'photo.jpg', { type: 'image/jpeg' }); }
-      catch (e) { file = blob; file.name = 'photo.jpg'; }
+      try { file = new File([blob], name, { type: type }); }
+      catch (e) { file = blob; file.name = name; }
       sendMediaFile(file);
     }
   });

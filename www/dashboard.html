@@ -13,8 +13,8 @@
 <script src="lw-spotify.js?v=6"></script>
 <script src="lw-app.js?v=17"></script>
 <script src="lw-rails.js?v=7"></script>
-<script src="lw-camera.js?v=1"></script>
-<link rel="stylesheet" href="lw-camera.css?v=1">
+<script src="lw-camera.js?v=2"></script>
+<link rel="stylesheet" href="lw-camera.css?v=2">
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 <style>
 .header-ticker{flex:1;min-width:0;overflow:hidden;display:flex;align-items:center;padding:0 14px}
@@ -200,6 +200,7 @@
     <div class="story-progress" id="storyProgress"></div>
     <div class="story-viewer-head" id="storyHead"></div>
     <img id="storyImg" src="" alt="">
+    <video id="storyVid" playsinline autoplay loop hidden></video>
     <div class="story-music" id="storyMusic"></div>
     <div id="storyCaption" class="story-caption"></div>
     <button class="story-nav prev" onclick="storyStep(-1)" aria-label="Previous"></button>
@@ -213,6 +214,7 @@
   <div class="modal" style="max-width:400px">
     <h3 data-i18n="storyModalTitle">⚡ Story banao</h3>
     <img id="storyComposePreview" src="" alt="" style="width:100%;border-radius:14px;margin:12px 0;max-height:340px;object-fit:contain;background:var(--bg2)">
+    <video id="storyComposeVideo" playsinline loop muted hidden style="width:100%;border-radius:14px;margin:12px 0;max-height:340px;object-fit:contain;background:var(--bg2)"></video>
 
     <!-- filter thumbnails — har chip par wahi photo, us filter ke saath -->
     <div class="sfilters" id="storyFilterRow"></div>
@@ -220,7 +222,7 @@
     <div style="display:flex;gap:8px;margin-bottom:10px">
       <input type="text" id="storyCaptionInput" maxlength="200" style="flex:1"
              placeholder="Kuch likho… (optional)" data-i18n-placeholder="storyCaptionPh">
-      <button class="btn" onclick="rotateStory()" title="Ghumao" aria-label="Rotate">↻</button>
+      <button class="btn" id="storyRotateBtn" onclick="rotateStory()" title="Ghumao" aria-label="Rotate">↻</button>
     </div>
 
     <div class="msg-song" id="storyMusicPreview" style="display:none;background:var(--bg2);border-radius:12px;padding:10px 12px;margin-bottom:10px"></div>
@@ -614,6 +616,7 @@ async function loadStories() {
 var STORY_FILTERS = window.LWCamera.FILTERS;
 
 var storyDraftFile = null, storyDraftPreviewUrl = null, storyDraftMusic = null;
+var storyDraftIsVideo = false;
 var storyFilter = 'none', storyRotation = 0;
 
 function storyFilterCss() {
@@ -634,11 +637,28 @@ function openStoryComposerWithFile(file) {
   storyDraftMusic = null;
   storyFilter = 'none';
   storyRotation = 0;
+  storyDraftIsVideo = (file.type || '').indexOf('video/') === 0;
 
   document.getElementById('storyCaptionInput').value = '';
   document.getElementById('storyMusicPreview').style.display = 'none';
-  renderStoryFilters();
-  applyStoryPreview();
+
+  // Video par filter/rotate ka matlab nahi — camera se aane wale clip mein
+  // filter aur lens recording ke waqt hi bake ho chuke hote hain, aur canvas
+  // se video dobara render karna browser mein bahut bhaari padta hai.
+  var img = document.getElementById('storyComposePreview');
+  var vid = document.getElementById('storyComposeVideo');
+  img.hidden = storyDraftIsVideo;
+  vid.hidden = !storyDraftIsVideo;
+  document.getElementById('storyFilterRow').hidden = storyDraftIsVideo;
+  document.getElementById('storyRotateBtn').hidden = storyDraftIsVideo;
+
+  if (storyDraftIsVideo) {
+    vid.src = storyDraftPreviewUrl;
+    vid.play().catch(function () {});
+  } else {
+    renderStoryFilters();
+    applyStoryPreview();
+  }
   document.getElementById('storyComposeModal').classList.add('open');
 }
 
@@ -662,10 +682,13 @@ function closeStorySourceChooser() {
 function openStoryCamera() {
   LWCamera.open({
     mode: 'story',
-    onCapture: function (blob) {
+    onCapture: function (blob, kind) {
+      var vid  = kind === 'video';
+      var type = blob.type || (vid ? 'video/webm' : 'image/jpeg');
+      var name = vid ? ('story.' + (type.indexOf('mp4') >= 0 ? 'mp4' : 'webm')) : 'story.jpg';
       var file;
-      try { file = new File([blob], 'story.jpg', { type: 'image/jpeg' }); }
-      catch (e) { file = blob; file.name = 'story.jpg'; }
+      try { file = new File([blob], name, { type: type }); }
+      catch (e) { file = blob; file.name = name; }
       openStoryComposerWithFile(file);
     }
   });
@@ -746,6 +769,10 @@ function removeStoryMusic() {
 
 function closeStoryCompose() {
   document.getElementById('storyComposeModal').classList.remove('open');
+  var cv = document.getElementById('storyComposeVideo');
+  try { cv.pause(); } catch (e) {}
+  cv.removeAttribute('src');
+  storyDraftIsVideo = false;
   if (storyDraftPreviewUrl) URL.revokeObjectURL(storyDraftPreviewUrl);
   storyDraftPreviewUrl = null;
   storyDraftFile = null;
@@ -760,19 +787,26 @@ async function publishStory() {
   btn.disabled = true; btn.textContent = window.t('postingMsg');
 
   try {
-    // filter + rotation yahin bake hokar upload hote hain
-    var canvas = await renderStoryCanvas();
-    var blob = await new Promise(function (res) { canvas.toBlob(res, 'image/jpeg', 0.9); });
-    if (!blob) throw new Error('photo process nahi ho payi');
-
-    var name = (storyDraftFile.name || 'story').replace(/\.[^.]+$/, '') + '.jpg';
     var file;
-    try {
-      file = new File([blob], name, { type: 'image/jpeg' });
-    } catch (e) {
-      // purane WebView me File constructor nahi hota; uploadPostMedia ko bas
-      // name/type chahiye, isliye blob par hi laga dete hain
-      file = blob; file.name = name;
+    if (storyDraftIsVideo) {
+      // Video pehle se bake hua aata hai (camera ne canvas se record kiya tha,
+      // filter aur lens usme already hain) — isliye seedha wahi blob upload
+      // karo. Canvas se video dobara render karna browser mein bahut bhaari hai.
+      file = storyDraftFile;
+    } else {
+      // filter + rotation yahin bake hokar upload hote hain
+      var canvas = await renderStoryCanvas();
+      var blob = await new Promise(function (res) { canvas.toBlob(res, "image/jpeg", 0.9); });
+      if (!blob) throw new Error("photo process nahi ho payi");
+
+      var name = (storyDraftFile.name || 'story').replace(/\.[^.]+$/, '') + '.jpg';
+      try {
+        file = new File([blob], name, { type: "image/jpeg" });
+      } catch (e) {
+        // purane WebView me File constructor nahi hota; uploadPostMedia ko bas
+        // name/type chahiye, isliye blob par hi laga dete hain
+        file = blob; file.name = name;
+      }
     }
 
     var entry = {
@@ -817,7 +851,22 @@ function renderStory() {
     LWApp.avatarHtml(s.author, 'sm') +
     '<b>' + LWApp.esc(s.author.full_name || s.author.username || '') + '</b>' +
     '<small>' + LWApp.timeAgo(s.created_at) + '</small>';
-  document.getElementById('storyImg').src = s.media_url || '';
+  // Story photo bhi ho sakti hai aur camera se record kiya video bhi —
+  // extension se pehchan kar sahi element dikhate hain.
+  var isVid = /\.(webm|mp4|mov)(\?|$)/i.test(s.media_url || '');
+  var sImg = document.getElementById('storyImg');
+  var sVid = document.getElementById('storyVid');
+  sImg.hidden = isVid;
+  sVid.hidden = !isVid;
+  if (isVid) {
+    sImg.removeAttribute('src');
+    sVid.src = s.media_url || '';
+    sVid.play().catch(function () {});
+  } else {
+    try { sVid.pause(); } catch (e) {}
+    sVid.removeAttribute('src');
+    sImg.src = s.media_url || '';
+  }
   document.getElementById('storyCaption').textContent = s.content ? tContent('story' + s.id, s.content, renderStory) : '';
 
   var musicBox = document.getElementById('storyMusic');

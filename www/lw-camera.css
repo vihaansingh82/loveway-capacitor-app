@@ -1,90 +1,204 @@
 /* ============================================================
-   Loveway — live camera view (color filters + AR lenses)
+   Loveway — live camera (filters, AR lenses, video, overlays)
    ------------------------------------------------------------
-   .story-viewer jaisa hi full-bleed black overlay hai, bas apne
-   naam se (.camera-view) taaki story viewer ke rules se na takraye.
+   .story-viewer jaisa hi full-bleed black overlay, bas apne naam
+   se (.camera-view) taaki story viewer ke rules se na takraye.
+   Do stage hain: .cam-shoot aur .cam-edit — ek waqt par ek.
    ============================================================ */
 
 .camera-view {
   background: #000;
+  padding: 0;
 }
 
 .camera-box {
   position: relative;
   width: 100%;
   max-width: 460px;
-  height: min(92vh, 820px);
+  height: min(94vh, 860px);
   border-radius: 18px;
   overflow: hidden;
   background: #000;
+  touch-action: none;
 }
 
 #camVideo {
   display: none;
 }
 
-#camCanvas {
+#camCanvas,
+#camShot,
+#camShotVideo {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
 
+#camShot[hidden],
+#camShotVideo[hidden] {
+  display: none !important;
+}
+
+.cam-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+}
+
+.cam-stage[hidden] {
+  display: none !important;
+}
+
+/* ---------- screen flash (front camera) ---------- */
+.cam-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.1s;
+}
+
+.cam-flash.on {
+  opacity: 0.92;
+}
+
+/* ---------- countdown ---------- */
+.cam-count {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 5.5rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.cam-count[hidden] {
+  display: none !important;
+}
+
+/* ---------- empty / error ---------- */
 .cam-empty {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: 4;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   color: #fff;
   text-align: center;
   padding: 0 30px;
-  font-size: 0.9rem;
+  font-size: 0.92rem;
+  line-height: 1.5;
 }
 
 .cam-empty .ic {
   font-size: 2.2rem;
-  margin-bottom: 6px;
 }
 
 .cam-empty small {
   color: #ffffffb3;
+  font-size: 0.82rem;
 }
 
+/* ---------- top bar ---------- */
 .cam-top-bar {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 3;
+  z-index: 4;
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
   padding: 12px;
+}
+
+.cam-top-right {
+  display: flex;
+  gap: 8px;
 }
 
 .cam-icon-btn {
   width: 38px;
   height: 38px;
+  flex: none;
   border-radius: 50%;
   border: 0;
   background: #00000066;
   color: #fff;
-  font-size: 1rem;
+  font-size: 0.98rem;
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
+.cam-icon-btn[hidden] {
+  display: none !important;
+}
+
+.cam-icon-btn.on {
+  background: #fff;
+  color: #17171f;
+}
+
+.cam-icon-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* ---------- zoom ---------- */
+.cam-zoom {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%) rotate(-90deg);
+  transform-origin: center;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cam-zoom input[type="range"] {
+  width: 132px;
+  accent-color: #fff;
+}
+
+.cam-zoom span {
+  transform: rotate(90deg);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 4px #0009;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- chip rows ---------- */
 .cam-lens-row,
-.cam-filter-row {
+.cam-filter-row,
+.cam-ink-row,
+.cam-sticker-row {
   position: absolute;
   left: 0;
   right: 0;
-  z-index: 3;
+  z-index: 4;
   display: flex;
   gap: 8px;
   overflow-x: auto;
@@ -93,17 +207,14 @@
 }
 
 .cam-lens-row::-webkit-scrollbar,
-.cam-filter-row::-webkit-scrollbar {
+.cam-filter-row::-webkit-scrollbar,
+.cam-ink-row::-webkit-scrollbar,
+.cam-sticker-row::-webkit-scrollbar {
   display: none;
 }
 
-.cam-lens-row {
-  bottom: 168px;
-}
-
-.cam-filter-row {
-  bottom: 112px;
-}
+.cam-lens-row { bottom: 176px; }
+.cam-filter-row { bottom: 120px; }
 
 .cam-chip {
   flex: none;
@@ -116,6 +227,8 @@
   background: #ffffff26;
   cursor: pointer;
   white-space: nowrap;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
 .cam-chip.on {
@@ -128,33 +241,183 @@
   font-size: 1.05rem;
 }
 
+/* ---------- shutter ---------- */
 .cam-shutter-row {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 20px;
-  z-index: 3;
+  bottom: 22px;
+  z-index: 4;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.cam-hint {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #ffffffcc;
+  text-shadow: 0 1px 4px #0009;
 }
 
 .cam-shutter {
-  width: 68px;
-  height: 68px;
+  position: relative;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   background: #fff;
-  border: 4px solid #ffffff80;
+  border: 0;
   cursor: pointer;
-  transition: transform 0.12s;
+  transition: transform 0.14s;
+  padding: 0;
+}
+
+.cam-shutter::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #00000022;
+}
+
+.cam-shutter.rec {
+  transform: scale(1.12);
+}
+
+.cam-shutter.rec::after {
+  background: #ff3b5c;
+  border-color: #ffffff55;
 }
 
 .cam-shutter:active {
-  transform: scale(0.9);
+  transform: scale(0.94);
 }
 
 .cam-shutter:disabled {
-  opacity: 0.5;
+  opacity: 0.55;
   cursor: not-allowed;
+}
+
+.cam-ring {
+  position: absolute;
+  inset: -6px;
+  width: calc(100% + 12px);
+  height: calc(100% + 12px);
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+
+.cam-ring circle {
+  fill: none;
+  stroke: #ff3b5c;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 289;
+  stroke-dashoffset: 289;
+  transition: stroke-dashoffset 0.1s linear;
+}
+
+/* ---------- edit stage ---------- */
+#camDrawLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  touch-action: none;
+}
+
+#camDrawLayer.active {
+  pointer-events: auto;
+  cursor: crosshair;
+}
+
+.cam-items {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  touch-action: none;
+}
+
+.cam-item {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  line-height: 1.1;
+  white-space: nowrap;
+  touch-action: none;
+}
+
+.cam-item-text {
+  font-weight: 700;
+  text-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.55),
+    0 0 2px rgba(0, 0, 0, 0.6);
+}
+
+.cam-ink-row { bottom: 128px; }
+.cam-sticker-row { bottom: 128px; }
+
+.cam-ink-row[hidden],
+.cam-sticker-row[hidden] {
+  display: none !important;
+}
+
+.cam-ink {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid #ffffff66;
+  cursor: pointer;
+  padding: 0;
+}
+
+.cam-ink.on {
+  border-color: #fff;
+  transform: scale(1.15);
+}
+
+.cam-video-note {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 128px;
+  z-index: 4;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: #ffffffcc;
+  background: #00000073;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border-radius: 10px;
+  padding: 8px 11px;
+  text-align: center;
+}
+
+.cam-video-note[hidden] {
+  display: none !important;
+}
+
+.cam-send-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 22px;
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 14px;
+}
+
+.cam-send-row .btn {
+  min-width: 108px;
 }
 
 /* ---------- Stories: camera vs gallery chooser ---------- */
@@ -171,4 +434,29 @@
   justify-content: center;
   margin-top: 10px;
   padding: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cam-shutter,
+  .cam-ring circle,
+  .cam-flash {
+    transition: none;
+  }
+}
+
+/* ---------- video story: viewer + composer ----------
+   Story viewer ka <img> flex:1 leta hai, video ko bhi wahi jagah
+   chahiye warna clip dabba se bahar nikal jaata hai. */
+.story-viewer-box video {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  object-fit: contain;
+  background: #000;
+  display: block;
+}
+
+.story-viewer-box video[hidden],
+#storyComposeVideo[hidden] {
+  display: none !important;
 }

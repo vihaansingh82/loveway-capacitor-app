@@ -10,10 +10,10 @@
 <script src="lw-core.js?v=7"></script>
 <script src="lw-festivals.js?v=2"></script>
 <script src="lw-spotify.js?v=6"></script>
-<script src="lw-app.js?v=17"></script>
-<script src="lw-rails.js?v=7"></script>
+<script src="lw-app.js?v=18"></script>
+<script src="lw-rails.js?v=8"></script>
 <script src="lw-camera.js?v=2"></script>
-<link rel="stylesheet" href="lw-camera.css?v=2">
+<link rel="stylesheet" href="lw-camera.css?v=4">
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 <link rel="stylesheet" href="lw-responsive.css?v=5">
 <link rel="stylesheet" href="lw-clay.css?v=2">
@@ -106,6 +106,7 @@
 
         <div class="picker-pop" id="attachMenu">
           <div class="picker-item" onclick="openChatCamera();closeAllPickers()">📷 Camera</div>
+          <div class="picker-item" id="snapModeBtn" onclick="toggleSnapMode()">◉ View once (ek baar dikhe)</div>
           <div class="picker-item" onclick="document.getElementById('mediaInput').click();closeAllPickers()" data-i18n="attachPhotoVideoItem">🖼️🎬 Photo / Video</div>
           <div class="picker-item" onclick="document.getElementById('audioInput').click();closeAllPickers()" data-i18n="attachMusicItem">🎼 Music / Audio</div>
         </div>
@@ -113,6 +114,14 @@
         <div class="picker-pop" id="emojiPanel"></div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- view-once snap viewer — band hone par DOM se bhi mit jaata hai -->
+<div class="modal-bg snap-viewer" id="snapViewer" onclick="closeSnap()">
+  <div class="snap-viewer-box">
+    <div id="snapBody"></div>
+    <div class="snap-note">Ek hi baar &mdash; band karne par yeh hamesha ke liye chala jayega</div>
   </div>
 </div>
 
@@ -206,13 +215,31 @@ document.addEventListener('lw:language', function () {
   if (lastLoadedRows.length) renderMsgs(lastLoadedRows);
 });
 
-async function loadConvs(selectId) {
-  convs = await LWApp.myConversations();
-  var el = document.getElementById('convList');
+/* Chat list = jo chats chal rahi hain + jo dost hain par jinse abhi baat
+   shuru nahi hui. Pehle sirf pehli list dikhti thi, isliye naya dost add
+   karne ke baad Messages khaali lagta tha aur user ko us dost ki profile
+   par jaakar message bhejna padta tha.
 
-  if (!convs.length) {
+   Khaali conversation pehle se BANATE nahi hain — warna dono taraf khaali
+   chats ka dher lag jaata jinme kabhi baat hui hi nahi. Dost par tap karte
+   hi lw_direct_conversation RPC us waqt chat bana deta hai. */
+async function loadConvs(selectId) {
+  var el = document.getElementById('convList');
+  var res = await Promise.all([LWApp.myConversations(), LWApp.myFriends()]);
+  convs = res[0];
+  var friends = res[1] || [];
+
+  // jin doston ki direct chat pehle se hai unhe neeche dobara na dikhao
+  var haveChat = {};
+  convs.forEach(function (c) {
+    if (c.kind === 'direct' && c.other) haveChat[c.other.id] = true;
+  });
+  var fresh = friends.filter(function (f) { return !haveChat[f.id]; });
+
+  if (!convs.length && !fresh.length) {
     el.innerHTML = '<div class="empty" style="padding:20px"><span class="ic">💬</span>' +
-                   LWApp.esc(window.t('noChatsTitle')) + '<br>' + LWApp.esc(window.t('noChatsSub')) + '</div>';
+      LWApp.esc(window.t('noChatsTitle')) + '<br>' +
+      '<small>Pehle kisi ko dost banao — phir wo yahin dikhega.</small></div>';
     return;
   }
 
@@ -221,7 +248,7 @@ async function loadConvs(selectId) {
     return LWApp.chatStreak(c.id).then(function (n) { convStreaks[c.id] = n; });
   }));
 
-  el.innerHTML = convs.map(function (c) {
+  var html = convs.map(function (c) {
     var title = c.title || (c.kind === 'community' ? window.t('communityChatTitle') : window.t('chatTitleShort'));
     var ic = c.kind === 'direct' ? '' : (c.kind === 'community' ? '🏘️ ' : '👥 ');
     var av = c.kind === 'direct'
@@ -236,9 +263,32 @@ async function loadConvs(selectId) {
       '<button type="button" class="icon-btn conv-delete-btn" onclick="event.stopPropagation();deleteConv(' + c.id + ')" title="Chat delete karo">🗑</button></div>';
   }).join('');
 
+  if (fresh.length) {
+    html += '<div class="conv-sep">' +
+      (convs.length ? 'Dost — tap karke baat shuru karo' : 'Tumhare dost') + '</div>' +
+      fresh.map(function (f) {
+        var nm = f.full_name || f.username || '—';
+        return '<div class="item is-fresh" onclick="startChatWith(&quot;' + f.id + '&quot;)">' +
+          LWApp.avatarHtml(f, 'sm') +
+          '<div style="min-width:0;flex:1"><b>' + LWApp.esc(nm) + '</b>' +
+          '<small>Abhi koi message nahi</small></div>' +
+          '<span class="conv-start">Baat karo</span></div>';
+      }).join('');
+  }
+
+  el.innerHTML = html;
   if (selectId) openConv(selectId);
 }
 
+// Dost par tap — chat usi waqt banti hai, pehle se khaali nahi padi rehti
+async function startChatWith(userId) {
+  try {
+    var id = await LWApp.openDirect(userId);
+    await loadConvs(id);
+  } catch (e) {
+    LWApp.toast('❌ ' + LWApp.err(e), 'error');
+  }
+}
 async function deleteConv(id) {
   if (!confirm('Ye chat delete karni hai? Aapki taraf se hat jayegi.')) return;
   await doDeleteConv(id);
@@ -414,7 +464,29 @@ function msgHtml(m) {
   var body = '';
   var extraClass = '';
   var meta = m.meta || {};
-  if (m.kind === 'gift') {
+  var mine = m.sender_id === me.id;
+
+  // View-once snap: media kabhi seedha render nahi hota. Bhejne wale ko
+  // status dikhta hai, dekhne wale ko tap-to-open card. Khulne par server
+  // file delete kar deta hai, isliye dobara kuch dikhane ko bachta hi nahi.
+  if (m.view_once && (m.kind === 'image' || m.kind === 'video')) {
+    extraClass = ' snap';
+    var opened = !!m.viewed_at;
+    if (mine) {
+      body = '<div class="snap-card is-own">' +
+        '<span class="ic">' + (opened ? '◍' : '◉') + '</span>' +
+        '<b>' + (opened ? 'Dekh liya' : 'Snap bheja') + '</b>' +
+        '<small>' + (m.kind === 'video' ? 'Video' : 'Photo') + ' &middot; ek baar</small></div>';
+    } else if (opened) {
+      body = '<div class="snap-card is-gone">' +
+        '<span class="ic">◍</span><b>Khul chuka hai</b>' +
+        '<small>Snap hamesha ke liye gaya</small></div>';
+    } else {
+      body = '<button type="button" class="snap-card is-new" onclick="openSnap(' + m.id + ')">' +
+        '<span class="ic">◉</span><b>Snap kholo</b>' +
+        '<small>' + (m.kind === 'video' ? 'Video' : 'Photo') + ' &middot; sirf ek baar</small></button>';
+    }
+  } else if (m.kind === 'gift') {
     body = '🎁 ' + LWApp.esc(m.content || window.t('giftSentDefault'));
   } else if (m.kind === 'song') {
     extraClass = ' song';
@@ -639,12 +711,14 @@ async function sendMediaFile(file) {
   LWApp.toast('⏳ ' + LWApp.esc(window.t('uploadingMsg')));
   try {
     var meta = await LWApp.uploadChatMedia(active, file);
-    var temp = { sender_id: me.id, content: file.name || '', kind: kind, meta: meta };
+    var temp = { sender_id: me.id, content: file.name || '', kind: kind, meta: meta,
+                 view_once: snapMode && (kind === 'image' || kind === 'video') };
     var el = appendMsg(temp);
-    var r = await LWApp.sendMessage(active, file.name || '', kind, meta);
+    var once = snapMode && (kind === 'image' || kind === 'video');
+    var r = await LWApp.sendMessage(active, file.name || '', kind, meta, once);
     if (r.error) { LWApp.toast('❌ ' + LWApp.err(r.error), 'error'); return; }
     patchSentId(el, temp, r);
-    LWApp.toast('✅ ' + LWApp.esc(window.t('sentMsg')));
+    LWApp.toast(once ? '◉ Snap bhej diya — ek baar khulega' : '✅ ' + LWApp.esc(window.t('sentMsg')));
   } catch (er) {
     LWApp.toast('❌ ' + LWApp.err(er), 'error');
   }
@@ -655,6 +729,57 @@ async function onMediaPicked(e) {
   e.target.value = '';
   await sendMediaFile(file);
 }
+
+/* ---------- view-once snap kholna ----------
+   Server pehle "dekha gaya" mark karta hai, storage se file mitata hai, aur
+   URL sirf usi ek response mein deta hai. Isliye yahan URL ko kahin save
+   nahi karte — overlay band hone par wo memory se bhi chala jaata hai.
+
+   Imaandari se: screenshot ka pata web par nahi chalta. Koi API nahi hai jo
+   browser/WebView mein screenshot detect kar sake, aur jo dikh raha hai use
+   record karne se bhi nahi rok sakte. Ye feature bharose par chalta hai,
+   suraksha par nahi — isliye UI mein aisa koi daava nahi karte. */
+async function openSnap(msgId) {
+  var r;
+  try {
+    r = await LWApp.consumeViewOnce(msgId);
+  } catch (e) {
+    LWApp.toast("❌ " + LWApp.err(e), "error");
+    return;
+  }
+
+  if (!r.url) {
+    LWApp.toast(r.already ? "Ye snap pehle hi khul chuka hai" : "Snap nahi khula", "error");
+    await loadMessages();
+    return;
+  }
+
+  var ext = (r.url.split('?')[0].split('.').pop() || '').toLowerCase();
+  var isVid = ext === 'webm' || ext === 'mp4' || ext === 'mov';
+  var box = document.getElementById("snapViewer");
+  document.getElementById('snapBody').innerHTML = isVid
+    ? '<video src="' + LWApp.esc(r.url) + '" autoplay loop playsinline></video>'
+    : '<img src="' + LWApp.esc(r.url) + '" alt="">';
+  box.classList.add("open");
+  await loadMessages();
+}
+
+function closeSnap() {
+  var box = document.getElementById("snapViewer");
+  box.classList.remove("open");
+  // URL ko DOM se bhi hata do — snap ka koi nishaan baaki na rahe
+  document.getElementById("snapBody").innerHTML = "";
+}
+
+function toggleSnapMode() {
+  snapMode = !snapMode;
+  var b = document.getElementById("snapModeBtn");
+  b.classList.toggle("on", snapMode);
+  LWApp.toast(snapMode ? "◉ View-once on — agli photo/video ek hi baar khulegi"
+                       : "Normal mode");
+}
+
+var snapMode = false;
 
 function openChatCamera() {
   if (!active) { LWApp.toast('❌ Pehle koi chat chuno', 'error'); return; }

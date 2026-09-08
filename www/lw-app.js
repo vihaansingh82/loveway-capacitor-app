@@ -1928,7 +1928,7 @@
 
   function messages(convId, limit) {
     return sb().from('messages')
-      .select('id, sender_id, content, kind, meta, created_at')
+      .select('id, sender_id, content, kind, meta, created_at, view_once, viewed_at')
       .eq('conversation_id', convId)
       .order('created_at', { ascending: false })
       .limit(limit || 60)
@@ -1966,14 +1966,28 @@
       .then(function (r) { return r.data || []; });
   }
 
-  function sendMessage(convId, text, kind, meta) {
+  // viewOnce = true bhejne par snap ek hi baar khulta hai — khulte waqt
+  // lw_consume_view_once() storage se file bhi mita deta hai (URL public
+  // hota hai, isliye sirf flag lagane se kuch chhupta nahi)
+  function sendMessage(convId, text, kind, meta, viewOnce) {
     return sb().from('messages').insert({
       conversation_id: convId,
       sender_id: window.LW.profile.id,
       content: text,
       kind: kind || 'text',
-      meta: meta || {}
+      meta: meta || {},
+      view_once: !!viewOnce
     }).select('id, created_at').maybeSingle();
+  }
+
+  // Snap kholo: server 'dekha gaya' mark karta hai, file delete karta hai,
+  // aur URL SIRF is ek call mein wapas deta hai — dobara kuch nahi milega.
+  function consumeViewOnce(msgId) {
+    return sb().rpc('lw_consume_view_once', { p_msg: msgId })
+      .then(function (r) {
+        if (r.error) throw r.error;
+        return r.data || {};
+      });
   }
 
   // chat photo/video/audio — "chat-media" bucket, path: <conv>/<sender>/<file>
@@ -2388,7 +2402,7 @@
     motdRemoveNomination: motdRemoveNomination, motdWinner: motdWinner,
 
     myConversations: myConversations, openDirect: openDirect, messages: messages,
-    sendMessage: sendMessage, createGroup: createGroup, markRead: markRead,
+    sendMessage: sendMessage, consumeViewOnce: consumeViewOnce, createGroup: createGroup, markRead: markRead,
     liveConversation: liveConversation, sendTyping: sendTyping, songMessages: songMessages,
     conversationMessageCount: conversationMessageCount,
     translateText: translateText, contentLangMatches: contentLangMatches,

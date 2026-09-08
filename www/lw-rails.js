@@ -691,20 +691,59 @@ function applyRailPrefs() {
   });
 }
 
-/* ---------- Init helper: call from each page's DOMContentLoaded ---------- */
+/* ---------- Init helper: call from each page's DOMContentLoaded ----------
+   Widget tabhi load hota hai jab uska dabba ASLI MEIN screen par ho.
+
+   Pehle yahan `window.innerWidth >= 1680` likha tha, aur wahi bug ki jad
+   thi: lw-responsive.css right rail ko 1440px se hi dikha deti hai, to
+   1440–1679px ke beech rail dikhti thi par khaali — Music aur festivals
+   ka card safed dabba banke baitha rehta tha.
+
+   Number dobara likhne ki jagah ab element se poochte hain ki wo render
+   hua hai ya nahi (getClientRects khaali = display:none, khud ka ya kisi
+   parent ka). Isse CSS ke breakpoints kabhi badlein to ye code apne aap
+   sahi rehta hai — dobara sync karne ki zarurat nahi. */
+function elRendered(sel) {
+  var els = document.querySelectorAll(sel);
+  for (var i = 0; i < els.length; i++) {
+    if (els[i].getClientRects().length) return true;
+  }
+  return false;
+}
+
+var railLoaded = {};
+
+function loadVisibleRailWidgets() {
+  var jobs = [
+    { pref: 'prefDashMotd',     sel: '.motd-card',       run: renderMotdCard },
+    { pref: 'prefDashSpots',    sel: '.spots-body',      run: loadNearbySpots },
+    { pref: 'prefDashMusic',    sel: '.music-rail-card', run: renderMusicRailCard },
+    { pref: 'prefDashUpcoming', sel: '.upcoming-body',   run: renderUpcomingRail }
+  ];
+  jobs.forEach(function (j) {
+    if (railLoaded[j.pref]) return;
+    if (!railWidgetOn(j.pref)) return;
+    if (!elRendered(j.sel)) return;
+    railLoaded[j.pref] = true;
+    try { j.run(); } catch (e) { console.log('[LWRails] ' + j.pref + ' fail', e); }
+  });
+}
+
 function initSideRails() {
   ensureRailSheet();
   applyRailPrefs();
-  // MOTD ab .container mein bhi ek card hoti hai (chhote screens ke liye),
-  // isliye ise 1680px waali side-rail-only gate se bahar rakha hai — warna
-  // wo card bhi kabhi load hi nahi hoti thi.
-  if (railWidgetOn('prefDashMotd')) renderMotdCard();
-  if (window.innerWidth >= 1680) {
-    if (railWidgetOn('prefDashSpots'))    loadNearbySpots();
-    if (railWidgetOn('prefDashMusic'))    renderMusicRailCard();
-    if (railWidgetOn('prefDashUpcoming')) renderUpcomingRail();
-  }
+  loadVisibleRailWidgets();
+
+  // Window bada karne / tablet ghumane par rail beech mein dikhne lagti hai —
+  // us waqt jo widget naya dikha hai use bhi bhar do (jo pehle bhar chuke
+  // hain unhe railLoaded dobara chalne se rokta hai).
+  var t = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(t);
+    t = setTimeout(loadVisibleRailWidgets, 400);
+  });
 }
+
 
 /* ---------- Header mini music player (Spotify iFrame API — real prev/play/next control) ---------- */
 var mpIndex = 0, mpController = null, mpReady = false, mpPendingAction = null, mpLoadTimedOut = false;

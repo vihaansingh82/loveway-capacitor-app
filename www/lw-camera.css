@@ -460,3 +460,103 @@
 #storyComposeVideo[hidden] {
   display: none !important;
 }
+
+/* ---------- view-once snaps (chat) ----------
+   Media kabhi bubble mein render nahi hota — sirf ye card. */
+.snap-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 132px;
+  padding: 14px 18px;
+  border: 0;
+  border-radius: 14px;
+  background: #ffffff1f;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  cursor: default;
+}
+
+.snap-card .ic {
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--primary, #ff4f7b);
+}
+
+.snap-card b { font-size: 0.9rem; }
+
+.snap-card small {
+  font-size: 0.72rem;
+  opacity: 0.75;
+}
+
+.snap-card.is-new {
+  cursor: pointer;
+  background: var(--primary-soft, #ff4f7b26);
+}
+
+.snap-card.is-new:hover { filter: brightness(1.08); }
+
+.snap-card.is-gone .ic,
+.snap-card.is-own .ic { opacity: 0.5; }
+
+.snap-card.is-gone { opacity: 0.7; }
+
+/* full-screen snap viewer */
+.snap-viewer {
+  background: #000000f2;
+}
+
+.snap-viewer-box {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+#snapBody img,
+#snapBody video {
+  width: 100%;
+  max-height: 78vh;
+  object-fit: contain;
+  border-radius: 16px;
+  display: block;
+  background: #000;
+}
+
+.snap-note {
+  font-size: 0.76rem;
+  color: #ffffffb3;
+  text-align: center;
+}
+
+/* ---------- chat list: dost jinse abhi baat shuru nahi hui ---------- */
+.conv-sep {
+  padding: 12px 14px 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.chat-list .item.is-fresh small {
+  opacity: 0.65;
+  font-style: italic;
+}
+
+.conv-start {
+  flex: none;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--primary-soft);
+  border-radius: 999px;
+  padding: 4px 9px;
+  white-space: nowrap;
+}

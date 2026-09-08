@@ -115,7 +115,12 @@ async function sendOtp() {
     return false;
   }
   sent = true;
-  document.getElementById('subtitle').textContent = t('otpSent') + ' ' + target();
+  // sms channel par wahi ek code WhatsApp aur email dono par jaata hai
+  // (send-sms-hook edge function dono jagah pahunchata hai), isliye
+  // dono jagah ka naam batao warna user sirf ek hi jagah dekhta rehta hai
+  document.getElementById('subtitle').textContent = (channel === 'sms' && email)
+    ? t('otpSent') + ' WhatsApp (' + mobile + ') aur ' + email
+    : t('otpSent') + ' ' + target();
   startTimer();
   return true;
 }

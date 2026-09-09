@@ -165,10 +165,10 @@ body.bg-photo[data-theme="dark"]{
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="config.js?v=2"></script>
-<script src="lw-core.js?v=7"></script>
+<script src="lw-core.js?v=8"></script>
 <script src="lw-festivals.js?v=2"></script>
 <script src="lw-spotify.js?v=7"></script>
-<script src="lw-app.js?v=19"></script>
+<script src="lw-app.js?v=20"></script>
 <link rel="stylesheet" href="lw-responsive.css?v=5">
 <link rel="stylesheet" href="lw-clay.css?v=2">
 <script src="lw-responsive.js?v=2" defer></script>
@@ -366,6 +366,16 @@ body.bg-photo[data-theme="dark"]{
         <div class="card row"><div><strong data-i18n="onlineStatusLabel">Online Status</strong><small data-i18n="onlineStatusDesc">Show when you are online</small></div><label class="switch"><input type="checkbox" id="prefOnlineStatus" checked><span class="slider"></span></label></div>
         <div class="card row"><div><strong data-i18n="lastSeenLabel">Last Seen</strong><small data-i18n="lastSeenDesc">Allow friends to see your last active time</small></div><label class="switch"><input type="checkbox" id="prefLastSeen" checked><span class="slider"></span></label></div>
         <div class="card row"><div><strong data-i18n="friendRequestsLabel">Friend Requests</strong><small data-i18n="friendReqDescPrivacy">Allow people to send requests</small></div><label class="switch"><input type="checkbox" id="prefAllowFriendReq" checked><span class="slider"></span></label></div>
+        <div class="card">
+          <strong>💚 Close Friends</strong>
+          <small style="display:block;color:var(--muted);margin-top:2px">
+            Story aur post ko "💚 Close Friends" par set karoge to sirf inhe dikhega.
+            Kisi ko pata nahi chalta ki wo is list me hai ya nahi.
+          </small>
+          <div id="closeFriendsList" style="margin-top:10px">
+            <small style="color:var(--muted)">Load ho raha hai…</small>
+          </div>
+        </div>
         <div class="card">
           <strong data-i18n="blockedUsersLabel">🚫 Blocked Users</strong>
           <div id="blockedList" style="margin-top:10px"><small style="color:var(--muted)" data-i18n="blockedLoading">Load ho raha hai…</small></div>
@@ -1151,6 +1161,51 @@ function copyRedirectUri(id){
  }
 }
 
+/* ---------- Close Friends ----------
+   Dost ki poori list dikhate hain, har ek ke saamne ek toggle. List sirf
+   isi user ko dikhti hai (RLS bhi yahi kehti hai) — jise close friend
+   banaya gaya use kabhi nahi pata chalta, isliye "mujhe kyun hataya"
+   wali situation banti hi nahi. */
+async function loadCloseFriends(){
+ const box=document.getElementById("closeFriendsList");
+ if(!box) return;
+ try{
+  const [friends,closeIds]=await Promise.all([LWApp.myFriends(),LWApp.closeFriendIds()]);
+  const close={}; closeIds.forEach(id=>close[id]=true);
+  if(!friends.length){
+   box.innerHTML='<small style="color:var(--muted)">Abhi koi dost nahi hai. Pehle dost banao, phir unme se close friends chuno.</small>';
+   return;
+  }
+  box.innerHTML=friends.map(f=>
+   '<label style="display:flex;align-items:center;gap:9px;padding:6px 0;cursor:pointer">'+
+     LWApp.avatarHtml(f,"sm")+
+     '<span style="flex:1;min-width:0"><b>'+LW.escapeHtml(f.full_name||f.username||"—")+'</b>'+
+     (f.username?'<br><small style="color:var(--muted)">@'+LW.escapeHtml(f.username)+'</small>':'')+'</span>'+
+     '<span class="switch"><input type="checkbox" data-cf="'+LW.escapeHtml(f.id)+'"'+
+       (close[f.id]?" checked":"")+'><span class="slider"></span></span>'+
+   '</label>').join("");
+ }catch(e){
+  box.innerHTML='<small style="color:var(--muted)">List nahi aa payi.</small>';
+ }
+}
+
+// change par turant save — alag "Save" button rakhne se log toggle karke
+// bhool jaate hain aur badlav chala jaata hai
+document.addEventListener("change",async function(e){
+ const id=e.target&&e.target.dataset&&e.target.dataset.cf;
+ if(!id) return;
+ const on=e.target.checked;
+ e.target.disabled=true;
+ const r=await LWApp.setCloseFriend(id,on);
+ e.target.disabled=false;
+ if(r&&r.error){
+  e.target.checked=!on;                 // sirf tab palto jab sach me fail hua
+  toast("Nahi ho paya","error");
+ }else{
+  toast(on?"💚 Close friends me jud gaya":"Close friends se hata diya");
+ }
+});
+
 function disconnectSpotify(){
  if(!confirm("Spotify ka connection hata dein?")) return;
  if(window.LWSpotify) LWSpotify.disconnect();
@@ -1228,6 +1283,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
  if(window.LWFest) LWFest.load().then(paintFestival);
  paintFestival();
  loadBlockedSettings();
+ loadCloseFriends();
  checkSpotify();
  enhanceSelect(document.getElementById("languageQuick"));
  enhanceSelect(document.getElementById("languageMain"));

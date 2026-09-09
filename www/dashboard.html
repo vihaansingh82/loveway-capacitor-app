@@ -8,10 +8,10 @@
 <link rel="stylesheet" href="lw-styles.css?v=6">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="config.js?v=2"></script>
-<script src="lw-core.js?v=7"></script>
+<script src="lw-core.js?v=8"></script>
 <script src="lw-festivals.js?v=2"></script>
 <script src="lw-spotify.js?v=7"></script>
-<script src="lw-app.js?v=19"></script>
+<script src="lw-app.js?v=20"></script>
 <script src="lw-rails.js?v=9"></script>
 <script src="lw-camera.js?v=3"></script>
 <link rel="stylesheet" href="lw-camera.css?v=5">
@@ -30,6 +30,11 @@
   border:2px solid transparent;transition:border-color .15s}
 .sfilter small{display:block;font-size:.68rem;color:var(--text-soft);margin-top:3px}
 .sfilter.on img{border-color:var(--primary)}
+.story-seen{position:absolute;left:12px;bottom:12px;z-index:3;border:0;cursor:pointer;
+  background:#0000008c;color:#fff;border-radius:999px;padding:6px 12px;font-size:.8rem;font-weight:600}
+.story-seen:hover{background:#000000b8}
+.lw-tag,.lw-mention{color:var(--primary);text-decoration:none;font-weight:600}
+.lw-tag:hover,.lw-mention:hover{text-decoration:underline}
 .sfilter-new span{width:56px;height:56px;border-radius:10px;display:flex;align-items:center;justify-content:center;
   font-size:1.4rem;color:var(--text-soft);border:2px dashed var(--border);box-sizing:border-box}
 .sfilter-new:hover span{color:var(--primary);border-color:var(--primary)}
@@ -123,6 +128,7 @@
               </select>
               <select id="postVis" style="width:auto">
                 <option value="friends" data-i18n="visFriends">👥 Dost</option>
+                <option value="close" data-i18n="visClose">💚 Close Friends</option>
                 <option value="public" data-i18n="visPublic">🌍 Sabhi</option>
                 <option value="partner" data-i18n="visPartner">💑 Partner</option>
                 <option value="private" data-i18n="visPrivate">🔒 Sirf main</option>
@@ -202,6 +208,9 @@
   <div class="story-viewer-box">
     <div class="story-progress" id="storyProgress"></div>
     <div class="story-viewer-head" id="storyHead"></div>
+    <!-- sirf apni story par dikhta hai -->
+    <button type="button" class="story-seen" id="storySeen" hidden
+            onclick="openStoryViewers()">👁 <span id="storySeenN">0</span></button>
     <img id="storyImg" src="" alt="">
     <video id="storyVid" playsinline autoplay hidden></video>
     <div class="story-music" id="storyMusic"></div>
@@ -209,6 +218,15 @@
     <button class="story-nav prev" onclick="storyStep(-1)" aria-label="Previous"></button>
     <button class="story-nav next" onclick="storyStep(1)" aria-label="Next"></button>
     <button class="story-close" onclick="closeStoryViewer()">✕</button>
+  </div>
+</div>
+
+<!-- kisne story dekhi — sirf story ke author ke liye -->
+<div class="modal-bg" id="storyViewersModal" onclick="if(event.target===this)closeStoryViewers()">
+  <div class="modal" style="max-width:380px">
+    <h3>👁 Kisne dekhi</h3>
+    <div id="storyViewersBody" style="max-height:52vh;overflow:auto;margin:10px 0"></div>
+    <div class="foot"><button class="btn" onclick="closeStoryViewers()">Band karo</button></div>
   </div>
 </div>
 
@@ -365,7 +383,7 @@ function clearMediaPick() {
 }
 
 function visLabel(v) {
-  return { public: '🌍', friends: '👥', partner: '💑', private: '🔒', community: '🏘️' }[v] || '';
+  return { public: '🌍', friends: '👥', close: '💚', partner: '💑', private: '🔒', community: '🏘️' }[v] || '';
 }
 
 function postHtml(p) {
@@ -382,7 +400,10 @@ function postHtml(p) {
   }
   t += '</div>';
 
-  if (p.content) t += '<div class="post-body">' + LWApp.esc(tContent('post' + p.id, p.content, render)) + '</div>';
+  // linkify HAMESHA esc() ke baad — pehle link banane par escape uske
+  // apne markup ko tod deta aur XSS ka raasta khul jaata
+  if (p.content) t += '<div class="post-body">' +
+    LWApp.linkifyTags(LWApp.esc(tContent('post' + p.id, p.content, render))) + '</div>';
 
   if (p.kind === 'song' && p.song_title) {
     var embed = p.song_url ? LWApp.spotifyEmbedUrl(p.song_url) : null;
@@ -402,6 +423,11 @@ function postHtml(p) {
   t += '<div class="post-actions">';
   t += '<span class="post-ic' + (p.i_loved ? ' on' : '') + '" onclick="love(' + p.id + ')">' + LWApp.icon('heart', 24) + '</span>';
   t += '<span class="post-ic" onclick="openComments(' + p.id + ')">' + LWApp.icon('chat', 22) + '</span>';
+  // save daayin taraf — like/comment se alag, kyunki ye private hai:
+  // kisi aur ko nahi dikhta ki tumne kya save kiya
+  t += '<span class="post-ic save' + (savedIds[p.id] ? ' on' : '') +
+       '" style="margin-left:auto" onclick="toggleSave(' + p.id + ')" title="Save karo">' +
+       LWApp.icon('bookmark', 22) + '</span>';
   t += '</div>';
   if (p.love_count > 0) t += '<div class="post-likes">' + p.love_count + ' likes</div>';
   if (p.comment_count > 0) t += '<div class="post-comments-link" onclick="openComments(' + p.id + ')">Sabhi ' + p.comment_count + ' comments dekho</div>';
@@ -484,9 +510,26 @@ async function sendComment() {
   if (p) { p.comment_count++; render(); }
 }
 
+var savedIds = {};          // { postId: true } — feed ke saath ek hi query me
+
+async function toggleSave(id) {
+  var was = !!savedIds[id];
+  savedIds[id] = !was;      // turant palto, network ka intezaar nahi
+  render();
+  var now = await LWApp.toggleSave(id);
+  if (now !== !was) {       // server ne kuch aur kaha — wapas theek karo
+    savedIds[id] = now;
+    render();
+  }
+  LWApp.toast(savedIds[id] ? '🔖 Save ho gaya' : 'Save hata diya');
+}
+
 async function loadFeed() {
   try {
     posts = await LWApp.feed({ limit: 40 });
+    // ek hi query me poori feed ka saved-status — har post par alag
+    // poochhne se N+1 ban jaata
+    savedIds = await LWApp.savedIdsFor(posts.map(function (p) { return p.id; }));
     render();
     renderAnnouncementTicker();
   } catch (e) {
@@ -580,12 +623,64 @@ var storyPaused = false, storyStartedAt = 0, storyRemainMs = 0, storyTotalMs = 0
 function getSeenStoryIds() {
   try { return JSON.parse(localStorage.getItem('lw_seen_stories') || '[]'); } catch (e) { return []; }
 }
+/* Do jagah darj hota hai, jaan-boojh kar:
+     localStorage — ring turant grey ho jaaye, server ke jawab ka intezaar
+                    kiye bina (feed pehle se render ho chuki hoti hai)
+     server       — asli record. Isse story DAALNE WALE ko dikhta hai ki
+                    kisne dekhi, aur doosre device par bhi seen rehta hai.
+                    Pehle sirf localStorage tha, isliye dono cheezein
+                    kaam hi nahi karti thin. */
 function markStorySeen(id) {
   var seen = getSeenStoryIds();
   if (seen.indexOf(id) === -1) {
     seen.push(id);
     try { localStorage.setItem('lw_seen_stories', JSON.stringify(seen)); } catch (e) {}
   }
+  if (window.LWApp && LWApp.markStorySeen) {
+    LWApp.markStorySeen(id).then(function (count) {
+      // jawab aane tak user agli story par ja chuka ho sakta hai
+      var cur = storyQueue[storyIdx];
+      if (cur && cur.id === id) paintStorySeen(cur, count);
+    });
+  }
+}
+
+/* "👁 N" sirf apni story par. Doosre ki story par ye dikhana galat hoga —
+   viewer list uske alawa kisi ko nahi milti (RLS bhi yahi kehti hai). */
+function paintStorySeen(story, count) {
+  var btn = document.getElementById('storySeen');
+  if (!btn) return;
+  var mine = story && window.LW.profile && story.author &&
+             story.author.id === window.LW.profile.id;
+  btn.hidden = !mine;
+  if (mine) document.getElementById('storySeenN').textContent = count || 0;
+}
+
+async function openStoryViewers() {
+  var s = storyQueue[storyIdx];
+  if (!s) return;
+  storyPause();                       // list padhte waqt story aage na badhe
+  document.getElementById('storyViewersModal').classList.add('open');
+  var box = document.getElementById('storyViewersBody');
+  box.innerHTML = '<div class="spinner">Dekh rahe hain kaun aaya…</div>';
+
+  var rows = await LWApp.storyViewers(s.id, 100);
+  if (!rows.length) {
+    box.innerHTML = '<div class="empty"><span class="ic">👀</span>Abhi kisi ne nahi dekhi.</div>';
+    return;
+  }
+  box.innerHTML = rows.map(function (u) {
+    return '<div class="item" style="display:flex;gap:9px;align-items:center;padding:7px 0">' +
+      LWApp.avatarHtml(u, 'sm') +
+      '<div style="min-width:0;flex:1"><b>' + LWApp.esc(u.full_name || u.username || '') + '</b>' +
+      (u.is_verified ? ' <span title="Verified">✅</span>' : '') +
+      '<br><small class="muted">' + LWApp.timeAgo(u.seen_at) + '</small></div></div>';
+  }).join('');
+}
+
+function closeStoryViewers() {
+  document.getElementById('storyViewersModal').classList.remove('open');
+  storyResume();
 }
 
 async function loadStories() {
@@ -903,6 +998,9 @@ function renderStory() {
     sImg.src = s.media_url || '';
   }
   document.getElementById('storyCaption').textContent = s.content ? tContent('story' + s.id, s.content, renderStory) : '';
+  // ginti markStorySeen() ke jawab me aayegi; tab tak purani story ki
+  // ginti na dikhe isliye abhi 0 se shuru
+  paintStorySeen(s, 0);
 
   var musicBox = document.getElementById('storyMusic');
   if (s.song_title) {

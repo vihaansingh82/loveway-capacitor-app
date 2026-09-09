@@ -22,12 +22,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- OAuth (Google/Spotify) redirect comes back here instead of staying in Chrome -->
+            <!-- OAuth redirects come back here instead of staying in Chrome.
+                 host="callback"          = Supabase login (Google / "Spotify se login"),
+                                            lw-core.js ka NATIVE_OAUTH_REDIRECT
+                 host="spotify-callback"  = "apna Spotify jodo" wala PKCE flow,
+                                            lw-spotify.js ka NATIVE_REDIRECT
+                 Doosra host pehle chhoot gaya tha, isliye app me Spotify connect
+                 ka jawab kabhi wapas hi nahi aata tha. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="com.loveway.app" android:host="callback" />
+                <data android:scheme="com.loveway.app" android:host="spotify-callback" />
             </intent-filter>
 
         </activity>

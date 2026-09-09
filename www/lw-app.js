@@ -60,6 +60,7 @@
 
   /* ---------- header icons (SVG, ek hi jagah se sab pages) ---------- */
   var ICONS = {
+    bookmark:  '<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>',
     home:      '<path d="M3 9.5 12 3l9 6.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/>',
     friends:   '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
     profile:   '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
@@ -907,6 +908,116 @@
   function createPost(p) {
     p.author_id = window.LW.profile.id;
     return sb().from('posts').insert(p).select(POST_COLS).maybeSingle();
+  }
+
+  /* ---------- Story "kisne dekhi" ----------
+     Pehle seen sirf localStorage me tha, isliye story daalne wale ko
+     kabhi pata hi nahi chalta tha ki kisne dekhi, aur doosre device par
+     ring dobara nayi dikhti thi. Ab server par jaata hai. */
+
+  // view darj karo aur nayi ginti wapas lo — ek hi round-trip
+  function markStorySeen(postId) {
+    return sb().rpc('lw_mark_story_seen', { p_post: postId })
+      .then(function (r) { return (r && !r.error && typeof r.data === 'number') ? r.data : 0; })
+      .catch(function () { return 0; });
+  }
+
+  // sirf story ke author ko list milti hai (RPC khud check karta hai)
+  function storyViewers(postId, limit) {
+    return sb().rpc('lw_story_viewers', { p_post: postId, p_limit: limit || 50 })
+      .then(function (r) { return (r && r.data) || []; })
+      .catch(function () { return []; });
+  }
+
+  /* ---------- Saved posts (private bookmarks) ---------- */
+
+  function toggleSave(postId) {
+    var uid = window.LW.profile.id;
+    return sb().from('post_saves').select('post_id').eq('post_id', postId).eq('user_id', uid).maybeSingle()
+      .then(function (r) {
+        if (r && r.data) {
+          return sb().from('post_saves').delete().eq('post_id', postId).eq('user_id', uid)
+            .then(function () { return false; });      // ab saved nahi hai
+        }
+        return sb().from('post_saves').insert({ post_id: postId, user_id: uid })
+          .then(function (ins) { return !(ins && ins.error); });
+      });
+  }
+
+  // ek saath poochho ki in me se kaun-kaun si saved hain — har post par
+  // alag query bhejne se feed me N+1 ban jaata
+  function savedIdsFor(postIds) {
+    if (!postIds || !postIds.length) return Promise.resolve({});
+    return sb().from('post_saves').select('post_id')
+      .eq('user_id', window.LW.profile.id).in('post_id', postIds)
+      .then(function (r) {
+        var map = {};
+        ((r && r.data) || []).forEach(function (x) { map[x.post_id] = true; });
+        return map;
+      }).catch(function () { return {}; });
+  }
+
+  function savedPosts(limit) {
+    return sb().from('post_saves')
+      .select('created_at, posts!inner(' + POST_COLS + ')')
+      .eq('user_id', window.LW.profile.id)
+      .order('created_at', { ascending: false })
+      .limit(limit || 40)
+      .then(function (r) {
+        return ((r && r.data) || []).map(function (x) { return x.posts; }).filter(Boolean);
+      }).catch(function () { return []; });
+  }
+
+  /* ---------- Close Friends ----------
+     List sirf uske maalik ko dikhti hai — jise close friend banaya gaya
+     use bhi nahi pata. Isliye koi "X ne tumhe hataya" wali situation
+     nahi banti. */
+
+  function closeFriendIds() {
+    return sb().from('close_friends').select('friend_id')
+      .eq('owner_id', window.LW.profile.id)
+      .then(function (r) { return ((r && r.data) || []).map(function (x) { return x.friend_id; }); })
+      .catch(function () { return []; });
+  }
+
+  function setCloseFriend(friendId, on) {
+    var uid = window.LW.profile.id;
+    if (on) {
+      return sb().from('close_friends').insert({ owner_id: uid, friend_id: friendId });
+    }
+    return sb().from('close_friends').delete().eq('owner_id', uid).eq('friend_id', friendId);
+  }
+
+  /* ---------- Hashtags ---------- */
+
+  function postsByTag(tag, limit) {
+    return sb().rpc('lw_posts_by_tag', { p_tag: tag, p_limit: limit || 30 })
+      .then(function (r) { return (r && r.data) || []; })
+      .catch(function () { return []; });
+  }
+
+  function trendingTags(limit) {
+    return sb().rpc('lw_trending_tags', { p_limit: limit || 12 })
+      .then(function (r) { return (r && r.data) || []; })
+      .catch(function () { return []; });
+  }
+
+  /* Post ke text me #tag aur @user ko clickable banao.
+     Ye escaped HTML par chalta hai (esc() ke BAAD), isliye yahan se koi
+     naya HTML inject nahi ho sakta — sirf pehle se safe text par <a>
+     lagta hai. Ulta karne par (pehle link, phir escape) links tut jaate
+     aur XSS ka raasta khul jaata. */
+  function linkifyTags(escapedHtml) {
+    if (!escapedHtml) return '';
+    return String(escapedHtml)
+      .replace(/(^|[\s(])#([A-Za-z0-9_\u0900-\u097F]{2,50})/g, function (m, pre, tag) {
+        return pre + '<a class="lw-tag" href="' + window.LW.pageUrl('community.html') +
+          '?tag=' + encodeURIComponent(tag.toLowerCase()) + '">#' + tag + '</a>';
+      })
+      .replace(/(^|[\s(])@([A-Za-z0-9_.]{2,30})/g, function (m, pre, name) {
+        return pre + '<a class="lw-mention" href="' + window.LW.pageUrl('profile.html') +
+          '?u=' + encodeURIComponent(name) + '">@' + name + '</a>';
+      });
   }
 
   // feed/story photo — "posts" bucket, path: <user_id>/<file>
@@ -2357,6 +2468,11 @@
 
     feed: feed, createPost: createPost, deletePost: deletePost, toggleLove: toggleLove,
     comments: comments, addComment: addComment,
+
+    markStorySeen: markStorySeen, storyViewers: storyViewers,
+    toggleSave: toggleSave, savedIdsFor: savedIdsFor, savedPosts: savedPosts,
+    closeFriendIds: closeFriendIds, setCloseFriend: setCloseFriend,
+    postsByTag: postsByTag, trendingTags: trendingTags, linkifyTags: linkifyTags,
     uploadPostMedia: uploadPostMedia, storiesFeed: storiesFeed,
 
     createAnnouncement: createAnnouncement, uploadAnnouncementMedia: uploadAnnouncementMedia,

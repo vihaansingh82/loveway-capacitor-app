@@ -5957,3 +5957,27 @@ body.sidebar-collapsed {
   vertical-align: 1px;
   display: inline-block;
 }
+
+/* Hashtag ke nateeje aur trending cloud (community.html) */
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.tag-cloud .lw-tag {
+  background: var(--bg2);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+}
+.tag-cloud .lw-tag:hover {
+  background: var(--primary-soft);
+  text-decoration: none;
+}
+
+/* Saved (bookmark) — bharaa hua matlab saved. Rang wahi primary hai jo
+   heart use karta hai, taaki dono ek hi bhasha bolein. */
+.post-ic.save {
+  margin-left: auto;
+}

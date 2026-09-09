@@ -7,10 +7,10 @@
 <link rel="stylesheet" href="lw-styles.css?v=6">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="config.js?v=2"></script>
-<script src="lw-core.js?v=7"></script>
+<script src="lw-core.js?v=8"></script>
 <script src="lw-festivals.js?v=2"></script>
 <script src="lw-spotify.js?v=7"></script>
-<script src="lw-app.js?v=19"></script>
+<script src="lw-app.js?v=20"></script>
 <link rel="stylesheet" href="lw-responsive.css?v=5">
 <link rel="stylesheet" href="lw-clay.css?v=2">
 <script src="lw-responsive.js?v=2" defer></script>
@@ -30,6 +30,10 @@
   <div id="alertBox" class="alert"></div>
 
   <!-- ===== list view ===== -->
+  <!-- hashtag ke nateeje aur trending — dono community list ke upar -->
+  <div class="card" id="trendingTags" hidden></div>
+  <div class="card" id="tagResults" hidden></div>
+
   <div id="listView">
     <div class="page-head">
       <h2 data-i18n="communityPageTitle">🏘️ Communities</h2>
@@ -480,5 +484,65 @@ document.addEventListener('lw:language', function () {
   </div>
 </div>
 
+<script>
+/* ---------- Hashtag search ----------
+   community.html?tag=pyaar se aata hai (post text ke #tag link wahin
+   point karte hain). Posts lw_posts_by_tag se aate hain jo security
+   invoker hai — yaani RLS lagti hai aur sirf wahi posts milti hain jo
+   is user ko waise bhi dikhti hain. */
+(function () {
+  function qs(k) {
+    return new URLSearchParams(location.search).get(k);
+  }
+
+  async function showTag(tag) {
+    var host = document.getElementById('tagResults');
+    if (!host) return;
+    host.hidden = false;
+    var lv = document.getElementById('listView');
+    if (lv) lv.style.display = 'none';   // tag ke nateeje dikh rahe hain, list nahi
+    host.innerHTML = '<div class="spinner">#' + LWApp.esc(tag) + ' dhoondh rahe hain…</div>';
+
+    var rows = await LWApp.postsByTag(tag, 50);
+    if (!rows.length) {
+      host.innerHTML = '<h3>#' + LWApp.esc(tag) + '</h3>' +
+        '<div class="empty"><span class="ic">🔍</span>Is tag par abhi kuch nahi hai.</div>';
+      return;
+    }
+    host.innerHTML = '<h3>#' + LWApp.esc(tag) + ' <small class="muted">' + rows.length + '</small></h3>' +
+      rows.map(function (p) {
+        var body = p.content
+          // truncate PEHLE, escape/linkify BAAD me — bane hue HTML ko
+          // slice karne par <a> beech se kat kar toota markup deta hai
+          ? LWApp.linkifyTags(LWApp.esc(p.content.slice(0, 400)))
+          : '<i class="muted">(sirf media)</i>';
+        return '<div class="post" style="margin-bottom:10px">' +
+          '<div class="post-body">' + body + '</div>' +
+          (p.media_url ? '<div class="post-media"><img src="' + LWApp.esc(p.media_url) +
+                         '" alt="" loading="lazy"></div>' : '') +
+          '<small class="muted">' + LWApp.timeAgo(p.created_at) + '</small></div>';
+      }).join('');
+  }
+
+  async function showTrending() {
+    var box = document.getElementById('trendingTags');
+    if (!box) return;
+    var rows = await LWApp.trendingTags(12);
+    if (!rows.length) { box.hidden = true; return; }
+    box.hidden = false;
+    box.innerHTML = '<h3>🔥 Trending</h3><div class="tag-cloud">' +
+      rows.map(function (r) {
+        return '<a class="lw-tag" href="?tag=' + encodeURIComponent(r.tag) + '">#' +
+          LWApp.esc(r.tag) + ' <small class="muted">' + r.uses + '</small></a>';
+      }).join('') + '</div>';
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var tag = qs('tag');
+    if (tag) showTag(tag.replace(/^#/, '').toLowerCase());
+    showTrending();
+  });
+})();
+</script>
 </body>
 </html>

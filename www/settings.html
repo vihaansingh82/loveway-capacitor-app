@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Loveway — Settings ⚙️</title>
-<link rel="stylesheet" href="lw-styles.css?v=5">
+<link rel="stylesheet" href="lw-styles.css?v=6">
 <style>
 /* This page runs its own independent theme-variable set + setTheme()/
    setCustomColorSettings() implementation (see THEME_VARS below), separate
@@ -766,6 +766,7 @@ function paintMe(p){
 // nahi hote the. Ab profiles.preferences (jsonb) mein store hote hain —
 // jo values nahi milti unke liye upar wali HTML ki default checked/unchecked
 // state hi maani jaati hai (backward-compatible purane accounts ke liye).
+
 function paintPrefs(p){
  const prefs=p.preferences||{};
  const setChk=(id,def)=>{const el=document.getElementById(id); if(el) el.checked = prefs[id]===undefined ? def : !!prefs[id];};

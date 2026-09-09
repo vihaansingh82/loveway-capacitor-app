@@ -30,7 +30,7 @@
 (function () {
   'use strict';
 
-  var FILTERS = [
+  var BUILTIN_FILTERS = [
     { key: 'none',    label: 'Original', css: 'none' },
     { key: 'warm',    label: 'Warm',     css: 'sepia(0.35) saturate(1.35) contrast(1.05)' },
     { key: 'cool',    label: 'Cool',     css: 'hue-rotate(-15deg) saturate(1.25) brightness(1.05)' },
@@ -39,6 +39,16 @@
     { key: 'vivid',   label: 'Vivid',    css: 'saturate(1.7) contrast(1.15)' },
     { key: 'soft',    label: 'Soft',     css: 'brightness(1.08) saturate(0.95) contrast(0.92)' }
   ];
+
+  /* Ye array kabhi REPLACE nahi hota — sirf andar se badalta hai.
+     dashboard.html shuru mein hi `var STORY_FILTERS = LWCamera.FILTERS`
+     karke ISI reference ko pakad leta hai; naya array bana kar assign kar
+     diya to story composer hamesha purani list dikhata rahega. Isliye
+     syncFilters() length=0 karke dobara bharta hai, = se badalta nahi. */
+  var FILTERS = BUILTIN_FILTERS.slice();
+
+  var CUSTOM_PREF_KEY = 'customFilters';   // profiles.preferences ke andar
+  var MAX_CUSTOM = 12;
 
   var LENSES = [
     { key: 'dog',     label: '🐶', draw: drawDogLens },
@@ -84,6 +94,229 @@
       String(s).replace(/[&<>"']/g, function (c) {
         return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
       });
+  }
+
+  /* ============================================================
+     User ke apne filters
+     ------------------------------------------------------------
+     profiles.preferences.customFilters (jsonb) me rehte hain. Do wajah:
+       • koi migration nahi chahiye — ye column isi kaam ke liye bana tha
+       • filter user ke saath har device par jaata hai. localStorage me
+         rakhte to wo ek hi browser tak simat jaata (bilkul wahi galti jo
+         Spotify connection me thi).
+     ============================================================ */
+
+  // slider se banne wale filter ke hisse. def = "kuch nahi badla" wali value.
+  var FX = [
+    { key: 'brightness', label: 'Roshni',   min: 0.4,  max: 1.6, step: 0.01, def: 1, unit: '' },
+    { key: 'contrast',   label: 'Contrast', min: 0.4,  max: 2,   step: 0.01, def: 1, unit: '' },
+    { key: 'saturate',   label: 'Rang',     min: 0,    max: 2.5, step: 0.01, def: 1, unit: '' },
+    { key: 'hue-rotate', label: 'Hue',      min: -180, max: 180, step: 1,    def: 0, unit: 'deg' },
+    { key: 'sepia',      label: 'Sepia',    min: 0,    max: 1,   step: 0.01, def: 0, unit: '' },
+    { key: 'grayscale',  label: 'B&W',      min: 0,    max: 1,   step: 0.01, def: 0, unit: '' },
+    { key: 'blur',       label: 'Blur',     min: 0,    max: 4,   step: 0.1,  def: 0, unit: 'px' }
+  ];
+
+  function fxDefaults() {
+    var v = {};
+    FX.forEach(function (f) { v[f.key] = f.def; });
+    return v;
+  }
+
+  // sirf wahi hisse likho jo default se hate hain — chhoti aur padhne layak
+  // CSS banti hai, aur "none" ka matlab saaf rehta hai
+  function fxToCss(vals) {
+    var out = [];
+    FX.forEach(function (f) {
+      var v = Number(vals[f.key]);
+      if (isNaN(v) || v === f.def) return;
+      out.push(f.key + '(' + v + f.unit + ')');
+    });
+    return out.length ? out.join(' ') : 'none';
+  }
+
+  function customList() {
+    var p = window.LW && window.LW.profile;
+    var arr = p && p.preferences && p.preferences[CUSTOM_PREF_KEY];
+    return Array.isArray(arr) ? arr.slice() : [];
+  }
+
+  // FILTERS ko jagah par hi dobara bharo (upar wala comment dekho)
+  function syncFilters() {
+    FILTERS.length = 0;
+    BUILTIN_FILTERS.forEach(function (f) { FILTERS.push(f); });
+    customList().forEach(function (f) {
+      if (f && f.key && f.css) {
+        FILTERS.push({ key: f.key, label: f.label || 'Mera', css: f.css, custom: true });
+      }
+    });
+    return FILTERS;
+  }
+
+  function persistCustom(list) {
+    var p = window.LW && window.LW.profile;
+    if (!p || !window.LWApp || !window.LWApp.saveProfile) return Promise.resolve(false);
+    var merged = Object.assign({}, p.preferences || {});
+    merged[CUSTOM_PREF_KEY] = list;
+    return window.LWApp.saveProfile({ preferences: merged }).then(function (r) {
+      if (r && r.error) return false;
+      p.preferences = merged;      // local copy bhi taaza rakho
+      syncFilters();
+      return true;
+    }).catch(function () { return false; });
+  }
+
+  function deleteCustomFilter(key) {
+    var f = FILTERS.filter(function (x) { return x.key === key; })[0];
+    if (!f) return Promise.resolve(false);
+    if (!confirm('"' + f.label + '" filter hata dein?')) return Promise.resolve(false);
+    var list = customList().filter(function (x) { return x.key !== key; });
+    return persistCustom(list).then(function (ok) {
+      if (!ok) { toast('Filter hataya nahi ja saka', 'error'); return false; }
+      // jo filter abhi laga hua tha wahi hat gaya to Original par wapas
+      if (st.filterKey === key) st.filterKey = 'none';
+      if ($('camFilterRow')) renderFilterRow();
+      renderMakerList();
+      notifyFiltersChanged();
+      return true;
+    });
+  }
+
+  function toast(msg, kind) {
+    if (window.LWApp && window.LWApp.toast) window.LWApp.toast(msg, kind);
+  }
+
+  /* Filter list badalne par jo bhi page sun raha ho (dashboard ka story
+     composer) apni chips dobara bana le — warna naya filter tabhi dikhta
+     jab poora page reload ho. */
+  var _filterListeners = [];
+  function onFiltersChanged(cb) { if (typeof cb === 'function') _filterListeners.push(cb); }
+  function notifyFiltersChanged() {
+    _filterListeners.slice().forEach(function (cb) { try { cb(FILTERS); } catch (e) {} });
+  }
+
+  /* ---------- filter banane wala modal ----------
+     Camera aur story composer dono isi ko kholte hain, isliye ye camera
+     modal ke andar nahi, alag element hai. */
+  var mk = { vals: fxDefaults(), previewSrc: null, editKey: null };
+
+  function ensureMaker() {
+    if ($('lwFilterMaker')) return;
+    var el = document.createElement('div');
+    el.className = 'modal-bg';
+    el.id = 'lwFilterMaker';
+    el.innerHTML =
+      '<div class="modal fm-box">' +
+        '<h3 id="fmTitle">🎨 Apna filter banao</h3>' +
+        '<div class="fm-preview"><img id="fmImg" alt=""><div class="fm-swatch" id="fmSwatch"></div></div>' +
+        '<div class="fm-sliders" id="fmSliders"></div>' +
+        '<input type="text" id="fmName" maxlength="14" placeholder="Filter ka naam (jaise: Sunset)">' +
+        '<div class="fm-mine" id="fmMine"></div>' +
+        '<div class="fm-actions">' +
+          '<button type="button" class="btn" onclick="LWCamera.resetFilterMaker()">Reset</button>' +
+          '<button type="button" class="btn" onclick="LWCamera.closeFilterMaker()">Rehne do</button>' +
+          '<button type="button" class="btn primary" onclick="LWCamera.saveFilterMaker()">Save</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(el);
+    el.addEventListener('click', function (e) { if (e.target === el) closeFilterMaker(); });
+
+    $('fmSliders').innerHTML = FX.map(function (f) {
+      return '<label class="fm-row"><span>' + esc(f.label) + '</span>' +
+        '<input type="range" data-fx="' + f.key + '" min="' + f.min + '" max="' + f.max +
+        '" step="' + f.step + '" value="' + f.def + '">' +
+        '<b data-fxval="' + f.key + '">' + f.def + '</b></label>';
+    }).join('');
+
+    $('fmSliders').addEventListener('input', function (e) {
+      var k = e.target && e.target.getAttribute('data-fx');
+      if (!k) return;
+      mk.vals[k] = Number(e.target.value);
+      paintMaker();
+    });
+  }
+
+  function paintMaker() {
+    var css = fxToCss(mk.vals);
+    var img = $('fmImg'), sw = $('fmSwatch');
+    // Preview ke liye asli photo sabse behtar hai. Na mile (camera abhi
+    // chal raha hai / permission nahi) to ek rangeen swatch dikha dete hain
+    // — usse bhi filter ka asar saaf dikh jaata hai.
+    if (mk.previewSrc) {
+      img.src = mk.previewSrc; img.hidden = false; sw.hidden = true;
+      img.style.filter = css;
+    } else {
+      img.hidden = true; sw.hidden = false;
+      sw.style.filter = css;
+    }
+    FX.forEach(function (f) {
+      var out = $('fmSliders').querySelector('[data-fxval="' + f.key + '"]');
+      var inp = $('fmSliders').querySelector('[data-fx="' + f.key + '"]');
+      if (inp) inp.value = mk.vals[f.key];
+      if (out) out.textContent = mk.vals[f.key];
+    });
+  }
+
+  function renderMakerList() {
+    var box = $('fmMine');
+    if (!box) return;
+    var mine = customList();
+    if (!mine.length) { box.innerHTML = ''; return; }
+    box.innerHTML = '<div class="fm-mine-t">Tumhare filters</div>' +
+      mine.map(function (f) {
+        return '<span class="fm-tag"><i style="filter:' + f.css + '"></i>' + esc(f.label) +
+          '<button type="button" aria-label="Hatao" onclick="LWCamera.deleteCustomFilter(\'' +
+          f.key + '\')">×</button></span>';
+      }).join('');
+  }
+
+  function openFilterMaker(opts) {
+    opts = opts || {};
+    ensureMaker();
+    mk.vals = fxDefaults();
+    mk.previewSrc = opts.previewSrc || null;
+    $('fmName').value = '';
+    paintMaker();
+    renderMakerList();
+    $('lwFilterMaker').classList.add('open');
+  }
+
+  function closeFilterMaker() {
+    var el = $('lwFilterMaker');
+    if (el) el.classList.remove('open');
+  }
+
+  function resetFilterMaker() {
+    mk.vals = fxDefaults();
+    paintMaker();
+  }
+
+  function saveFilterMaker() {
+    var css = fxToCss(mk.vals);
+    if (css === 'none') { toast('Pehle koi slider hilao — abhi filter khaali hai', 'error'); return; }
+    var name = ($('fmName').value || '').trim();
+    if (!name) { toast('Filter ko naam do', 'error'); return; }
+
+    var list = customList();
+    if (list.length >= MAX_CUSTOM) {
+      toast('Zyada se zyada ' + MAX_CUSTOM + ' filter rakh sakte ho — koi purana hatao', 'error');
+      return;
+    }
+    if (list.some(function (f) { return (f.label || '').toLowerCase() === name.toLowerCase(); })) {
+      toast('Is naam ka filter pehle se hai', 'error');
+      return;
+    }
+
+    var f = { key: 'u:' + Date.now().toString(36), label: name, css: css };
+    list.push(f);
+    persistCustom(list).then(function (ok) {
+      if (!ok) { toast('Filter save nahi hua', 'error'); return; }
+      st.filterKey = f.key;                 // banate hi laga do
+      if ($('camFilterRow')) renderFilterRow();
+      notifyFiltersChanged();
+      closeFilterMaker();
+      toast('✅ "' + name + '" filter ban gaya');
+    });
   }
 
   function filterCss() {
@@ -184,7 +417,21 @@
     $('camFilterRow').innerHTML = FILTERS.map(function (f) {
       return '<button type="button" class="cam-chip' + (f.key === st.filterKey ? ' on' : '') +
         '" onclick="LWCamera.setFilter(\'' + f.key + '\')">' + esc(f.label) + '</button>';
-    }).join('');
+    }).join('') +
+    // apna filter banane ka raasta wahin, jahan filter chune jaate hain
+    '<button type="button" class="cam-chip cam-chip-new" onclick="LWCamera.newFilterFromCamera()"' +
+      ' aria-label="Naya filter banao">＋</button>';
+  }
+
+  /* Camera se maker kholte waqt preview ke liye abhi ka frame de dete hain —
+     apne hi chehre par filter dekh kar banana asaan hai. */
+  function newFilterFromCamera() {
+    var src = null;
+    try {
+      var c = $('camCanvas');
+      if (c && c.width) src = c.toDataURL('image/jpeg', 0.7);
+    } catch (e) {}
+    openFilterMaker({ previewSrc: src });
   }
 
   function renderLensRow() {
@@ -895,6 +1142,7 @@
     st.items = []; st.strokes = [];
 
     ensureModal();
+    syncFilters();          // profile me pade user ke apne filters bhi aa jaayein
     renderFilterRow();
     renderLensRow();
     paintTimerBtn();
@@ -966,6 +1214,14 @@
 
   window.LWCamera = {
     FILTERS: FILTERS,
+    syncFilters: syncFilters,
+    onFiltersChanged: onFiltersChanged,
+    openFilterMaker: openFilterMaker,
+    closeFilterMaker: closeFilterMaker,
+    resetFilterMaker: resetFilterMaker,
+    saveFilterMaker: saveFilterMaker,
+    deleteCustomFilter: deleteCustomFilter,
+    newFilterFromCamera: newFilterFromCamera,
     open: open,
     close: close,
     flip: flip,

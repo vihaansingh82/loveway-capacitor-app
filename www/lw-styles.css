@@ -1341,9 +1341,17 @@
     height: 3px;
     overflow: hidden;
   }
-  .story-progress span.active,
   .story-progress span.done {
     background: #fff;
+  }
+  /* active segment ab khud safed nahi hota — uske andar ka <i> bharta hai,
+     isliye dikhta hai ki story kitni chali aur kitni baaki hai */
+  .story-progress span.active > i {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: #fff;
+    border-radius: 3px;
   }
   .story-viewer-head {
     color: #fff;

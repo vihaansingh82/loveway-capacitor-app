@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Loveway 💕</title>
-<link rel="stylesheet" href="lw-styles.css?v=5">
+<link rel="stylesheet" href="lw-styles.css?v=6">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="config.js?v=2"></script>
 <script src="lw-core.js?v=7"></script>
@@ -13,8 +13,8 @@
 <script src="lw-spotify.js?v=7"></script>
 <script src="lw-app.js?v=19"></script>
 <script src="lw-rails.js?v=9"></script>
-<script src="lw-camera.js?v=2"></script>
-<link rel="stylesheet" href="lw-camera.css?v=4">
+<script src="lw-camera.js?v=3"></script>
+<link rel="stylesheet" href="lw-camera.css?v=5">
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 <style>
 .header-ticker{flex:1;min-width:0;overflow:hidden;display:flex;align-items:center;padding:0 14px}
@@ -30,6 +30,9 @@
   border:2px solid transparent;transition:border-color .15s}
 .sfilter small{display:block;font-size:.68rem;color:var(--text-soft);margin-top:3px}
 .sfilter.on img{border-color:var(--primary)}
+.sfilter-new span{width:56px;height:56px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:1.4rem;color:var(--text-soft);border:2px dashed var(--border);box-sizing:border-box}
+.sfilter-new:hover span{color:var(--primary);border-color:var(--primary)}
 .sfilter.on small{color:var(--primary);font-weight:600}
 </style>
 <link rel="stylesheet" href="lw-responsive.css?v=5">
@@ -200,7 +203,7 @@
     <div class="story-progress" id="storyProgress"></div>
     <div class="story-viewer-head" id="storyHead"></div>
     <img id="storyImg" src="" alt="">
-    <video id="storyVid" playsinline autoplay loop hidden></video>
+    <video id="storyVid" playsinline autoplay hidden></video>
     <div class="story-music" id="storyMusic"></div>
     <div id="storyCaption" class="story-caption"></div>
     <button class="story-nav prev" onclick="storyStep(-1)" aria-label="Previous"></button>
@@ -567,6 +570,12 @@ function applyTickerMarquee(box) {
 
 /* ---------- Stories (Instagram/Snapchat jaisi 24-hour stories) ---------- */
 var storiesByAuthor = {}, storyQueue = [], storyIdx = 0, storyTimer = null;
+/* Story ki timing. Pehle har story ke liye 5s ka ek hardcoded timer tha —
+   isliye 15 second ka video 5 second par hi kat jaata tha, aur <video> par
+   `loop` bhi laga tha to wo kabhi khud khatam bhi nahi hota. Ab photo ke
+   liye 5s, video ke liye uski apni lambai. */
+var STORY_PHOTO_MS = 5000, STORY_MAX_MS = 30000;
+var storyPaused = false, storyStartedAt = 0, storyRemainMs = 0, storyTotalMs = 0;
 
 function getSeenStoryIds() {
   try { return JSON.parse(localStorage.getItem('lw_seen_stories') || '[]'); } catch (e) { return []; }
@@ -638,6 +647,7 @@ function openStoryComposerWithFile(file) {
   storyFilter = 'none';
   storyRotation = 0;
   storyDraftIsVideo = (file.type || '').indexOf('video/') === 0;
+  syncStoryFilters();   // user ke apne banaye filters bhi chips me aayein
 
   document.getElementById('storyCaptionInput').value = '';
   document.getElementById('storyMusicPreview').style.display = 'none';
@@ -694,13 +704,38 @@ function openStoryCamera() {
   });
 }
 
+function syncStoryFilters() {
+  // STORY_FILTERS wahi array hai jo LWCamera rakhta hai (reference se) —
+  // sync karte hi user ke apne filters bhi ismein aa jaate hain
+  if (window.LWCamera && window.LWCamera.syncFilters) window.LWCamera.syncFilters();
+}
+
 function renderStoryFilters() {
   document.getElementById('storyFilterRow').innerHTML = STORY_FILTERS.map(function (f) {
     return '<button type="button" class="sfilter' + (f.key === storyFilter ? ' on' : '') +
       '" onclick="setStoryFilter(\'' + f.key + '\')">' +
       '<img src="' + storyDraftPreviewUrl + '" alt="" style="filter:' + f.css + '">' +
       '<small>' + LWApp.esc(f.label) + '</small></button>';
-  }).join('');
+  }).join('') +
+  // apna filter banane ka raasta wahin, jahan filter chune jaate hain
+  '<button type="button" class="sfilter sfilter-new" onclick="openStoryFilterMaker()">' +
+    '<span>＋</span><small>Naya</small></button>';
+}
+
+/* Maker ko isi story ki photo de dete hain — filter usi tasveer par bante
+   hue dikhta hai jispar lagega, kisi generic swatch par nahi. */
+function openStoryFilterMaker() {
+  window.LWCamera.openFilterMaker({ previewSrc: storyDraftPreviewUrl });
+}
+
+/* Naya filter bante hi (ya purana hatate hi) chips dobara bana do — warna
+   user ko apna hi banaya filter tab tak nahi dikhta jab tak page reload
+   na ho. */
+if (window.LWCamera && window.LWCamera.onFiltersChanged) {
+  window.LWCamera.onFiltersChanged(function () {
+    var m = document.getElementById('storyComposeModal');
+    if (m && m.classList.contains('open') && !storyDraftIsVideo) renderStoryFilters();
+  });
 }
 
 function setStoryFilter(k) {
@@ -880,11 +915,84 @@ function renderStory() {
     musicBox.innerHTML = '';
   }
   document.getElementById('storyProgress').innerHTML = storyQueue.map(function (_, i) {
-    return '<span class="' + (i < storyIdx ? 'done' : (i === storyIdx ? 'active' : '')) + '"></span>';
+    // chalti hui bar sirf abhi wali story par — uske andar <i> bharta hai
+    return i === storyIdx ? '<span class="active"><i></i></span>'
+                          : '<span class="' + (i < storyIdx ? 'done' : '') + '"></span>';
   }).join('');
 
+  if (isVid) {
+    // metadata aane par hi asli lambai pata chalti hai; cached video par
+    // loadedmetadata dobara nahi chalta, isliye readyState bhi dekh lete hain
+    sVid.onended = function () { storyStep(1); };
+    var startVid = function () {
+      var ms = (sVid.duration || 0) * 1000;
+      if (!isFinite(ms) || ms < 500) ms = STORY_PHOTO_MS;
+      storyBeginTimer(Math.min(ms, STORY_MAX_MS));
+    };
+    if (sVid.readyState >= 1) startVid();
+    else sVid.onloadedmetadata = startVid;
+  } else {
+    storyBeginTimer(STORY_PHOTO_MS);
+  }
+}
+
+/* ---------- story ka timer + progress bar ----------
+   Bar CSS transition se bharti hai (width 0 -> 100%), isliye pause karte
+   waqt uski abhi ki chaudai freeze karni padti hai, warna wo poori bhar
+   kar ruk jaati. */
+function storyBarEl() {
+  var a = document.querySelector('#storyProgress span.active > i');
+  return a || null;
+}
+
+function storyAnimateBar(ms, fromFrac) {
+  var i = storyBarEl();
+  if (!i) return;
+  i.style.transition = 'none';
+  i.style.width = (fromFrac * 100) + '%';
+  void i.offsetWidth;              // reflow — bina iske browser transition skip kar deta hai
+  i.style.transition = 'width ' + ms + 'ms linear';
+  i.style.width = '100%';
+}
+
+function storyFreezeBar() {
+  var i = storyBarEl();
+  if (!i) return;
+  var w = i.getBoundingClientRect().width;
+  var pw = i.parentNode.getBoundingClientRect().width || 1;
+  i.style.transition = 'none';
+  i.style.width = (w / pw * 100) + '%';
+}
+
+function storyBeginTimer(ms) {
+  storyTotalMs = ms;
+  storyRemainMs = ms;
+  storyStartedAt = Date.now();
+  storyPaused = false;
   clearTimeout(storyTimer);
-  storyTimer = setTimeout(function () { storyStep(1); }, 5000);
+  storyTimer = setTimeout(function () { storyStep(1); }, ms);
+  storyAnimateBar(ms, 0);
+}
+
+function storyPause() {
+  if (storyPaused || !storyTotalMs) return;
+  storyPaused = true;
+  clearTimeout(storyTimer);
+  storyRemainMs = Math.max(0, storyRemainMs - (Date.now() - storyStartedAt));
+  var v = document.getElementById('storyVid');
+  if (v && !v.hidden) { try { v.pause(); } catch (e) {} }
+  storyFreezeBar();
+}
+
+function storyResume() {
+  if (!storyPaused) return;
+  storyPaused = false;
+  storyStartedAt = Date.now();
+  clearTimeout(storyTimer);
+  storyTimer = setTimeout(function () { storyStep(1); }, storyRemainMs);
+  var v = document.getElementById('storyVid');
+  if (v && !v.hidden) { v.play().catch(function () {}); }
+  storyAnimateBar(storyRemainMs, storyTotalMs ? 1 - storyRemainMs / storyTotalMs : 0);
 }
 
 function storyStep(dir) {
@@ -895,9 +1003,30 @@ function storyStep(dir) {
 
 function closeStoryViewer() {
   clearTimeout(storyTimer);
+  storyPaused = false; storyTotalMs = 0; storyRemainMs = 0;
+  var v = document.getElementById('storyVid');
+  if (v) { v.onended = null; v.onloadedmetadata = null; try { v.pause(); } catch (e) {} }
   document.getElementById('storyModal').classList.remove('open');
   loadStories(); // "seen" ring turant update ho jaaye
 }
+
+/* Snapchat/Instagram jaisa dabaye rakho to ruk jaaye. Tap (jo aage/peeche
+   jaata hai) bhi pointerdown+pointerup hi hai, par wo itna chhota hota hai
+   ki pause-resume dikhta nahi — aur nav click ke baad naya timer waise bhi
+   shuru ho jaata hai. */
+(function wireStoryHold() {
+  var m = document.getElementById('storyModal');
+  if (!m) return;
+  m.addEventListener('pointerdown', storyPause);
+  m.addEventListener('pointerup', storyResume);
+  m.addEventListener('pointercancel', storyResume);
+  m.addEventListener('pointerleave', storyResume);
+  // tab background me chala jaaye to story chupchaap aage na badhti rahe
+  document.addEventListener('visibilitychange', function () {
+    if (!m.classList.contains('open')) return;
+    if (document.hidden) storyPause(); else storyResume();
+  });
+})();
 
 async function loadStats() {
   var f = await LWApp.myFriends();

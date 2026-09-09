@@ -1412,34 +1412,25 @@
       '<div class="empty"><span class="ic">🔍</span>Upar gaane ya singer ka naam likho — Spotify ki poori library se milega.</div>';
   }
 
-  // "Spotify juda nahi hai" wala box — ab ye Loveway ke login ko chhue bina
-  // sirf Spotify jodta hai, isliye har user (Google/email wale bhi) connect kar sakta hai
+  /* "Spotify juda nahi hai" wala box. Poora HTML ab LWSpotify.gateHtml()
+     banata hai — wahi ek jagah hai jahan se ye prompt har page par aata hai,
+     isliye wording aur button sab jagah ek jaise rehte hain. Yahan sirf itna
+     kaam bacha hai ki picker-specific note saath bhej diya jaaye. */
   function spotifyConnectBox(errorCode) {
-    var connected = !!(window.LWSpotify && window.LWSpotify.isConnected());
-    var msg, showConnect = true;
-    if (errorCode === 'forbidden') {
-      // Spotify app abhi "Development mode" me hai — allowlist ke bahar wale
-      // account ko Spotify khud 403 deta hai. Yahan connect button dikhana
-      // bekaar hai: dabane par bhi kabhi juda nahi karega, bas user chakkar
-      // kaatta rahega. Isliye button hata kar asli wajah bata dete hain.
-      msg = esc(window.t('devModeHint'));
-      showConnect = false;
-    } else if (errorCode === 'rate-limited') {
-      // Spotify ne thodi der rok diya hai. Reconnect se isse koi fayda nahi,
-      // isliye button chhupa kar intezaar karne ko kehte hain.
-      msg = 'Spotify ne thodi der ke liye rok diya hai (bahut zyada requests ek saath). ' +
-            'Ek-do minute baad dobara try karo.';
-      showConnect = false;
-    } else if (errorCode === 'no-token' || !connected) {
-      msg = 'Apna Spotify account jodo — phir search, playlists aur liked songs sab yahin milenge.';
-    } else {
-      msg = 'Spotify se baat nahi ho paayi — ek baar dobara connect karke dekho.';
+    if (!window.LWSpotify || !window.LWSpotify.gateHtml) {
+      return '<div class="empty"><span class="ic">🎧</span>' +
+        'Spotify abhi load nahi hua — page refresh karke dekho.</div>';
     }
-    return '<div class="empty"><span class="ic">🎧</span>' + msg +
-      (showConnect
-        ? '<br><br><button type="button" class="btn primary" onclick="LW.spotifyConnect()">🎵 Spotify connect karo</button>'
-        : '') +
-      '<div class="muted" style="margin-top:10px;font-size:.78rem">Ya neeche "🔗 Spotify ka link paste karo" se bina connect kiye bhi gaana chun sakte ho.</div></div>';
+    var code = errorCode || 'no-token';
+    // Koi anjaan error, par connection hai hi nahi — asli wajah "juda nahi
+    // hai" hi hai, "dobara connect karo" nahi
+    if (code !== 'forbidden' && code !== 'rate-limited' && !window.LWSpotify.isConnected()) {
+      code = 'no-token';
+    }
+    return window.LWSpotify.gateHtml({
+      reason: code,
+      note: 'Ya neeche "🔗 Spotify ka link paste karo" se bina connect kiye bhi gaana chun sakte ho.'
+    });
   }
 
   // Spotify /search ka fetch-only hissa — modal (searchSpotifyTracks) aur

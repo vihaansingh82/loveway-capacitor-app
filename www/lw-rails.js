@@ -493,11 +493,7 @@ async function railSearchTracks(query, inputEl) {
   resultsBox.innerHTML = '<div class="spinner">"' + LWApp.esc(query) + '" khoja ja raha hai…</div>';
   var r = await LWApp.fetchSpotifyTracks(query);
   if (r.error) {
-    resultsBox.innerHTML = '<div class="empty"><span class="ic">🎧</span>' +
-      (r.error === 'no-token'
-        ? 'Pehle Spotify se sign-in/connect karo, tabhi search kaam karegi.'
-        : 'Spotify session expire ho gaya lagta hai — dobara connect karo.') +
-      '<br><br><button class="btn primary" onclick="LW.spotifyConnect()">🎵 Spotify connect karo</button></div>';
+    resultsBox.innerHTML = LWSpotify.gateHtml({ reason: r.error });
     return;
   }
   resultsBox.innerHTML = r.tracks.length
@@ -953,16 +949,22 @@ async function renderSpotifyStatusRow() {
 
   function paint(html) { rows.forEach(function (r) { r.innerHTML = html; }); }
 
-  if (window.LWSpotify && !LWSpotify.configured()) {
+  if (!window.LWSpotify) return;
+  if (!LWSpotify.configured()) {
     paint('<span class="sp-dot off"></span><span class="sp-status-text">Spotify setup baaki hai (config.js)</span>');
     return;
   }
-  if (!window.LWSpotify || !LWSpotify.isConnected()) {
+
+  paint('<span class="sp-dot"></span><span class="sp-status-text">Spotify check ho raha hai…</span>');
+
+  /* isConnected() sirf localStorage dekhta hai, isliye naye device par wo
+     "juda nahi hai" bata deta tha jabki connection server par maujood thi.
+     ensureConnected() zarurat padne par server se poochh leta hai. */
+  if (!(await LWSpotify.ensureConnected())) {
     paint('<span class="sp-dot off"></span><span class="sp-status-text">Spotify juda nahi hai</span>' +
       '<button type="button" class="btn sm primary" onclick="LW.spotifyConnect()">Connect</button>');
     return;
   }
-  paint('<span class="sp-dot"></span><span class="sp-status-text">Spotify check ho raha hai…</span>');
   var r = await LWSpotify.me();
   if (r.error) {
     paint('<span class="sp-dot off"></span><span class="sp-status-text">Connection expire ho gaya</span>' +
@@ -978,8 +980,18 @@ function railSpotifyDisconnect() {
   if (!confirm('Spotify ka connection hata dein? Search/playlists band ho jaayengi.')) return;
   LWSpotify.disconnect();
   LWApp.toast('Spotify hata diya');
-  renderSpotifyStatusRow();
-  renderMusicRailCard();
+  // re-render LWSpotify.onChange se apne aap ho jaata hai (neeche)
+}
+
+/* Connection kahin se bhi badle — Settings se, doosre widget se, ya server
+   se naya token milne par — to music rail turant nayi halat dikhaye. Pehle
+   iske liye page reload karna padta tha. */
+if (window.LWSpotify && LWSpotify.onChange) {
+  LWSpotify.onChange(function () {
+    // renderMusicRailCard() khud hi status row dobara banata hai, isliye
+    // yahan use alag se bulane ki zarurat nahi (warna /me do baar call hoti)
+    if (document.querySelector('.music-rail-card')) renderMusicRailCard();
+  });
 }
 
 /* ---------- user ke apne Spotify account se: Liked / Top / Recent ---------- */
@@ -993,10 +1005,8 @@ async function renderSpotifyMine(kind, boxSel) {
         :                     await LWSpotify.recentlyPlayed(20);
 
   if (r.error) {
-    boxes.forEach(function (b) {
-      b.innerHTML = '<div class="empty"><span class="ic">🎧</span>Apna Spotify jodo, phir yahan tumhare apne gaane aayenge.' +
-        '<br><br><button class="btn sm primary" onclick="LW.spotifyConnect()">🎵 Connect karo</button></div>';
-    });
+    var gate = LWSpotify.gateHtml({ reason: r.error, size: 'sm' });
+    boxes.forEach(function (b) { b.innerHTML = gate; });
     return;
   }
 

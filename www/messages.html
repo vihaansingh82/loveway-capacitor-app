@@ -9,9 +9,9 @@
 <script src="config.js?v=2"></script>
 <script src="lw-core.js?v=7"></script>
 <script src="lw-festivals.js?v=2"></script>
-<script src="lw-spotify.js?v=6"></script>
-<script src="lw-app.js?v=18"></script>
-<script src="lw-rails.js?v=8"></script>
+<script src="lw-spotify.js?v=7"></script>
+<script src="lw-app.js?v=19"></script>
+<script src="lw-rails.js?v=9"></script>
 <script src="lw-camera.js?v=2"></script>
 <link rel="stylesheet" href="lw-camera.css?v=4">
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
@@ -830,14 +830,14 @@ async function openDedication() {
 
   var r = await LW.spotifyApi('/me/playlists?limit=50');
   if (r.error) {
-    box.innerHTML =
-      '<div class="empty"><span class="ic">🎧</span>' +
-      (r.error === 'no-token'
-        ? LWApp.esc(window.t('noTokenMsg'))
-        : LWApp.esc(window.t('tokenExpiredMsg'))) +
-      '<br><small class="muted">' + LWApp.esc(window.t('devModeHint')) + '</small>' +
-      '<br><br><button class="btn primary" onclick="LW.spotifyConnect()">🎵 ' + LWApp.esc(window.t('connectSpotifyBtn')) + '</button> ' +
-      '<button class="btn" onclick="closeDedication();openSongForm()">🎵 ' + LWApp.esc(window.t('shareSongInsteadBtn')) + '</button></div>';
+    // "Connect karo" wala box ab LWSpotify.gateHtml() se aata hai — wahi ek
+    // jagah hai jahan se ye prompt poore app me banta hai. Neeche sirf is
+    // modal ka apna vikalp jodte hain: bina connect kiye seedha link bhejna.
+    box.innerHTML = LWSpotify.gateHtml({ reason: r.error }) +
+      '<div style="text-align:center;margin-top:-6px">' +
+        '<button class="btn" onclick="closeDedication();openSongForm()">🎵 ' +
+        LWApp.esc(window.t('shareSongInsteadBtn')) + '</button>' +
+      '</div>';
     return;
   }
   renderPlaylists((r.data && r.data.items) || []);

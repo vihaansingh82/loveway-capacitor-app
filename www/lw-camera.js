@@ -50,14 +50,235 @@
   var CUSTOM_PREF_KEY = 'customFilters';   // profiles.preferences ke andar
   var MAX_CUSTOM = 12;
 
+  /* label = carousel par dikhne wala emoji, name = search ka naam */
   var LENSES = [
-    { key: 'dog',     label: '🐶', draw: drawDogLens },
-    { key: 'cat',     label: '🐱', draw: drawCatLens },
-    { key: 'bunny',   label: '🐰', draw: drawBunnyLens },
-    { key: 'flower',  label: '🌸', draw: drawFlowerLens },
-    { key: 'glasses', label: '🕶️', draw: drawGlassesLens },
-    { key: 'heart',   label: '😍', draw: drawHeartEyesLens }
+    { key: 'dog',     label: '🐶', name: 'Dog',       draw: drawDogLens },
+    { key: 'cat',     label: '🐱', name: 'Cat',       draw: drawCatLens },
+    { key: 'bunny',   label: '🐰', name: 'Bunny',     draw: drawBunnyLens },
+    { key: 'flower',  label: '🌸', name: 'Flower',    draw: drawFlowerLens },
+    { key: 'glasses', label: '🕶️', name: 'Shades',    draw: drawGlassesLens },
+    { key: 'heart',   label: '😍', name: 'Heart eyes', draw: drawHeartEyesLens }
   ];
+
+  /* ============================================================
+     Time stamps — waqt/taareekh wale "aesthetic" overlays
+     ------------------------------------------------------------
+     Ye AR lens NAHI hain, aur jaan-boojh kar unse alag rakhe gaye:
+     inhe chehre ki zarurat hi nahi hoti, isliye MediaPipe (WASM +
+     model, kai MB) in ke liye kabhi load nahi hota. Sirf canvas par
+     likha hua text hai — purane phone par bhi bina atke chalta hai.
+
+     Teen alag axis hain aur teeno saath chal sakte hain:
+         filter (CSS)  +  stamp (text)  +  lens (chehra)
+     Snapchat par ek waqt ek hi lens chalta hai; yahan filter aur stamp
+     saath lag sakte hain kyunki dono alag layer par hain.
+
+     Time har frame par dobara likha jaata hai, isliye preview mein
+     ghadi chalti dikhti hai — aur photo/video mein wahi waqt bake hota
+     hai jo shutter dabate waqt tha (capture canvas se hi hota hai).
+
+     MIRROR: front camera ka video ulta (mirrored) draw hota hai aur
+     lens bhi usi ulte frame mein draw hote hain — chehre par chipke
+     rehna hai to yahi sahi hai. Par TEXT ko ulta likhna galat hai,
+     wo sheeshe jaisa padha hi nahi jaayega. Isliye stamps mirror
+     transform ke BAHAR draw hote hain (renderLoop dekho).
+     ============================================================ */
+
+  var F_SANS   = 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
+  var F_SERIF  = 'Georgia, "Times New Roman", serif';
+  var F_MONO   = '"Courier New", ui-monospace, monospace';
+  var F_SCRIPT = '"Segoe Script", "Bradley Hand", "Brush Script MT", cursive';
+
+  var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+
+  function two(n) { return (n < 10 ? '0' : '') + n; }
+  function t12(d) {
+    var h = d.getHours() % 12; if (h === 0) h = 12;
+    return h + ':' + two(d.getMinutes()) + ' ' + (d.getHours() >= 12 ? 'PM' : 'AM');
+  }
+  function t24(d) { return two(d.getHours()) + ':' + two(d.getMinutes()); }
+  function spaced(s) { return String(s).split('').join(' '); }
+
+  /* Stamp kisi bhi background par pad sakta hai — safed aasman par safed
+     text gayab ho jaata hai. Isliye halki shadow, koi bhaari box nahi. */
+  function glow(ctx, a) {
+    ctx.shadowColor = 'rgba(0,0,0,' + (a == null ? 0.5 : a) + ')';
+    ctx.shadowBlur = 18;
+    ctx.shadowOffsetY = 1;
+  }
+  function noGlow(ctx) {
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+  }
+
+  // ctx.roundRect har WebView mein nahi hai (Android 12 se pehle nahi tha)
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    if (ctx.roundRect) { ctx.roundRect(x, y, w, h, r); return; }
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  var STAMPS = [
+    { key: 'mood', label: 'Mood', sample: 'MOOD',
+      draw: function (ctx, w, h, d) {
+        var u = Math.min(w, h) / 720;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+        glow(ctx); ctx.fillStyle = '#fff';
+        ctx.font = '600 ' + (30 * u) + 'px ' + F_SANS;
+        ctx.fillText(spaced('MOOD'), w / 2, h * 0.60);
+        ctx.font = '400 ' + (26 * u) + 'px ' + F_SANS;
+        ctx.fillText(t12(d), w / 2, h * 0.60 + 34 * u);
+        noGlow(ctx);
+      } },
+
+    { key: 'weekday', label: 'Weekday', sample: 'FRI',
+      draw: function (ctx, w, h, d) {
+        var u = Math.min(w, h) / 720, x = 40 * u, y = h - 58 * u;
+        ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        glow(ctx); ctx.fillStyle = '#fff';
+        ctx.font = '700 ' + (46 * u) + 'px ' + F_SANS;
+        ctx.fillText(DAYS[d.getDay()].toUpperCase(), x, y);
+        ctx.font = '400 ' + (20 * u) + 'px ' + F_SANS;
+        ctx.fillText(MONTHS[d.getMonth()] + ' ' + d.getDate() + '   ' + t12(d), x, y + 27 * u);
+        noGlow(ctx);
+      } },
+
+    { key: 'bigtime', label: 'Big time', sample: '9:12',
+      draw: function (ctx, w, h, d) {
+        var u = Math.min(w, h) / 720, x = 40 * u, y = 98 * u;
+        ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        glow(ctx); ctx.fillStyle = '#fff';
+        ctx.font = '300 ' + (64 * u) + 'px ' + F_SANS;
+        ctx.fillText(t12(d), x, y);
+        ctx.font = '400 ' + (19 * u) + 'px ' + F_SANS;
+        ctx.fillText(DAYS[d.getDay()] + ' ' + MONTHS[d.getMonth()].slice(0, 3) + ' ' +
+                     d.getDate() + ' ' + d.getFullYear(), x, y + 27 * u);
+        noGlow(ctx);
+      } },
+
+    { key: 'script', label: 'Script', sample: 'Sat',
+      draw: function (ctx, w, h, d) {
+        var u = Math.min(w, h) / 720, x = 44 * u, y = h - 64 * u;
+        ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        glow(ctx, 0.55); ctx.fillStyle = '#fff';
+        ctx.font = 'italic 400 ' + (52 * u) + 'px ' + F_SCRIPT;
+        ctx.fillText(DAYS[d.getDay()], x, y);
+        ctx.font = '300 ' + (24 * u) + 'px ' + F_SANS;
+        ctx.fillText(t24(d), x + 4 * u, y + 30 * u);
+        noGlow(ctx);
+      } },
+
+    { key: 'classic', label: 'Classic', sample: 'Aa',
+      draw: function (ctx, w, h, d) {
+        var u = Math.min(w, h) / 720;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+        glow(ctx, 0.5); ctx.fillStyle = '#fff';
+        ctx.font = 'italic 400 ' + (34 * u) + 'px ' + F_SERIF;
+        ctx.fillText(DAYS[d.getDay()] + ', ' + MONTHS[d.getMonth()] + ' ' + d.getDate(),
+                     w / 2, h - 76 * u);
+        ctx.font = '300 ' + (22 * u) + 'px ' + F_SANS;
+        ctx.fillText(spaced(t24(d)), w / 2, h - 46 * u);
+        noGlow(ctx);
+      } },
+
+    /* Purane point-and-shoot camera ka narangi date imprint */
+    { key: 'film', label: 'Film date', sample: "'25",
+      draw: function (ctx, w, h, d) {
+        var u = Math.min(w, h) / 720;
+        ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle = '#ff9a3c';
+        ctx.shadowColor = 'rgba(255,120,0,.6)'; ctx.shadowBlur = 16 * u; ctx.shadowOffsetY = 0;
+        ctx.font = '700 ' + (30 * u) + 'px ' + F_MONO;
+        ctx.fillText(two(d.getDate()) + ' ' + two(d.getMonth() + 1) + " '" +
+                     String(d.getFullYear()).slice(2), w - 40 * u, h - 44 * u);
+        noGlow(ctx);
+      } },
+
+    { key: 'pill', label: 'Pill', sample: '◗',
+      draw: function (ctx, w, h, d) {
+        var u = Math.min(w, h) / 720, txt = t12(d);
+        ctx.font = '600 ' + (22 * u) + 'px ' + F_SANS;
+        var bw = ctx.measureText(txt).width + 36 * u, bh = 40 * u;
+        var x = (w - bw) / 2, y = 72 * u;
+        ctx.fillStyle = 'rgba(0,0,0,.34)';
+        roundRect(ctx, x, y, bw, bh, bh / 2); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(txt, w / 2, y + bh / 2 + u);
+      } },
+
+    { key: 'stack', label: 'Stacked', sample: '≡',
+      draw: function (ctx, w, h, d) {
+        var u = Math.min(w, h) / 720, x = w - 40 * u, y = h - 86 * u;
+        ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
+        glow(ctx); ctx.fillStyle = '#fff';
+        ctx.font = '200 ' + (52 * u) + 'px ' + F_SANS;
+        ctx.fillText(t24(d), x, y);
+        ctx.font = '600 ' + (18 * u) + 'px ' + F_SANS;
+        ctx.fillText(spaced(DAYS[d.getDay()].toUpperCase().slice(0, 3)), x, y + 25 * u);
+        ctx.font = '400 ' + (17 * u) + 'px ' + F_SANS;
+        ctx.fillText(d.getDate() + ' ' + MONTHS[d.getMonth()], x, y + 47 * u);
+        noGlow(ctx);
+      } },
+
+    { key: 'minimal', label: 'Minimal', sample: '·',
+      draw: function (ctx, w, h, d) {
+        var u = Math.min(w, h) / 720;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+        glow(ctx, 0.45); ctx.fillStyle = 'rgba(255,255,255,.92)';
+        ctx.font = '300 ' + (20 * u) + 'px ' + F_SANS;
+        ctx.fillText(spaced(t24(d)), w / 2, h - 46 * u);
+        noGlow(ctx);
+      } },
+
+    { key: 'heart', label: 'Heart', sample: '♥',
+      draw: function (ctx, w, h, d) {
+        var u = Math.min(w, h) / 720, x = 44 * u, y = h - 58 * u;
+        ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        glow(ctx, 0.5);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'italic 400 ' + (40 * u) + 'px ' + F_SCRIPT;
+        var s = DAYS[d.getDay()];
+        ctx.fillText(s, x, y);
+        var sw = ctx.measureText(s).width;
+        ctx.fillStyle = '#ff5c7a';
+        ctx.font = '400 ' + (26 * u) + 'px ' + F_SANS;
+        ctx.fillText('♥', x + sw + 10 * u, y - 2 * u);
+        ctx.fillStyle = '#fff';
+        ctx.font = '300 ' + (22 * u) + 'px ' + F_SANS;
+        ctx.fillText(t24(d), x + 3 * u, y + 26 * u);
+        noGlow(ctx);
+      } },
+
+    { key: 'bar', label: 'Bar', sample: '▭',
+      draw: function (ctx, w, h, d) {
+        var u = Math.min(w, h) / 720, bh = 54 * u, y = h - bh;
+        var g = ctx.createLinearGradient(0, y - 30 * u, 0, h);
+        g.addColorStop(0, 'rgba(0,0,0,0)');
+        g.addColorStop(1, 'rgba(0,0,0,.58)');
+        ctx.fillStyle = g; ctx.fillRect(0, y - 30 * u, w, bh + 30 * u);
+        ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle';
+        ctx.textAlign = 'left';
+        ctx.font = '500 ' + (19 * u) + 'px ' + F_SANS;
+        ctx.fillText(DAYS[d.getDay()] + ', ' + d.getDate() + ' ' + MONTHS[d.getMonth()],
+                     34 * u, h - bh / 2);
+        ctx.textAlign = 'right';
+        ctx.font = '700 ' + (21 * u) + 'px ' + F_SANS;
+        ctx.fillText(t12(d), w - 34 * u, h - bh / 2);
+      } }
+  ];
+
+  function stampByKey(k) {
+    for (var i = 0; i < STAMPS.length; i++) if (STAMPS[i].key === k) return STAMPS[i];
+    return null;
+  }
+
 
   var STICKERS = ['❤️', '😍', '🔥', '😂', '🥰', '✨', '💯', '🎵', '🌸', '👑', '💋', '🙌'];
   var INK = ['#ffffff', '#111111', '#ff3b5c', '#ffc400', '#42d392', '#4aa3ff', '#b06bff'];
@@ -73,7 +294,8 @@
 
   var st = {
     stream: null, audioStream: null, facingMode: 'user',
-    filterKey: 'none', lensKey: null,
+    filterKey: 'none', lensKey: null, stampKey: null,
+    fxCat: 'foryou', fxOpen: false, fxQuery: '',
     zoom: 1, flashOn: false, timerSec: 0,
     onCapture: null, rafId: null,
     faceLandmarker: null, faceLandmarkerLoading: null, lastLandmarks: null, detectBusy: false,
@@ -175,7 +397,7 @@
       if (!ok) { toast('Filter hataya nahi ja saka', 'error'); return false; }
       // jo filter abhi laga hua tha wahi hat gaya to Original par wapas
       if (st.filterKey === key) st.filterKey = 'none';
-      if ($('camFilterRow')) renderFilterRow();
+      if ($('camFxRow')) renderFx();
       renderMakerList();
       notifyFiltersChanged();
       return true;
@@ -312,7 +534,7 @@
     persistCustom(list).then(function (ok) {
       if (!ok) { toast('Filter save nahi hua', 'error'); return; }
       st.filterKey = f.key;                 // banate hi laga do
-      if ($('camFilterRow')) renderFilterRow();
+      if ($('camFxRow')) renderFx();
       notifyFiltersChanged();
       closeFilterMaker();
       toast('✅ "' + name + '" filter ban gaya');
@@ -364,8 +586,25 @@
             '<span id="camZoomLabel">1.0x</span>' +
           '</div>' +
 
-          '<div class="cam-lens-row" id="camLensRow"></div>' +
-          '<div class="cam-filter-row" id="camFilterRow"></div>' +
+          '<div class="cam-fx">' +
+            '<div class="cam-fx-head">' +
+              '<div class="cam-fx-tabs" id="camFxTabs"></div>' +
+              '<button type="button" class="cam-fx-more" id="camFxMore"' +
+                ' onclick="LWCamera.toggleBrowser()" aria-label="Sab effects dikhao">⌃</button>' +
+            '</div>' +
+            '<div class="cam-fx-row" id="camFxRow"></div>' +
+          '</div>' +
+
+          '<div class="cam-fx-browser" id="camFxBrowser" hidden>' +
+            '<div class="cam-fx-tabs cam-fx-tabs-wide" id="camFxTabs2"></div>' +
+            '<div class="cam-fx-search">' +
+              '<input type="search" id="camFxSearch" placeholder="Effect dhoondo…"' +
+                ' oninput="LWCamera.fxSearch(this.value)" aria-label="Effect dhoondo">' +
+              '<button type="button" class="cam-icon-btn"' +
+                ' onclick="LWCamera.toggleBrowser()" aria-label="Band karo">✕</button>' +
+            '</div>' +
+            '<div class="cam-fx-grid" id="camFxGrid"></div>' +
+          '</div>' +
 
           '<div class="cam-shutter-row">' +
             '<span class="cam-hint" id="camHint">Tap = photo &middot; dabaye rakho = video</span>' +
@@ -412,16 +651,277 @@
     wireEditSurface();
   }
 
-  /* ---------- shoot stage: chips ---------- */
-  function renderFilterRow() {
-    $('camFilterRow').innerHTML = FILTERS.map(function (f) {
-      return '<button type="button" class="cam-chip' + (f.key === st.filterKey ? ' on' : '') +
-        '" onclick="LWCamera.setFilter(\'' + f.key + '\')">' + esc(f.label) + '</button>';
-    }).join('') +
-    // apna filter banane ka raasta wahin, jahan filter chune jaate hain
-    '<button type="button" class="cam-chip cam-chip-new" onclick="LWCamera.newFilterFromCamera()"' +
-      ' aria-label="Naya filter banao">＋</button>';
+  /* ============================================================
+     Effects picker — ek hi jagah se filter + stamp + lens
+     ------------------------------------------------------------
+     Pehle do alag flat row thi (lens chips, filter chips) aur list
+     badhne par wo bekaar ho jaati: 11 stamp + 7 filter + 6 lens = 24
+     cheezein ek line mein scroll karna kisi kaam ka nahi.
+
+     Ab: category tabs + ek carousel, aur chevron dabao to poora grid
+     search ke saath. Har cheez ko dil (♥) se favorite kar sakte ho.
+
+     Teen kism ek saath chal sakti hain — ek filter, ek stamp aur ek
+     lens. Isliye "on" ek nahi, teen ho sakte hain, aur dobara tap
+     karne par wahi cheez band ho jaati hai.
+     ============================================================ */
+
+  var CATS = [
+    { key: 'recent',    label: 'Recents' },
+    { key: 'fav',       label: 'Favorites' },
+    { key: 'foryou',    label: 'For You' },
+    { key: 'aesthetic', label: 'Aesthetic' },
+    { key: 'look',      label: 'Appearance' },
+    { key: 'lens',      label: 'Lens' }
+  ];
+
+  var FAV_PREF_KEY  = 'favEffects';    // profiles.preferences ke andar
+  var RECENT_LS_KEY = 'lw_fx_recent';  // sirf is device par
+  var MAX_RECENT    = 12;
+
+  /* Filter ka CSS style attribute mein jaata hai. Wo aata to hamare hi
+     banaye buildCss() se hai (sirf number), par custom filters user ke
+     profile mein store hote hain — beech mein kuch bhi ghus sakta hai.
+     Isliye style mein daalne se pehle sirf wahi akshar rehne do jo CSS
+     filter function mein lagte hain. */
+  function safeCss(s) {
+    return String(s || 'none').replace(/[^a-zA-Z0-9().,%#\s-]/g, '').slice(0, 300) || 'none';
   }
+
+  function allEffects() {
+    var out = [];
+    FILTERS.forEach(function (f) {
+      if (f.key === 'none') return;
+      out.push({ id: 'filter:' + f.key, kind: 'filter', key: f.key,
+                 label: f.label, css: f.css, cat: 'look', custom: !!f.custom });
+    });
+    STAMPS.forEach(function (s) {
+      out.push({ id: 'stamp:' + s.key, kind: 'stamp', key: s.key,
+                 label: s.label, sample: s.sample, cat: 'aesthetic' });
+    });
+    LENSES.forEach(function (l) {
+      out.push({ id: 'lens:' + l.key, kind: 'lens', key: l.key,
+                 label: l.name || 'Lens', emoji: l.label, cat: 'lens' });
+    });
+    return out;
+  }
+
+  function effectById(id) {
+    var all = allEffects();
+    for (var i = 0; i < all.length; i++) if (all[i].id === id) return all[i];
+    return null;
+  }
+
+  /* ---------- favorites (account ke saath chalte hain) ---------- */
+  function favList() {
+    var p = window.LW && window.LW.profile;
+    var arr = p && p.preferences && p.preferences[FAV_PREF_KEY];
+    return Array.isArray(arr) ? arr.slice() : [];
+  }
+  function isFav(id) { return favList().indexOf(id) !== -1; }
+
+  function toggleFav(id) {
+    var list = favList(), i = list.indexOf(id);
+    if (i === -1) list.push(id); else list.splice(i, 1);
+
+    // Dil turant bhare — save network par hai, uska intezaar karwana
+    // bura lagta hai. Fail hone par batate hain aur wapas kar dete hain.
+    var p = window.LW && window.LW.profile;
+    if (!p) return;
+    var before = p.preferences || {};
+    var merged = Object.assign({}, before);
+    merged[FAV_PREF_KEY] = list;
+    p.preferences = merged;
+    renderFx();
+
+    if (!(window.LWApp && window.LWApp.saveProfile)) return;
+    window.LWApp.saveProfile({ preferences: merged }).then(function (r) {
+      if (r && r.error) { p.preferences = before; renderFx(); toast('Favorite save nahi hua', 'error'); }
+    }).catch(function () {
+      p.preferences = before; renderFx(); toast('Favorite save nahi hua', 'error');
+    });
+  }
+
+  /* ---------- recents (sirf is device par) ----------
+     Ye localStorage mein hai, profile mein nahi: har tap par ek network
+     save karna bekaar hai, aur "maine is phone par abhi kya use kiya"
+     waise bhi device ki baat hai. */
+  function recentList() {
+    try {
+      var a = JSON.parse(localStorage.getItem(RECENT_LS_KEY) || '[]');
+      return Array.isArray(a) ? a : [];
+    } catch (e) { return []; }
+  }
+  function pushRecent(id) {
+    var l = recentList().filter(function (x) { return x !== id; });
+    l.unshift(id);
+    try { localStorage.setItem(RECENT_LS_KEY, JSON.stringify(l.slice(0, MAX_RECENT))); } catch (e) {}
+  }
+
+  /* For You = tumhara apna pehle (favorites, phir recents), uske baad
+     har kism se thoda-thoda — taaki jo cheez kabhi try hi nahi ki wo
+     bhi saamne aaye. */
+  function forYou(all) {
+    var byId = {}, seen = {}, out = [];
+    all.forEach(function (e) { byId[e.id] = e; });
+    function add(e) { if (e && !seen[e.id]) { seen[e.id] = 1; out.push(e); } }
+    favList().forEach(function (id) { add(byId[id]); });
+    recentList().forEach(function (id) { add(byId[id]); });
+    ['stamp', 'filter', 'lens'].forEach(function (kind) {
+      all.filter(function (e) { return e.kind === kind; }).slice(0, 6).forEach(add);
+    });
+    return out;
+  }
+
+  function effectsFor(cat, q) {
+    var all = allEffects(), byId = {};
+    all.forEach(function (e) { byId[e.id] = e; });
+    var list;
+    if (cat === 'recent')      list = recentList().map(function (id) { return byId[id]; }).filter(Boolean);
+    else if (cat === 'fav')    list = favList().map(function (id) { return byId[id]; }).filter(Boolean);
+    else if (cat === 'foryou') list = forYou(all);
+    else                       list = all.filter(function (e) { return e.cat === cat; });
+
+    if (q) {
+      var s = String(q).toLowerCase();
+      list = list.filter(function (e) { return e.label.toLowerCase().indexOf(s) !== -1; });
+    }
+    return list;
+  }
+
+  function isOn(e) {
+    if (e.kind === 'filter') return st.filterKey === e.key;
+    if (e.kind === 'stamp')  return st.stampKey === e.key;
+    if (e.kind === 'lens')   return st.lensKey === e.key;
+    return false;
+  }
+
+  function anyOn() { return st.filterKey !== 'none' || !!st.stampKey || !!st.lensKey; }
+
+  function thumbInner(e) {
+    if (e.kind === 'filter') return '<i class="cam-fx-sw" style="filter:' + safeCss(e.css) + '"></i>';
+    if (e.kind === 'stamp')  return '<i class="cam-fx-st">' + esc(e.sample || '⏱') + '</i>';
+    return '<i class="cam-fx-em">' + esc(e.emoji || '✨') + '</i>';
+  }
+
+  /* ---------- render ---------- */
+  function renderFxTabs() {
+    var boxes = [$('camFxTabs'), $('camFxTabs2')].filter(Boolean);
+    if (!boxes.length) return;
+    var html = CATS.map(function (c) {
+      var n = effectsFor(c.key, '').length;
+      // Khaali category ko dikhana par dabne na dena — "yahan kuch nahi
+      // hai" batana "gayab kar dena" se behtar hai
+      return '<button type="button" class="cam-fx-tab' + (c.key === st.fxCat ? ' on' : '') +
+        (n ? '' : ' empty') + '" onclick="LWCamera.setFxCat(\'' + c.key + '\')">' +
+        esc(c.label) + '</button>';
+    }).join('');
+    boxes.forEach(function (b) {
+      b.innerHTML = html;
+      // Chuni hui tab kinare par kat na jaaye. scrollIntoView poore page
+      // ko hila deta hai, isliye sirf is strip ka scrollLeft set karte hain.
+      var on = b.querySelector('.cam-fx-tab.on');
+      if (on) b.scrollLeft = Math.max(0, on.offsetLeft - (b.clientWidth - on.offsetWidth) / 2);
+    });
+  }
+
+  function itemHtml(e, withFav) {
+    return '<button type="button" class="cam-fx-item' + (isOn(e) ? ' on' : '') +
+      '" onclick="LWCamera.applyEffect(\'' + e.id + '\')" title="' + esc(e.label) + '">' +
+      '<span class="cam-fx-thumb">' + thumbInner(e) + '</span>' +
+      '<span class="cam-fx-name">' + esc(e.label) + '</span>' +
+      (withFav ? '<span class="cam-fx-fav' + (isFav(e.id) ? ' on' : '') +
+        '" role="button" tabindex="0" aria-label="Favorite"' +
+        ' onclick="event.stopPropagation();LWCamera.toggleFav(\'' + e.id + '\')">' +
+        (isFav(e.id) ? '♥' : '♡') + '</span>' : '') +
+      '</button>';
+  }
+
+  function renderFxRow() {
+    var row = $('camFxRow');
+    if (!row) return;
+    var list = effectsFor(st.fxCat, '');
+    var head =
+      '<button type="button" class="cam-fx-item cam-fx-none' + (anyOn() ? '' : ' on') +
+        '" onclick="LWCamera.clearEffects()" title="Kuch nahi">' +
+        '<span class="cam-fx-thumb"><i class="cam-fx-em">⊘</i></span>' +
+        '<span class="cam-fx-name">Original</span></button>';
+    if (!list.length) {
+      row.innerHTML = head + '<span class="cam-fx-empty">' +
+        (st.fxCat === 'fav' ? 'Abhi koi favorite nahi — grid mein ♡ dabao'
+                            : 'Yahan abhi kuch nahi') + '</span>';
+      return;
+    }
+    row.innerHTML = head + list.map(function (e) { return itemHtml(e, false); }).join('') +
+      (st.fxCat === 'look'
+        ? '<button type="button" class="cam-fx-item cam-fx-new" onclick="LWCamera.newFilterFromCamera()"' +
+          ' title="Naya filter banao"><span class="cam-fx-thumb"><i class="cam-fx-em">＋</i></span>' +
+          '<span class="cam-fx-name">Naya</span></button>'
+        : '');
+  }
+
+  function renderFxGrid() {
+    var g = $('camFxGrid');
+    if (!g) return;
+    var list = effectsFor(st.fxCat, st.fxQuery);
+    if (!list.length) {
+      g.innerHTML = '<p class="cam-fx-empty">' +
+        (st.fxQuery ? 'Is naam ka kuch nahi mila' : 'Is category mein abhi kuch nahi') + '</p>';
+      return;
+    }
+    g.innerHTML = list.map(function (e) { return itemHtml(e, true); }).join('');
+  }
+
+  function renderFx() {
+    renderFxTabs();
+    renderFxRow();
+    if (st.fxOpen) renderFxGrid();
+  }
+
+  // Purane naam — dashboard/story se aane wale call sites inhi ko bulate hain
+  function renderFilterRow() { renderFx(); }
+  function renderLensRow() { renderFx(); }
+
+  /* ---------- actions ---------- */
+  function setFxCat(cat) {
+    st.fxCat = cat;
+    renderFx();
+  }
+
+  function toggleBrowser() {
+    st.fxOpen = !st.fxOpen;
+    var b = $('camFxBrowser'), m = $('camFxMore');
+    if (b) b.hidden = !st.fxOpen;
+    if (m) { m.textContent = st.fxOpen ? '⌄' : '⌃'; m.classList.toggle('on', st.fxOpen); }
+    if (st.fxOpen) { renderFxGrid(); var s = $('camFxSearch'); if (s) s.focus(); }
+  }
+
+  function fxSearch(v) {
+    st.fxQuery = v || '';
+    renderFxGrid();
+  }
+
+  function applyEffect(id) {
+    var e = effectById(id);
+    if (!e) return;
+    if (e.kind === 'filter')     setFilter(st.filterKey === e.key ? 'none' : e.key);
+    else if (e.kind === 'stamp') setStamp(st.stampKey === e.key ? null : e.key);
+    else if (e.kind === 'lens')  setLens(st.lensKey === e.key ? null : e.key);
+    if (isOn(e)) pushRecent(id);
+    renderFx();
+  }
+
+  function clearEffects() {
+    st.filterKey = 'none';
+    st.stampKey = null;
+    if (st.lensKey) setLens(null); else renderFx();
+  }
+
+  function setStamp(key) {
+    st.stampKey = key || null;
+    renderFx();
+  }
+
 
   /* Camera se maker kholte waqt preview ke liye abhi ka frame de dete hain —
      apne hi chehre par filter dekh kar banana asaan hai. */
@@ -432,16 +932,6 @@
       if (c && c.width) src = c.toDataURL('image/jpeg', 0.7);
     } catch (e) {}
     openFilterMaker({ previewSrc: src });
-  }
-
-  function renderLensRow() {
-    $('camLensRow').innerHTML =
-      '<button type="button" class="cam-chip cam-lens-chip' + (!st.lensKey ? ' on' : '') +
-        '" onclick="LWCamera.setLens(null)" aria-label="Lens hatao">🚫</button>' +
-      LENSES.map(function (l) {
-        return '<button type="button" class="cam-chip cam-lens-chip' + (l.key === st.lensKey ? ' on' : '') +
-          '" onclick="LWCamera.setLens(\'' + l.key + '\')">' + l.label + '</button>';
-      }).join('');
   }
 
   function paintTimerBtn() {
@@ -526,6 +1016,18 @@
           ctx.save();
           if (st.facingMode === 'user') { ctx.translate(canvas.width, 0); ctx.scale(-1, 1); }
           try { lens.draw(ctx, st.lastLandmarks, canvas.width, canvas.height); } catch (e) {}
+          ctx.restore();
+        }
+      }
+
+      /* Stamp JAAN-BOOJH KAR mirror ke bahar hai — yahan koi translate/
+         scale nahi. Lens ko ulta frame chahiye (chehre par chipakna hai),
+         par text ulta likh diya to sheeshe jaisa padha hi nahi jaayega. */
+      if (st.stampKey) {
+        var sp = stampByKey(st.stampKey);
+        if (sp) {
+          ctx.save();
+          try { sp.draw(ctx, canvas.width, canvas.height, new Date()); } catch (e) {}
           ctx.restore();
         }
       }
@@ -1134,6 +1636,8 @@
     st.onCapture = opts.onCapture || null;
     st.filterKey = 'none';
     st.lensKey = null;
+    st.stampKey = null;
+    st.fxCat = 'foryou'; st.fxOpen = false; st.fxQuery = '';
     st.facingMode = 'user';
     st.zoom = 1;
     st.flashOn = false;
@@ -1143,8 +1647,10 @@
 
     ensureModal();
     syncFilters();          // profile me pade user ke apne filters bhi aa jaayein
-    renderFilterRow();
-    renderLensRow();
+    var _b = $('camFxBrowser'); if (_b) _b.hidden = true;
+    var _m = $('camFxMore'); if (_m) { _m.textContent = '⌃'; _m.classList.remove('on'); }
+    var _s = $('camFxSearch'); if (_s) _s.value = '';
+    renderFx();
     paintTimerBtn();
     paintFlashBtn();
     $('camZoom').value = 1;
@@ -1214,6 +1720,7 @@
 
   window.LWCamera = {
     FILTERS: FILTERS,
+    STAMPS: STAMPS,
     syncFilters: syncFilters,
     onFiltersChanged: onFiltersChanged,
     openFilterMaker: openFilterMaker,
@@ -1227,6 +1734,13 @@
     flip: flip,
     setFilter: setFilter,
     setLens: setLens,
+    setStamp: setStamp,
+    applyEffect: applyEffect,
+    clearEffects: clearEffects,
+    toggleFav: toggleFav,
+    setFxCat: setFxCat,
+    toggleBrowser: toggleBrowser,
+    fxSearch: fxSearch,
     setZoom: setZoom,
     cycleTimer: cycleTimer,
     toggleFlash: toggleFlash,

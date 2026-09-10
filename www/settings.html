@@ -14,77 +14,39 @@
 <title>Loveway — Settings ⚙️</title>
 <link rel="stylesheet" href="lw-styles.css?v=9">
 <style>
-/* This page runs its own independent theme-variable set + setTheme()/
-   setCustomColorSettings() implementation (see THEME_VARS below), separate
-   from lw-app.js's canonical --primary-soft/--text-soft naming — kept
-   verbatim and page-local (not merged into the shared Tailwind theme) so
-   its runtime theme switching keeps working unmodified. Loaded after
-   lw-styles.css so these page-local rules win on this page only. */
-:root{
-  --bg:#fff0f5;--bg2:#ffe4ec;--card:#fff;--primary:#e91e63;
-  --soft:#fce4ec;--accent:#ff6b9d;--text:#2d1b2e;--muted:#8a6d7e;
-  --border:#f8d7e3;--grad:linear-gradient(135deg,#ff6b9d,#e91e63);
-  --shadow:0 8px 30px rgba(233,30,99,.12);
-}
-[data-theme="dark"]{
-  --bg:#12121a;--bg2:#1a1a26;--card:#1e1e2e;--primary:#bb86fc;
-  --soft:#2d2440;--accent:#cf9fff;--text:#eaeaf2;--muted:#9a94b0;
-  --border:#2e2e42;--grad:linear-gradient(135deg,#bb86fc,#7c4dff);
-  --shadow:0 8px 30px rgba(0,0,0,.35);
-}
-[data-theme="ocean"]{
-  --bg:#eef7fb;--bg2:#dff0f7;--card:#fff;--primary:#0288d1;
-  --soft:#e1f5fe;--accent:#26c6da;--text:#10303f;--muted:#5e8494;
-  --border:#cde9f5;--grad:linear-gradient(135deg,#26c6da,#0288d1);
-}
-[data-theme="modern"]{
-  --bg:#F8F9FA;--bg2:#EEF0F2;--card:#fff;--primary:#FF4D6D;
-  --soft:rgba(255,77,109,.14);--accent:#6C5CE7;--text:#1A1A1A;--muted:#6B7280;
-  --border:#E5E7EB;--grad:linear-gradient(135deg,#FF4D6D,#6C5CE7);
-  --shadow:0 8px 30px rgba(255,77,109,.12);
-}
-[data-theme="sunset"]{
-  --bg:#fff6ee;--bg2:#ffeadb;--card:#fff;--primary:#f4511e;
-  --soft:#ffe8df;--accent:#ffb74d;--text:#3a2418;--muted:#a07862;
-  --border:#ffdcc7;--grad:linear-gradient(135deg,#ffb74d,#f4511e);
-}
-/* Clay — is page ke apne variable naam (--soft/--muted) use karta hai.
-   Clay ka asli 3D look lw-clay.css se aata hai, jo iske baad load hoti hai. */
-[data-theme="clay"]{
-  --bg:#e9ecf7;--bg2:#dfe3f3;--card:#eef1fb;--primary:#ff6f91;
-  --soft:rgba(255,111,145,.15);--accent:#7c83fd;--text:#2f2b43;--muted:#7d78a0;
-  --border:transparent;--grad:linear-gradient(135deg,#ff6f91,#7c83fd);
-  --shadow:8px 8px 18px rgba(158,165,205,.5),-6px -6px 16px rgba(255,255,255,.95);
-}
-*{box-sizing:border-box;margin:0;padding:0;font-family:Segoe UI,system-ui,sans-serif}
-body{background:var(--bg);color:var(--text);min-height:100vh;transition:.25s}
-header{
-  position:sticky;top:0;z-index:20;background:var(--grad);color:#fff;
-  padding:13px 22px;display:flex;align-items:center;justify-content:space-between;
-  box-shadow:var(--shadow)
-}
-.brand{display:flex;align-items:center;gap:10px}
-.brand h1{font-size:1.25rem}
-.header-right{display:flex;align-items:center;gap:8px}
-.lang{display:flex;align-items:center;gap:5px;background:#ffffff20;border:1px solid #ffffff55;border-radius:20px;padding:6px 10px}
-.lang select{background:transparent;color:#fff;border:0;outline:0;font-weight:600}
-.lang option{color:#222;background:#fff}
-.back{border:1px solid #ffffff55;background:#ffffff18;color:#fff;border-radius:20px;padding:8px 13px;text-decoration:none}
+/* Sirf settings ke apne layout ke rules.
+
+   Palette, header, .card, .btn, .avatar aur bg-photo ab shared files se
+   aate hain (lw-styles.css + lw-responsive.css + lw-clay.css).
+
+   Pehle ye page apna poora theme set khud define karta tha — aur wo set
+   LIGHT PINK tha jabki baaki app dark romantic hai. Isliye settings
+   akela alag dikhta tha. Wo blocks hata diye: ab jo theme app par chal
+   rahi hai wahi yahan bhi chalti hai, aur nayi theme add karne par ye
+   page apne aap saath aata hai.
+
+   Variable naam bhi ab shared wale hain: --soft -> --primary-soft,
+   --muted -> --text-soft. */
+
 .wrap{max-width:1050px;margin:28px auto;padding:0 16px}
+
 .hero{
   background:var(--card);border:1px solid var(--border);border-radius:22px;padding:25px;
   box-shadow:var(--shadow);margin-bottom:18px;display:flex;align-items:center;gap:18px
 }
-.avatar{width:70px;height:70px;border-radius:50%;background:var(--grad);color:#fff;display:grid;place-items:center;font-size:1.7rem;font-weight:800;overflow:hidden}
-.avatar img{width:100%;height:100%;object-fit:cover}
+.hero h2{font-size:1.5rem;margin-bottom:5px}
+.hero p{color:var(--text-soft)}
+/* shared .avatar chhota hai; hero wala bada chahiye */
+.hero .avatar{width:70px;height:70px;font-size:1.7rem}
 .avatar-wrap{position:relative;flex:none}
 .avatar-edit-btn{
   position:absolute;right:-4px;bottom:-4px;width:28px;height:28px;border-radius:50%;border:2px solid var(--card);
   background:var(--grad);color:#fff;display:grid;place-items:center;cursor:pointer;font-size:.85rem;padding:0
 }
-.hero h2{font-size:1.5rem;margin-bottom:5px}.hero p{color:var(--muted)}
 .hint{display:block;margin-top:5px;font-size:.8rem;min-height:1em}
-.hint.ok{color:#2e7d32}.hint.bad{color:#d32f2f}
+/* dark background par gehra green/red padhne me nahi aata */
+.hint.ok{color:#4ade80}.hint.bad{color:#f87171}
+
 .layout{display:grid;grid-template-columns:240px 1fr;gap:18px}
 .menu,.panel{background:var(--card);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow)}
 .menu{padding:10px;height:max-content}
@@ -92,44 +54,53 @@ header{
   width:100%;text-align:left;border:0;background:transparent;color:var(--text);
   padding:12px 14px;border-radius:12px;cursor:pointer;font-size:.92rem;margin-bottom:3px
 }
-.menu button:hover,.menu button.active{background:var(--soft);color:var(--primary);font-weight:700}
+.menu button:hover,.menu button.active{background:var(--primary-soft);color:var(--primary);font-weight:700}
 .panel{padding:22px}
 .section{display:none}.section.active{display:block}
-.section-head{margin-bottom:18px}.section-head h3{color:var(--primary);margin-bottom:5px}.section-head p{color:var(--muted);font-size:.88rem}
-.card{
+.section-head{margin-bottom:18px}
+.section-head h3{color:var(--primary);margin-bottom:5px}
+.section-head p{color:var(--text-soft);font-size:.88rem}
+
+/* panel ke andar wale chhote box. Shared .card se alag isliye rakha hai
+   ki ye panel ke UPAR baithte hain — usi rang ka hota to gayab lagta. */
+.panel .card{
   border:1px solid var(--border);background:var(--bg2);border-radius:14px;
   padding:15px;margin-bottom:12px
 }
 .row{display:flex;align-items:center;justify-content:space-between;gap:14px}
-.row strong{display:block;margin-bottom:3px}.row small{color:var(--muted)}
+.row strong{display:block;margin-bottom:3px}
+.row small{color:var(--text-soft)}
 .input,.select{
   width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:11px;
   background:var(--card);color:var(--text);outline:0;margin-top:7px
 }
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
 .switch{position:relative;width:48px;height:27px;flex:none}
 .switch input{display:none}
-.slider{position:absolute;inset:0;background:#aaa;border-radius:30px;cursor:pointer;transition:.2s}
+.slider{position:absolute;inset:0;background:var(--border);border-radius:30px;cursor:pointer;transition:.2s}
 .slider:before{content:"";position:absolute;width:21px;height:21px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
 .switch input:checked+.slider{background:var(--primary)}
 .switch input:checked+.slider:before{transform:translateX(21px)}
-.btn{
-  border:0;border-radius:11px;padding:10px 16px;cursor:pointer;font-weight:700
-}
-.primary{background:var(--grad);color:#fff}.secondary{background:var(--soft);color:var(--primary)}
-.danger{background:#ffe5e5;color:#d32f2f}
+
+/* shared me .btn, .btn.primary aur .btn.danger hain — .btn.secondary nahi */
+.btn.secondary{background:var(--primary-soft);color:var(--primary);border:0}
+
 .theme-list{display:flex;gap:10px;flex-wrap:wrap}
 .theme{
   width:80px;height:55px;border-radius:12px;border:3px solid transparent;cursor:pointer;
-  box-shadow:0 2px 8px #0001
+  box-shadow:0 2px 8px #0003
 }
+/* neutral ring — pink swatch par pink border ghul jaata */
 .theme.active{border-color:var(--text)}
 .romantic{background:linear-gradient(135deg,#ff6b9d,#e91e63)}
 .dark{background:linear-gradient(135deg,#bb86fc,#2d2440)}
 .ocean{background:linear-gradient(135deg,#26c6da,#0288d1)}
 .sunset{background:linear-gradient(135deg,#ffb74d,#f4511e)}
 .modern{background:linear-gradient(135deg,#FF4D6D,#6C5CE7)}
-/* swatch khud clay jaisa dikhe — flat gradient ke bajaye phoola hua */
+/* swatch khud clay jaisa dikhe — flat gradient ke bajaye phoola hua.
+   Ye rang jaan-boojh kar hardcoded hain: swatch clay theme ka preview
+   hai, isliye abhi chal rahi theme ke saath nahi badalna chahiye. */
 .theme.clay{
   background:#eef1fb;
   box-shadow:5px 5px 12px rgba(158,165,205,.55),-4px -4px 10px #fff,
@@ -140,7 +111,8 @@ header{
   background:linear-gradient(135deg,#ff6f91,#7c83fd);
   box-shadow:3px 3px 7px rgba(158,165,205,.5),-2px -2px 6px #fff
 }
-.badge{font-size:.72rem;background:var(--soft);color:var(--primary);padding:4px 8px;border-radius:10px}
+
+.badge{font-size:.72rem;background:var(--primary-soft);color:var(--primary);padding:4px 8px;border-radius:10px}
 .toast{
   position:fixed;left:50%;bottom:25px;transform:translateX(-50%);
   background:var(--text);color:var(--card);padding:11px 18px;border-radius:22px;
@@ -149,26 +121,21 @@ header{
 .blocked-row{display:flex;align-items:center;justify-content:space-between;gap:10px;
   padding:9px 0;border-bottom:1px solid var(--border)}
 .blocked-row:last-child{border-bottom:0}
+
+/* native <select> ka popup style nahi ho sakta, isliye custom widget */
 .s-dd{position:relative;display:inline-block}
 .s-dd-trigger{background:transparent;border:0;color:inherit;font:inherit;font-weight:600;cursor:pointer;outline:0}
 .s-dd-menu{display:none;position:absolute;top:calc(100% + 8px);left:0;min-width:150px;
   background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:12px;
-  box-shadow:0 12px 30px rgba(0,0,0,.2);padding:6px;z-index:60;max-height:260px;overflow-y:auto}
+  box-shadow:0 12px 30px rgba(0,0,0,.35);padding:6px;z-index:60;max-height:260px;overflow-y:auto}
 .s-dd-menu.open{display:block}
 .s-dd-item{padding:8px 11px;border-radius:8px;cursor:pointer;font-size:.86rem}
-.s-dd-item:hover{background:var(--soft)}
-.s-dd-item.selected{background:var(--soft);color:var(--primary);font-weight:700}
-.lang .s-dd-trigger{color:#fff}
-body.bg-photo{
-  background-image:linear-gradient(rgba(255,255,255,.82),rgba(255,255,255,.82)),url('auth-bg.jpg');
-  background-size:cover;background-position:center center;background-attachment:fixed;
-}
-body.bg-photo[data-theme="dark"]{
-  background-image:linear-gradient(rgba(18,18,26,.86),rgba(18,18,26,.86)),url('auth-bg.jpg');
-}
+.s-dd-item:hover{background:var(--primary-soft)}
+.s-dd-item.selected{background:var(--primary-soft);color:var(--primary);font-weight:700}
+
 @media(max-width:750px){
   .layout{grid-template-columns:1fr}.menu{display:grid;grid-template-columns:repeat(2,1fr);gap:4px}
-  .grid2{grid-template-columns:1fr}.hero{padding:18px}.back{display:none}
+  .grid2{grid-template-columns:1fr}.hero{padding:18px}
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -184,12 +151,11 @@ body.bg-photo[data-theme="dark"]{
 <body data-theme="ocean">
 
 <header>
-  <div class="brand"><span>💕</span><h1>Loveway</h1><span class="lw-beta">Beta Version</span></div>
-  <div class="header-right">
-    <div class="lang">🌐
-      <select id="languageQuick"><option value="en">English</option><option value="hi">हिंदी</option><option value="braj">ब्रज</option><option value="raj">राजस्थानी</option><option value="bho">भोजपुरी</option><option value="hyd">हैदराबादी</option><option value="mr">मराठी</option><option value="ta">தமிழ்</option><option value="te">తెలుగు</option><option value="bn">বাংলা</option><option value="pa">ਪੰਜਾਬੀ</option><option value="gu">ગુજરાતી</option></select>
-    </div>
-    <a class="back" href="dashboard.html" data-i18n="backBtn">← Dashboard</a>
+  <h1>💕 Loveway</h1>
+  <div class="header-tools">
+    <a class="header-action" href="dashboard.html" data-icon="home" title="Home"></a>
+    <a class="header-action" href="profile.html" data-icon="profile" title="Profile"></a>
+    <button class="header-action" onclick="LW.logout()" data-icon="logout" title="Log out"></button>
   </div>
 </header>
 
@@ -235,10 +201,6 @@ body.bg-photo[data-theme="dark"]{
         <div class="card" style="margin-top:14px">
           <div class="row"><div><strong data-i18n="emailLogin">Login & Email</strong><small id="meEmail">—</small></div><button class="btn secondary" onclick="changeEmail()" data-i18n="manageBtn">Manage</button></div>
         </div>
-        <div class="card" style="margin-top:12px">
-          <div class="row"><div><strong data-i18n="spotifyLabel">🎵 Spotify</strong><small id="spotifyStatus" data-i18n="spotifyChecking">Checking…</small></div><button class="btn secondary" id="spotifyBtn">…</button></div>
-          <small id="spotifyHelp" style="display:block;color:var(--muted);margin-top:8px;font-size:.8rem"></small>
-        </div>
         <button class="btn primary" onclick="save()">💾 <span data-i18n="save">Save Changes</span></button>
       </div>
 
@@ -277,7 +239,7 @@ body.bg-photo[data-theme="dark"]{
 
         <div class="card" style="margin-top:14px">
           <strong>🎵 <span data-i18n="pinnedSongLabel">Pinned Song</span></strong>
-          <small style="display:block;color:var(--muted);margin:4px 0 10px" data-i18n="pinnedSongDesc">Tumhari profile par sabse upar yahi gaana chipka rehta hai.</small>
+          <small style="display:block;color:var(--text-soft);margin:4px 0 10px" data-i18n="pinnedSongDesc">Tumhari profile par sabse upar yahi gaana chipka rehta hai.</small>
           <div id="pfPinnedRow" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"></div>
         </div>
 
@@ -376,36 +338,36 @@ body.bg-photo[data-theme="dark"]{
         <div class="card row"><div><strong data-i18n="friendRequestsLabel">Friend Requests</strong><small data-i18n="friendReqDescPrivacy">Allow people to send requests</small></div><label class="switch"><input type="checkbox" id="prefAllowFriendReq" checked><span class="slider"></span></label></div>
         <div class="card">
           <strong>💚 Close Friends</strong>
-          <small style="display:block;color:var(--muted);margin-top:2px">
+          <small style="display:block;color:var(--text-soft);margin-top:2px">
             Story aur post ko "💚 Close Friends" par set karoge to sirf inhe dikhega.
             Kisi ko pata nahi chalta ki wo is list me hai ya nahi.
           </small>
           <div id="closeFriendsList" style="margin-top:10px">
-            <small style="color:var(--muted)">Load ho raha hai…</small>
+            <small style="color:var(--text-soft)">Load ho raha hai…</small>
           </div>
         </div>
         <div class="card">
           <strong>🔕 Mute kiye hue log</strong>
-          <small style="display:block;color:var(--muted);margin-top:2px">
+          <small style="display:block;color:var(--text-soft);margin-top:2px">
             Inki posts aur stories tumhe nahi dikhtin. Ye block nahi hai —
             ye message kar sakte hain, aur inhe kabhi pata nahi chalta.
           </small>
           <div id="mutedList" style="margin-top:10px">
-            <small style="color:var(--muted)">Load ho raha hai…</small>
+            <small style="color:var(--text-soft)">Load ho raha hai…</small>
           </div>
         </div>
         <div class="card">
           <strong>🗄 Archived posts</strong>
-          <small style="display:block;color:var(--muted);margin-top:2px">
+          <small style="display:block;color:var(--text-soft);margin-top:2px">
             Ye sirf tumhe dikhti hain. Wapas laane par phir sabko dikhne lagengi.
           </small>
           <div id="archivedList" style="margin-top:10px">
-            <small style="color:var(--muted)">Load ho raha hai…</small>
+            <small style="color:var(--text-soft)">Load ho raha hai…</small>
           </div>
         </div>
         <div class="card">
           <strong data-i18n="blockedUsersLabel">🚫 Blocked Users</strong>
-          <div id="blockedList" style="margin-top:10px"><small style="color:var(--muted)" data-i18n="blockedLoading">Load ho raha hai…</small></div>
+          <div id="blockedList" style="margin-top:10px"><small style="color:var(--text-soft)" data-i18n="blockedLoading">Load ho raha hai…</small></div>
         </div>
         <button class="btn primary" onclick="savePrivacy()">💾 <span data-i18n="save">Save Changes</span></button>
       </div>
@@ -414,14 +376,14 @@ body.bg-photo[data-theme="dark"]{
         <div class="section-head"><h3 data-i18n="notificationTitle">Notifications</h3><p data-i18n="notificationDesc">Loveway ki notifications control karo.</p></div>
         <div class="card">
           <strong>🔔 Popup notifications</strong>
-          <small style="display:block;color:var(--muted);margin-top:2px" id="popupNotifDesc">
+          <small style="display:block;color:var(--text-soft);margin-top:2px" id="popupNotifDesc">
             Jaanch ho rahi hai…
           </small>
           <div id="popupNotifAction" style="margin-top:10px"></div>
         </div>
         <div class="card">
           <strong>📲 Browser band hone par bhi</strong>
-          <small style="display:block;color:var(--muted);margin-top:2px" id="pushDesc">
+          <small style="display:block;color:var(--text-soft);margin-top:2px" id="pushDesc">
             Jaanch ho rahi hai…
           </small>
           <div id="pushAction" style="margin-top:10px"></div>
@@ -472,7 +434,7 @@ body.bg-photo[data-theme="dark"]{
             <button type="button" class="btn secondary" id="resetBgBtn" onclick="resetBgImage()" style="display:none" data-i18n="resetBgBtn">↩ Default par wapas</button>
             <input type="file" id="bgImageFile" accept="image/*" style="display:none" onchange="onBgImagePicked(event)">
           </div>
-          <small id="bgImageStatus" style="display:block;margin-top:8px;color:var(--muted)"></small>
+          <small id="bgImageStatus" style="display:block;margin-top:8px;color:var(--text-soft)"></small>
         </div>
         <div class="card row"><div><strong data-i18n="reduceAnimLabel">Reduce Animations</strong><small data-i18n="reduceAnimDesc">Use fewer visual animations</small></div><label class="switch"><input type="checkbox"><span class="slider"></span></label></div>
       </div>
@@ -527,7 +489,7 @@ loginAlertsLabel:"लॉगिन सूचना",loginAlertsDesc:"नए ल�
 viewBtn:"देखौ",logoutAllBtn:"सब डिवाइस सैं लॉगआउट करौ",helpCenterLabel:"📚 मदद केंद्र",helpCenterDesc:"आम सवाल अर गाइड",openBtn:"खोलौ",
 contactSupportLabel:"💬 सहायता सैं संपर्क करौ",contactSupportDesc:"Loveway सहायता कों संदेश भेजौ",contactBtn:"संपर्क करौ",
 reportProblemLabel:"🐞 समस्या बताओ",reportProblemDesc:"हमैं कोई समस्या बताओ",reportBtn:"रिपोर्ट करौ",
-requiredFieldsMsg:"नाम, यूज़रनेम अर मोबाइल जरूरी हैं",emailConfirmMsg:"कन्फर्मेशन लिंक दोई ईमेल पै भेज्यौ गयौ है",newEmailPrompt:"नयौ ईमेल:",emailNotFoundMsg:"ईमेल नाय मिल्यौ",spotifyLabel:"🎵 Spotify",spotifyChecking:"जांच है रह्यौ है…",spotifyNotConnected:"🔴 Connect नाय है",spotifyExpired:"🟡 Session खतम है गयौ — दुबारा connect करौ",spotifyConnectBtn:"Connect करौ",spotifyConnectedAs:"इस नाम सैं connected:",spotifyRecheckBtn:"फेर जांचौ",backBtn:"← डैशबोर्ड",themeRomanticTitle:"रोमांटिक",themeDarkTitle:"डार्क",themeOceanTitle:"ओशन",themeSunsetTitle:"सनसेट",customColorTitle:"कस्टम कलर"},
+requiredFieldsMsg:"नाम, यूज़रनेम अर मोबाइल जरूरी हैं",emailConfirmMsg:"कन्फर्मेशन लिंक दोई ईमेल पै भेज्यौ गयौ है",newEmailPrompt:"नयौ ईमेल:",emailNotFoundMsg:"ईमेल नाय मिल्यौ",backBtn:"← डैशबोर्ड",themeRomanticTitle:"रोमांटिक",themeDarkTitle:"डार्क",themeOceanTitle:"ओशन",themeSunsetTitle:"सनसेट",customColorTitle:"कस्टम कलर"},
 hi:{accountTab:"खाता",privacyTab:"प्राइवेसी",notificationTab:"नोटिफिकेशन",appearanceTab:"दिखावट",languageTab:"भाषा",securityTab:"सुरक्षा",helpTab:"मदद और सहायता",
 accountTitle:"अकाउंट सेटिंग्स",accountDesc:"अपनी प्रोफ़ाइल और अकाउंट की जानकारी मैनेज करें।",emailLogin:"लॉगिन और ईमेल",save:"सेव करें",
 privacyTitle:"प्राइवेसी",privacyDesc:"कौन आपकी प्रोफ़ाइल और एक्टिविटी देख सकता है।",notificationTitle:"नोटिफिकेशन",notificationDesc:"Loveway की नोटिफिकेशन को कंट्रोल करें।",
@@ -546,7 +508,7 @@ loginAlertsLabel:"लॉगिन अलर्ट",loginAlertsDesc:"नए ल�
 viewBtn:"देखें",logoutAllBtn:"सभी डिवाइस से लॉगआउट करें",helpCenterLabel:"📚 हेल्प सेंटर",helpCenterDesc:"आम सवाल और गाइड",openBtn:"खोलें",
 contactSupportLabel:"💬 सपोर्ट से संपर्क करें",contactSupportDesc:"Loveway सपोर्ट को मैसेज भेजें",contactBtn:"संपर्क करें",
 reportProblemLabel:"🐞 समस्या रिपोर्ट करें",reportProblemDesc:"हमें किसी समस्या के बारे में बताएं",reportBtn:"रिपोर्ट करें",
-requiredFieldsMsg:"नाम, यूज़रनेम और मोबाइल ज़रूरी हैं",emailConfirmMsg:"कन्फ़र्मेशन लिंक दोनों ईमेल पर भेजा गया है",newEmailPrompt:"नया ईमेल:",emailNotFoundMsg:"ईमेल नहीं मिला",spotifyLabel:"🎵 Spotify",spotifyChecking:"चेक हो रहा है…",spotifyNotConnected:"🔴 Connected नहीं है",spotifyExpired:"🟡 Session expire हो गया — दोबारा connect करें",spotifyConnectBtn:"Connect करें",spotifyConnectedAs:"इस नाम से connected:",spotifyRecheckBtn:"दोबारा check करें",backBtn:"← डैशबोर्ड",themeRomanticTitle:"रोमांटिक",themeDarkTitle:"डार्क",themeOceanTitle:"ओशन",themeSunsetTitle:"सनसेट",customColorTitle:"कस्टम कलर"},
+requiredFieldsMsg:"नाम, यूज़रनेम और मोबाइल ज़रूरी हैं",emailConfirmMsg:"कन्फ़र्मेशन लिंक दोनों ईमेल पर भेजा गया है",newEmailPrompt:"नया ईमेल:",emailNotFoundMsg:"ईमेल नहीं मिला",backBtn:"← डैशबोर्ड",themeRomanticTitle:"रोमांटिक",themeDarkTitle:"डार्क",themeOceanTitle:"ओशन",themeSunsetTitle:"सनसेट",customColorTitle:"कस्टम कलर"},
 mr:{accountTab:"खाते",privacyTab:"प्रायव्हसी",notificationTab:"सूचना",appearanceTab:"दिसणे",languageTab:"भाषा",securityTab:"सुरक्षा",helpTab:"मदत आणि सहाय्य",
 accountTitle:"खाते सेटिंग्ज",accountDesc:"तुमची प्रोफाइल आणि खाते माहिती व्यवस्थापित करा.",emailLogin:"लॉगिन आणि ईमेल",save:"सेव्ह करा",
 privacyTitle:"प्रायव्हसी",privacyDesc:"तुमची प्रोफाइल आणि अॅक्टिव्हिटी कोण पाहू शकते.",notificationTitle:"सूचना",notificationDesc:"Loveway सूचना नियंत्रित करा.",
@@ -565,7 +527,7 @@ loginAlertsLabel:"लॉगिन अलर्ट",loginAlertsDesc:"नवीन
 viewBtn:"पहा",logoutAllBtn:"सर्व डिव्हाइसवरून लॉगआउट करा",helpCenterLabel:"📚 हेल्प सेंटर",helpCenterDesc:"सामान्य प्रश्न आणि मार्गदर्शक",openBtn:"उघडा",
 contactSupportLabel:"💬 सपोर्टशी संपर्क करा",contactSupportDesc:"Loveway सपोर्टला मेसेज पाठवा",contactBtn:"संपर्क करा",
 reportProblemLabel:"🐞 समस्या नोंदवा",reportProblemDesc:"आम्हाला समस्येबद्दल सांगा",reportBtn:"रिपोर्ट करा",
-requiredFieldsMsg:"नाव, युजरनेम आणि मोबाईल आवश्यक आहे",emailConfirmMsg:"कन्फर्मेशन लिंक दोन्ही ईमेलवर पाठवली आहे",newEmailPrompt:"नवीन ईमेल:",emailNotFoundMsg:"ईमेल सापडला नाही",spotifyLabel:"🎵 Spotify",spotifyChecking:"तपासत आहे…",spotifyNotConnected:"🔴 कनेक्ट नाही",spotifyExpired:"🟡 सेशन एक्सपायर झाले — पुन्हा कनेक्ट करा",spotifyConnectBtn:"कनेक्ट करा",spotifyConnectedAs:"या नावाने कनेक्टेड:",spotifyRecheckBtn:"पुन्हा तपासा",backBtn:"← डॅशबोर्ड",themeRomanticTitle:"रोमँटिक",themeDarkTitle:"डार्क",themeOceanTitle:"ओशन",themeSunsetTitle:"सनसेट",customColorTitle:"कस्टम कलर"},
+requiredFieldsMsg:"नाव, युजरनेम आणि मोबाईल आवश्यक आहे",emailConfirmMsg:"कन्फर्मेशन लिंक दोन्ही ईमेलवर पाठवली आहे",newEmailPrompt:"नवीन ईमेल:",emailNotFoundMsg:"ईमेल सापडला नाही",backBtn:"← डॅशबोर्ड",themeRomanticTitle:"रोमँटिक",themeDarkTitle:"डार्क",themeOceanTitle:"ओशन",themeSunsetTitle:"सनसेट",customColorTitle:"कस्टम कलर"},
 en:{accountTab:"Account",privacyTab:"Privacy",notificationTab:"Notifications",appearanceTab:"Appearance",languageTab:"Language",securityTab:"Security",helpTab:"Help & Support",
 accountTitle:"Account Settings",accountDesc:"Manage your profile and account details.",emailLogin:"Login & Email",save:"Save Changes",
 privacyTitle:"Privacy",privacyDesc:"Control who can see your profile and activity.",notificationTitle:"Notifications",notificationDesc:"Control your Loveway notifications.",
@@ -584,7 +546,7 @@ loginAlertsLabel:"Login Alerts",loginAlertsDesc:"Get notified about new logins",
 viewBtn:"View",logoutAllBtn:"Log out from all devices",helpCenterLabel:"📚 Help Center",helpCenterDesc:"Common questions and guides",openBtn:"Open",
 contactSupportLabel:"💬 Contact Support",contactSupportDesc:"Send a message to Loveway support",contactBtn:"Contact",
 reportProblemLabel:"🐞 Report a Problem",reportProblemDesc:"Tell us about an issue",reportBtn:"Report",
-requiredFieldsMsg:"Name, username and mobile are required",emailConfirmMsg:"Confirmation link sent to both emails",newEmailPrompt:"New email:",emailNotFoundMsg:"Email not found",spotifyLabel:"🎵 Spotify",spotifyChecking:"Checking…",spotifyNotConnected:"🔴 Not connected",spotifyExpired:"🟡 Session expired — reconnect",spotifyConnectBtn:"Connect",spotifyConnectedAs:"Connected as",spotifyRecheckBtn:"Recheck",backBtn:"← Dashboard",themeRomanticTitle:"Romantic",themeDarkTitle:"Dark",themeOceanTitle:"Ocean",themeSunsetTitle:"Sunset",customColorTitle:"Custom color"},
+requiredFieldsMsg:"Name, username and mobile are required",emailConfirmMsg:"Confirmation link sent to both emails",newEmailPrompt:"New email:",emailNotFoundMsg:"Email not found",backBtn:"← Dashboard",themeRomanticTitle:"Romantic",themeDarkTitle:"Dark",themeOceanTitle:"Ocean",themeSunsetTitle:"Sunset",customColorTitle:"Custom color"},
  raj:{accountTab:"खातो",privacyTab:"निजता",notificationTab:"सूचना",appearanceTab:"रूप-रंग",languageTab:"बोली",securityTab:"सुरक्षा",helpTab:"मदद अर सहारो",accountTitle:"खाता री सैटिंग",accountDesc:"आपरी प्रोफाइल अर खाता री बातां संभाळो।",emailLogin:"लॉगिन अर ईमेल",save:"बदळाव सैव करो",privacyTitle:"निजता",privacyDesc:"कुण थांरी प्रोफाइल अर काम देख सकै, यो तय करो।",notificationTitle:"सूचना",notificationDesc:"Loveway री सूचना आपरे मुजब राखो।",appearanceTitle:"रूप-रंग",appearanceDesc:"Loveway रो रूप आपरे मन मुजब बणावो।",languageTitle:"बोली",languageDesc:"Loveway नै आपरी पसंद री बोली में चलावो।",securityTitle:"सुरक्षा",securityDesc:"खाता नै सुरक्षित राखो।",helpTitle:"मदद अर सहारो",helpDesc:"कोई दिक्कत है? म्हांसूं संपरक करो।",saved:"सैव हो ग्यो! ✨",
 fullNameLabel:"पूरो नाम",usernameLabel:"यूज़रनेम",mobileLabel:"मोबाइल",cityLabel:"शहर",manageBtn:"मैनेज करो",
 profileVisibilityLabel:"प्रोफाइल री दिखावट",profileVisibilityDesc:"थांरी प्रोफाइल कुण देख सकै?",visFriends:"गैला",visEveryone:"सगळा",visOnlyMe:"सिरफ म्हैं",
@@ -599,7 +561,7 @@ loginAlertsLabel:"लॉगिन सूचना",loginAlertsDesc:"नवा �
 viewBtn:"देखो",logoutAllBtn:"सगळा डिवाइस सूं लॉगआउट करो",helpCenterLabel:"📚 मदद केंद्र",helpCenterDesc:"आम सवाल अर गाइड",openBtn:"खोलो",
 contactSupportLabel:"💬 सहायता सूं संपर्क करो",contactSupportDesc:"Loveway सहायता नै संदेश भेजो",contactBtn:"संपर्क करो",
 reportProblemLabel:"🐞 समस्या बतावो",reportProblemDesc:"म्हांनै कोई समस्या बतावो",reportBtn:"रिपोर्ट करो",
-requiredFieldsMsg:"नाम, यूज़रनेम अर मोबाइल जरूरी है",emailConfirmMsg:"कन्फर्मेशन लिंक दोनूं ईमेल माथै भेज दियो है",newEmailPrompt:"नवो ईमेल:",emailNotFoundMsg:"ईमेल नीं मिल्यो",spotifyLabel:"🎵 Spotify",spotifyChecking:"जांच हो रही है…",spotifyNotConnected:"🔴 Connect कोनी है",spotifyExpired:"🟡 Session खतम हो ग्यो — दुबारा connect करो",spotifyConnectBtn:"Connect करो",spotifyConnectedAs:"इण नाम सूं connected:",spotifyRecheckBtn:"फेर जांचो",backBtn:"← डैशबोर्ड",themeRomanticTitle:"रोमांटिक",themeDarkTitle:"डार्क",themeOceanTitle:"ओशन",themeSunsetTitle:"सनसेट",customColorTitle:"कस्टम कलर"},
+requiredFieldsMsg:"नाम, यूज़रनेम अर मोबाइल जरूरी है",emailConfirmMsg:"कन्फर्मेशन लिंक दोनूं ईमेल माथै भेज दियो है",newEmailPrompt:"नवो ईमेल:",emailNotFoundMsg:"ईमेल नीं मिल्यो",backBtn:"← डैशबोर्ड",themeRomanticTitle:"रोमांटिक",themeDarkTitle:"डार्क",themeOceanTitle:"ओशन",themeSunsetTitle:"सनसेट",customColorTitle:"कस्टम कलर"},
  bho:{accountTab:"खाता",privacyTab:"निजता",notificationTab:"सूचना",appearanceTab:"रूप-रंग",languageTab:"भाषा",securityTab:"सुरक्षा",helpTab:"मदद आ सहारा",accountTitle:"खाता के सेटिंग",accountDesc:"आपन प्रोफाइल आ खाता के बात संभालीं।",emailLogin:"लॉगिन आ ईमेल",save:"बदलाव सेव करीं",privacyTitle:"निजता",privacyDesc:"के राउर प्रोफाइल आ काम देख सके, ई तय करीं।",notificationTitle:"सूचना",notificationDesc:"Loveway के सूचना आपन हिसाब से राखीं।",appearanceTitle:"रूप-रंग",appearanceDesc:"Loveway के रूप आपन मन के हिसाब से बनाईं।",languageTitle:"भाषा",languageDesc:"Loveway के आपन पसंद के भाषा में चलाईं।",securityTitle:"सुरक्षा",securityDesc:"खाता के सुरक्षित राखीं।",helpTitle:"मदद आ सहारा",helpDesc:"कवनो दिक्कत बा? हमनी से संपर्क करीं।",saved:"सेव हो गइल! ✨",
 fullNameLabel:"पूरा नाम",usernameLabel:"यूज़रनेम",mobileLabel:"मोबाइल",cityLabel:"शहर",manageBtn:"मैनेज करीं",
 profileVisibilityLabel:"प्रोफाइल के देखाई",profileVisibilityDesc:"राउर प्रोफाइल के देख सके?",visFriends:"दोस्त",visEveryone:"सभे",visOnlyMe:"खाली हम",
@@ -614,7 +576,7 @@ loginAlertsLabel:"लॉगिन सूचना",loginAlertsDesc:"नयका
 viewBtn:"देखीं",logoutAllBtn:"सभे डिवाइस से लॉगआउट करीं",helpCenterLabel:"📚 मदद केंद्र",helpCenterDesc:"आम सवाल आ गाइड",openBtn:"खोलीं",
 contactSupportLabel:"💬 सहायता से संपर्क करीं",contactSupportDesc:"Loveway सहायता के संदेश भेजीं",contactBtn:"संपर्क करीं",
 reportProblemLabel:"🐞 समस्या बताईं",reportProblemDesc:"हमनी के कवनो समस्या बताईं",reportBtn:"रिपोर्ट करीं",
-requiredFieldsMsg:"नाम, यूज़रनेम आ मोबाइल जरूरी बा",emailConfirmMsg:"कन्फर्मेशन लिंक दुनो ईमेल पर भेज दिहल गइल बा",newEmailPrompt:"नयका ईमेल:",emailNotFoundMsg:"ईमेल ना मिलल",spotifyLabel:"🎵 Spotify",spotifyChecking:"चेक हो रहल बा…",spotifyNotConnected:"🔴 Connect नइखे",spotifyExpired:"🟡 Session खतम हो गइल — दुबारा connect करीं",spotifyConnectBtn:"Connect करीं",spotifyConnectedAs:"ई नाम से connected:",spotifyRecheckBtn:"फेर से चेक करीं",backBtn:"← डैशबोर्ड",themeRomanticTitle:"रोमांटिक",themeDarkTitle:"डार्क",themeOceanTitle:"ओशन",themeSunsetTitle:"सनसेट",customColorTitle:"कस्टम कलर"},
+requiredFieldsMsg:"नाम, यूज़रनेम आ मोबाइल जरूरी बा",emailConfirmMsg:"कन्फर्मेशन लिंक दुनो ईमेल पर भेज दिहल गइल बा",newEmailPrompt:"नयका ईमेल:",emailNotFoundMsg:"ईमेल ना मिलल",backBtn:"← डैशबोर्ड",themeRomanticTitle:"रोमांटिक",themeDarkTitle:"डार्क",themeOceanTitle:"ओशन",themeSunsetTitle:"सनसेट",customColorTitle:"कस्टम कलर"},
  hyd:{accountTab:"खाता",privacyTab:"प्राइवेसी",notificationTab:"इत्तिला",appearanceTab:"लुक",languageTab:"ज़बान",securityTab:"हिफ़ाज़त",helpTab:"मदद और सहारा",accountTitle:"खाते की सेटिंग",accountDesc:"अपनी प्रोफाइल और खाते की बातें संभालो।",emailLogin:"लॉगिन और ईमेल",save:"बदलाव सेव करो",privacyTitle:"प्राइवेसी",privacyDesc:"कौन तुमारी प्रोफाइल और काम देख सकता, ये तय करो।",notificationTitle:"इत्तिला",notificationDesc:"Loveway की इत्तिला अपने हिसाब से रखो।",appearanceTitle:"लुक",appearanceDesc:"Loveway का लुक अपने मन के हिसाब से बनाओ।",languageTitle:"ज़बान",languageDesc:"Loveway को अपनी पसंद की ज़बान में चलाओ।",securityTitle:"हिफ़ाज़त",securityDesc:"खाते को महफ़ूज़ रखो।",helpTitle:"मदद और सहारा",helpDesc:"कोई दिक्कत है? अपन से संपर्क करो।",saved:"सेव हो गया! ✨",
 fullNameLabel:"पूरा नाम",usernameLabel:"यूज़रनेम",mobileLabel:"मोबाइल",cityLabel:"शहर",manageBtn:"मैनेज करो",
 profileVisibilityLabel:"प्रोफाइल की नुमाइश",profileVisibilityDesc:"तुम्हारी प्रोफाइल कौन देख सकता?",visFriends:"दोस्त",visEveryone:"सब लोग",visOnlyMe:"सिर्फ मैं",
@@ -629,7 +591,7 @@ loginAlertsLabel:"लॉगिन अलर्ट",loginAlertsDesc:"नए ल�
 viewBtn:"देखो",logoutAllBtn:"सब डिवाइस से लॉगआउट करो",helpCenterLabel:"📚 हेल्प सेंटर",helpCenterDesc:"आम सवाल और गाइड",openBtn:"खोलो",
 contactSupportLabel:"💬 सपोर्ट से राब्ता करो",contactSupportDesc:"Loveway सपोर्ट को मैसेज भेजो",contactBtn:"राब्ता करो",
 reportProblemLabel:"🐞 दिक्कत बताओ",reportProblemDesc:"हमको कोई दिक्कत बताओ",reportBtn:"रिपोर्ट करो",
-requiredFieldsMsg:"नाम, यूज़रनेम और मोबाइल जरूरी है",emailConfirmMsg:"कन्फर्मेशन लिंक दोनों ईमेल पे भेज दिया गया है",newEmailPrompt:"नया ईमेल:",emailNotFoundMsg:"ईमेल नहीं मिला",spotifyLabel:"🎵 Spotify",spotifyChecking:"चेक हो रहा है…",spotifyNotConnected:"🔴 Connect नहीं है",spotifyExpired:"🟡 Session खतम हो गया — दोबारा connect करो",spotifyConnectBtn:"Connect करो",spotifyConnectedAs:"इस नाम से connected:",spotifyRecheckBtn:"दोबारा चेक करो",backBtn:"← डैशबोर्ड",themeRomanticTitle:"रोमांटिक",themeDarkTitle:"डार्क",themeOceanTitle:"ओशन",themeSunsetTitle:"सनसेट",customColorTitle:"कस्टम कलर"},
+requiredFieldsMsg:"नाम, यूज़रनेम और मोबाइल जरूरी है",emailConfirmMsg:"कन्फर्मेशन लिंक दोनों ईमेल पे भेज दिया गया है",newEmailPrompt:"नया ईमेल:",emailNotFoundMsg:"ईमेल नहीं मिला",backBtn:"← डैशबोर्ड",themeRomanticTitle:"रोमांटिक",themeDarkTitle:"डार्क",themeOceanTitle:"ओशन",themeSunsetTitle:"सनसेट",customColorTitle:"कस्टम कलर"},
 ta:{accountTab:"கணக்கு",privacyTab:"தனியுரிமை",notificationTab:"அறிவிப்புகள்",appearanceTab:"தோற்றம்",languageTab:"மொழி",securityTab:"பாதுகாப்பு",helpTab:"உதவி & ஆதரவு",
 accountTitle:"கணக்கு அமைப்புகள்",accountDesc:"உங்கள் சுயவிவரம் மற்றும் கணக்கு விவரங்களை நிர்வகிக்கவும்.",emailLogin:"உள்நுழைவு & மின்னஞ்சல்",save:"மாற்றங்களைச் சேமி",
 privacyTitle:"தனியுரிமை",privacyDesc:"உங்கள் சுயவிவரம் மற்றும் செயல்பாட்டை யார் பார்க்கலாம் என்பதைக் கட்டுப்படுத்தவும்.",notificationTitle:"அறிவிப்புகள்",notificationDesc:"உங்கள் Loveway அறிவிப்புகளைக் கட்டுப்படுத்தவும்.",
@@ -648,7 +610,7 @@ loginAlertsLabel:"உள்நுழைவு எச்சரிக்கைக�
 viewBtn:"பார்",logoutAllBtn:"அனைத்து சாதனங்களில் இருந்தும் வெளியேறு",helpCenterLabel:"📚 உதவி மையம்",helpCenterDesc:"பொதுவான கேள்விகள் மற்றும் வழிகாட்டிகள்",openBtn:"திற",
 contactSupportLabel:"💬 ஆதரவைத் தொடர்பு கொள்",contactSupportDesc:"Loveway ஆதரவுக்கு ஒரு செய்தி அனுப்பு",contactBtn:"தொடர்பு கொள்",
 reportProblemLabel:"🐞 சிக்கலைப் புகாரளி",reportProblemDesc:"ஒரு சிக்கலைப் பற்றி எங்களிடம் கூறுங்கள்",reportBtn:"புகாரளி",
-requiredFieldsMsg:"பெயர், பயனர்பெயர் மற்றும் மொபைல் தேவை",emailConfirmMsg:"உறுதிப்படுத்தல் இணைப்பு இரண்டு மின்னஞ்சல்களுக்கும் அனுப்பப்பட்டது",newEmailPrompt:"புதிய மின்னஞ்சல்:",emailNotFoundMsg:"மின்னஞ்சல் கிடைக்கவில்லை",spotifyLabel:"🎵 Spotify",spotifyChecking:"சரிபார்க்கிறது…",spotifyNotConnected:"🔴 இணைக்கப்படவில்லை",spotifyExpired:"🟡 அமர்வு காலாவதியானது — மீண்டும் இணைக்கவும்",spotifyConnectBtn:"இணை",spotifyConnectedAs:"இணைக்கப்பட்டவர்:",spotifyRecheckBtn:"மீண்டும் சரிபார்",backBtn:"← டாஷ்போர்டு",themeRomanticTitle:"ரொமான்டிக்",themeDarkTitle:"டார்க்",themeOceanTitle:"ஓஷன்",themeSunsetTitle:"சன்செட்",customColorTitle:"தனிப்பயன் நிறம்"},
+requiredFieldsMsg:"பெயர், பயனர்பெயர் மற்றும் மொபைல் தேவை",emailConfirmMsg:"உறுதிப்படுத்தல் இணைப்பு இரண்டு மின்னஞ்சல்களுக்கும் அனுப்பப்பட்டது",newEmailPrompt:"புதிய மின்னஞ்சல்:",emailNotFoundMsg:"மின்னஞ்சல் கிடைக்கவில்லை",backBtn:"← டாஷ்போர்டு",themeRomanticTitle:"ரொமான்டிக்",themeDarkTitle:"டார்க்",themeOceanTitle:"ஓஷன்",themeSunsetTitle:"சன்செட்",customColorTitle:"தனிப்பயன் நிறம்"},
 te:{accountTab:"ఖాతా",privacyTab:"ప్రైవసీ",notificationTab:"నోటిఫికేషన్లు",appearanceTab:"అపియరెన్స్",languageTab:"భాష",securityTab:"సెక్యూరిటీ",helpTab:"సహాయం & మద్దతు",
 accountTitle:"ఖాతా సెట్టింగ్స్",accountDesc:"మీ ప్రొఫైల్ మరియు ఖాతా వివరాలను మేనేజ్ చేయండి.",emailLogin:"లాగిన్ & ఇమెయిల్",save:"మార్పులు సేవ్ చేయండి",
 privacyTitle:"ప్రైవసీ",privacyDesc:"మీ ప్రొఫైల్ మరియు యాక్టివిటీని ఎవరు చూడగలరో నియంత్రించండి.",notificationTitle:"నోటిఫికేషన్లు",notificationDesc:"మీ Loveway నోటిఫికేషన్లను నియంత్రించండి.",
@@ -667,7 +629,7 @@ loginAlertsLabel:"లాగిన్ అలర్ట్‌లు",loginAlertsDes
 viewBtn:"చూడండి",logoutAllBtn:"అన్ని డివైజ్‌ల నుండి లాగ్ అవుట్ చేయండి",helpCenterLabel:"📚 హెల్ప్ సెంటర్",helpCenterDesc:"సాధారణ ప్రశ్నలు మరియు గైడ్‌లు",openBtn:"తెరవండి",
 contactSupportLabel:"💬 సపోర్ట్‌ని సంప్రదించండి",contactSupportDesc:"Loveway సపోర్ట్‌కి మెసేజ్ పంపండి",contactBtn:"సంప్రదించండి",
 reportProblemLabel:"🐞 సమస్యను రిపోర్ట్ చేయండి",reportProblemDesc:"ఒక సమస్య గురించి మాకు చెప్పండి",reportBtn:"రిపోర్ట్ చేయండి",
-requiredFieldsMsg:"పేరు, యూజర్‌నేమ్ మరియు మొబైల్ అవసరం",emailConfirmMsg:"కన్ఫర్మేషన్ లింక్ రెండు ఇమెయిల్‌లకు పంపబడింది",newEmailPrompt:"కొత్త ఇమెయిల్:",emailNotFoundMsg:"ఇమెయిల్ కనిపించలేదు",spotifyLabel:"🎵 Spotify",spotifyChecking:"చెక్ చేస్తోంది…",spotifyNotConnected:"🔴 కనెక్ట్ కాలేదు",spotifyExpired:"🟡 సెషన్ ఎక్స్‌పైర్ అయింది — మళ్లీ కనెక్ట్ చేయండి",spotifyConnectBtn:"కనెక్ట్",spotifyConnectedAs:"ఈ పేరుతో కనెక్ట్ అయింది",spotifyRecheckBtn:"మళ్లీ చెక్ చేయండి",backBtn:"← డాష్‌బోర్డ్",themeRomanticTitle:"రొమాంటిక్",themeDarkTitle:"డార్క్",themeOceanTitle:"ఓషన్",themeSunsetTitle:"సన్‌సెట్",customColorTitle:"కస్టమ్ కలర్"},
+requiredFieldsMsg:"పేరు, యూజర్‌నేమ్ మరియు మొబైల్ అవసరం",emailConfirmMsg:"కన్ఫర్మేషన్ లింక్ రెండు ఇమెయిల్‌లకు పంపబడింది",newEmailPrompt:"కొత్త ఇమెయిల్:",emailNotFoundMsg:"ఇమెయిల్ కనిపించలేదు",backBtn:"← డాష్‌బోర్డ్",themeRomanticTitle:"రొమాంటిక్",themeDarkTitle:"డార్క్",themeOceanTitle:"ఓషన్",themeSunsetTitle:"సన్‌సెట్",customColorTitle:"కస్టమ్ కలర్"},
 bn:{accountTab:"অ্যাকাউন্ট",privacyTab:"প্রাইভেসি",notificationTab:"নোটিফিকেশন",appearanceTab:"অ্যাপিয়ারেন্স",languageTab:"ভাষা",securityTab:"সিকিউরিটি",helpTab:"সাহায্য ও সহায়তা",
 accountTitle:"অ্যাকাউন্ট সেটিংস",accountDesc:"আপনার প্রোফাইল ও অ্যাকাউন্টের তথ্য পরিচালনা করুন।",emailLogin:"লগইন ও ইমেইল",save:"পরিবর্তন সংরক্ষণ করুন",
 privacyTitle:"প্রাইভেসি",privacyDesc:"কে আপনার প্রোফাইল ও কার্যকলাপ দেখতে পাবে তা নিয়ন্ত্রণ করুন।",notificationTitle:"নোটিফিকেশন",notificationDesc:"আপনার Loveway নোটিফিকেশন নিয়ন্ত্রণ করুন।",
@@ -686,7 +648,7 @@ loginAlertsLabel:"লগইন অ্যালার্ট",loginAlertsDesc:"ন
 viewBtn:"দেখুন",logoutAllBtn:"সব ডিভাইস থেকে লগ আউট করুন",helpCenterLabel:"📚 হেল্প সেন্টার",helpCenterDesc:"সাধারণ প্রশ্ন ও গাইড",openBtn:"খুলুন",
 contactSupportLabel:"💬 সাপোর্টে যোগাযোগ করুন",contactSupportDesc:"Loveway সাপোর্টে একটি মেসেজ পাঠান",contactBtn:"যোগাযোগ করুন",
 reportProblemLabel:"🐞 সমস্যা রিপোর্ট করুন",reportProblemDesc:"কোনো সমস্যা সম্পর্কে আমাদের জানান",reportBtn:"রিপোর্ট করুন",
-requiredFieldsMsg:"নাম, ইউজারনেম ও মোবাইল আবশ্যক",emailConfirmMsg:"দুটি ইমেইলেই কনফার্মেশন লিংক পাঠানো হয়েছে",newEmailPrompt:"নতুন ইমেইল:",emailNotFoundMsg:"ইমেইল পাওয়া যায়নি",spotifyLabel:"🎵 Spotify",spotifyChecking:"চেক করা হচ্ছে…",spotifyNotConnected:"🔴 কানেক্ট নেই",spotifyExpired:"🟡 সেশনের মেয়াদ শেষ — আবার কানেক্ট করুন",spotifyConnectBtn:"কানেক্ট করুন",spotifyConnectedAs:"কানেক্ট করা আছে এই নামে",spotifyRecheckBtn:"আবার চেক করুন",backBtn:"← ড্যাশবোর্ড",themeRomanticTitle:"রোমান্টিক",themeDarkTitle:"ডার্ক",themeOceanTitle:"ওশান",themeSunsetTitle:"সানসেট",customColorTitle:"কাস্টম রং"},
+requiredFieldsMsg:"নাম, ইউজারনেম ও মোবাইল আবশ্যক",emailConfirmMsg:"দুটি ইমেইলেই কনফার্মেশন লিংক পাঠানো হয়েছে",newEmailPrompt:"নতুন ইমেইল:",emailNotFoundMsg:"ইমেইল পাওয়া যায়নি",backBtn:"← ড্যাশবোর্ড",themeRomanticTitle:"রোমান্টিক",themeDarkTitle:"ডার্ক",themeOceanTitle:"ওশান",themeSunsetTitle:"সানসেট",customColorTitle:"কাস্টম রং"},
 pa:{accountTab:"ਖਾਤਾ",privacyTab:"ਪਰਦੇਦਾਰੀ",notificationTab:"ਨੋਟੀਫਿਕੇਸ਼ਨ",appearanceTab:"ਦਿੱਖ",languageTab:"ਭਾਸ਼ਾ",securityTab:"ਸੁਰੱਖਿਆ",helpTab:"ਮਦਦ ਅਤੇ ਸਹਾਇਤਾ",
 accountTitle:"ਖਾਤਾ ਸੈਟਿੰਗਾਂ",accountDesc:"ਆਪਣੀ ਪ੍ਰੋਫਾਈਲ ਅਤੇ ਖਾਤੇ ਦੇ ਵੇਰਵੇ ਪ੍ਰਬੰਧਿਤ ਕਰੋ।",emailLogin:"ਲੌਗਇਨ ਅਤੇ ਈਮੇਲ",save:"ਬਦਲਾਅ ਸੇਵ ਕਰੋ",
 privacyTitle:"ਪਰਦੇਦਾਰੀ",privacyDesc:"ਕੰਟਰੋਲ ਕਰੋ ਕਿ ਤੁਹਾਡੀ ਪ੍ਰੋਫਾਈਲ ਅਤੇ ਗਤੀਵਿਧੀ ਕੌਣ ਦੇਖ ਸਕਦਾ ਹੈ।",notificationTitle:"ਨੋਟੀਫਿਕੇਸ਼ਨ",notificationDesc:"ਆਪਣੇ Loveway ਨੋਟੀਫਿਕੇਸ਼ਨ ਕੰਟਰੋਲ ਕਰੋ।",
@@ -705,7 +667,7 @@ loginAlertsLabel:"ਲੌਗਇਨ ਅਲਰਟ",loginAlertsDesc:"ਨਵੇਂ �
 viewBtn:"ਦੇਖੋ",logoutAllBtn:"ਸਾਰੀਆਂ ਡਿਵਾਈਸਾਂ ਤੋਂ ਲੌਗਆਊਟ ਕਰੋ",helpCenterLabel:"📚 ਮਦਦ ਕੇਂਦਰ",helpCenterDesc:"ਆਮ ਸਵਾਲ ਅਤੇ ਗਾਈਡਾਂ",openBtn:"ਖੋਲ੍ਹੋ",
 contactSupportLabel:"💬 ਸਹਾਇਤਾ ਨਾਲ ਸੰਪਰਕ ਕਰੋ",contactSupportDesc:"Loveway ਸਹਾਇਤਾ ਨੂੰ ਸੁਨੇਹਾ ਭੇਜੋ",contactBtn:"ਸੰਪਰਕ ਕਰੋ",
 reportProblemLabel:"🐞 ਸਮੱਸਿਆ ਦੱਸੋ",reportProblemDesc:"ਸਾਨੂੰ ਕਿਸੇ ਸਮੱਸਿਆ ਬਾਰੇ ਦੱਸੋ",reportBtn:"ਰਿਪੋਰਟ ਕਰੋ",
-requiredFieldsMsg:"ਨਾਮ, ਯੂਜ਼ਰਨੇਮ ਅਤੇ ਮੋਬਾਈਲ ਲੋੜੀਂਦੇ ਹਨ",emailConfirmMsg:"ਪੁਸ਼ਟੀਕਰਨ ਲਿੰਕ ਦੋਹਾਂ ਈਮੇਲਾਂ 'ਤੇ ਭੇਜਿਆ ਗਿਆ",newEmailPrompt:"ਨਵੀਂ ਈਮੇਲ:",emailNotFoundMsg:"ਈਮੇਲ ਨਹੀਂ ਮਿਲੀ",spotifyLabel:"🎵 Spotify",spotifyChecking:"ਚੈੱਕ ਹੋ ਰਿਹਾ ਹੈ…",spotifyNotConnected:"🔴 ਕਨੈਕਟ ਨਹੀਂ",spotifyExpired:"🟡 ਸੈਸ਼ਨ ਖ਼ਤਮ ਹੋਇਆ — ਦੁਬਾਰਾ ਕਨੈਕਟ ਕਰੋ",spotifyConnectBtn:"ਕਨੈਕਟ ਕਰੋ",spotifyConnectedAs:"ਇਸ ਵਜੋਂ ਕਨੈਕਟ ਹੈ",spotifyRecheckBtn:"ਦੁਬਾਰਾ ਚੈੱਕ ਕਰੋ",backBtn:"← ਡੈਸ਼ਬੋਰਡ",themeRomanticTitle:"ਰੋਮਾਂਟਿਕ",themeDarkTitle:"ਡਾਰਕ",themeOceanTitle:"ਓਸ਼ੀਅਨ",themeSunsetTitle:"ਸਨਸੈੱਟ",customColorTitle:"ਕਸਟਮ ਰੰਗ"},
+requiredFieldsMsg:"ਨਾਮ, ਯੂਜ਼ਰਨੇਮ ਅਤੇ ਮੋਬਾਈਲ ਲੋੜੀਂਦੇ ਹਨ",emailConfirmMsg:"ਪੁਸ਼ਟੀਕਰਨ ਲਿੰਕ ਦੋਹਾਂ ਈਮੇਲਾਂ 'ਤੇ ਭੇਜਿਆ ਗਿਆ",newEmailPrompt:"ਨਵੀਂ ਈਮੇਲ:",emailNotFoundMsg:"ਈਮੇਲ ਨਹੀਂ ਮਿਲੀ",backBtn:"← ਡੈਸ਼ਬੋਰਡ",themeRomanticTitle:"ਰੋਮਾਂਟਿਕ",themeDarkTitle:"ਡਾਰਕ",themeOceanTitle:"ਓਸ਼ੀਅਨ",themeSunsetTitle:"ਸਨਸੈੱਟ",customColorTitle:"ਕਸਟਮ ਰੰਗ"},
 gu:{accountTab:"એકાઉન્ટ",privacyTab:"પ્રાઈવસી",notificationTab:"નોટિફિકેશન",appearanceTab:"દેખાવ",languageTab:"ભાષા",securityTab:"સુરક્ષા",helpTab:"મદદ અને સપોર્ટ",
 accountTitle:"એકાઉન્ટ સેટિંગ્સ",accountDesc:"તમારી પ્રોફાઇલ અને એકાઉન્ટ વિગતો મેનેજ કરો.",emailLogin:"લોગિન અને ઈમેલ",save:"ફેરફારો સેવ કરો",
 privacyTitle:"પ્રાઈવસી",privacyDesc:"તમારી પ્રોફાઇલ અને પ્રવૃત્તિ કોણ જોઈ શકે તે નિયંત્રિત કરો.",notificationTitle:"નોટિફિકેશન",notificationDesc:"તમારા Loveway નોટિફિકેશન નિયંત્રિત કરો.",
@@ -724,7 +686,7 @@ loginAlertsLabel:"લોગિન એલર્ટ",loginAlertsDesc:"નવા �
 viewBtn:"જુઓ",logoutAllBtn:"બધા ડિવાઈસમાંથી લોગ આઉટ કરો",helpCenterLabel:"📚 હેલ્પ સેન્ટર",helpCenterDesc:"સામાન્ય પ્રશ્નો અને માર્ગદર્શિકાઓ",openBtn:"ખોલો",
 contactSupportLabel:"💬 સપોર્ટનો સંપર્ક કરો",contactSupportDesc:"Loveway સપોર્ટને સંદેશ મોકલો",contactBtn:"સંપર્ક કરો",
 reportProblemLabel:"🐞 સમસ્યાની જાણ કરો",reportProblemDesc:"અમને સમસ્યા વિશે જણાવો",reportBtn:"જાણ કરો",
-requiredFieldsMsg:"નામ, યુઝરનેમ અને મોબાઈલ જરૂરી છે",emailConfirmMsg:"કન્ફર્મેશન લિંક બંને ઈમેલ પર મોકલાઈ",newEmailPrompt:"નવો ઈમેલ:",emailNotFoundMsg:"ઈમેલ મળ્યો નથી",spotifyLabel:"🎵 Spotify",spotifyChecking:"તપાસ થઈ રહી છે…",spotifyNotConnected:"🔴 કનેક્ટ નથી",spotifyExpired:"🟡 સેશન સમાપ્ત થયું — ફરી કનેક્ટ કરો",spotifyConnectBtn:"કનેક્ટ કરો",spotifyConnectedAs:"આ રીતે કનેક્ટેડ",spotifyRecheckBtn:"ફરી તપાસો",backBtn:"← ડેશબોર્ડ",themeRomanticTitle:"રોમેન્ટિક",themeDarkTitle:"ડાર્ક",themeOceanTitle:"ઓશન",themeSunsetTitle:"સનસેટ",customColorTitle:"કસ્ટમ કલર"}
+requiredFieldsMsg:"નામ, યુઝરનેમ અને મોબાઈલ જરૂરી છે",emailConfirmMsg:"કન્ફર્મેશન લિંક બંને ઈમેલ પર મોકલાઈ",newEmailPrompt:"નવો ઈમેલ:",emailNotFoundMsg:"ઈમેલ મળ્યો નથી",backBtn:"← ડેશબોર્ડ",themeRomanticTitle:"રોમેન્ટિક",themeDarkTitle:"ડાર્ક",themeOceanTitle:"ઓશન",themeSunsetTitle:"સનસેટ",customColorTitle:"કસ્ટમ કલર"}
 };
 
 function tl(key){ return (translations[getLang()]||translations.en)[key] || key; }
@@ -736,11 +698,9 @@ function applyLang(){
  // theme swatch titles ke liye — inki keys sirf is page ke local dict mein hain (LW_LANG mein nahi),
  // isliye global applyLanguage() ke bharose nahi reh sakte; yahin se set karte hain
  document.querySelectorAll("[data-i18n-title]").forEach(e=>{if(l[e.dataset.i18nTitle])e.title=l[e.dataset.i18nTitle]});
- document.getElementById("languageQuick").value=getLang();
  document.getElementById("languageMain").value=getLang();
- if(document.getElementById("languageQuick")._refresh) document.getElementById("languageQuick")._refresh();
  if(document.getElementById("languageMain")._refresh) document.getElementById("languageMain")._refresh();
- if(window.LW_ME){ loadBlockedSettings(); checkSpotify(); }   // in dono ka text data-i18n se nahi, JS se banta hai
+ if(window.LW_ME) loadBlockedSettings();   // iska text data-i18n se nahi, JS se banta hai
 }
 function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.style.display="block";clearTimeout(window.tt);window.tt=setTimeout(()=>t.style.display="none",2200)}
 var uTimer;
@@ -1031,7 +991,7 @@ async function loadMyStoreProducts(){
  if(!box) return;
  let rows=[];
  try{ rows=await LWApp.myStoreProducts(); }
- catch(e){ box.innerHTML='<small style="color:var(--muted)">Load nahi ho paaya.</small>'; return; }
+ catch(e){ box.innerHTML='<small style="color:var(--text-soft)">Load nahi ho paaya.</small>'; return; }
 
  const n={pending:0,approved:0,rejected:0};
  rows.forEach(r=>{ if(n[r.status]!==undefined) n[r.status]++; });
@@ -1046,7 +1006,7 @@ async function loadMyStoreProducts(){
       (p.admin_note?" · 🛡️ "+LW.escapeHtml(p.admin_note):"")+'</small></div>'+
       '<span class="badge">'+(ST_STATUS[p.status]||p.status)+'</span></div>'
     ).join("")
-  : '<small style="color:var(--muted)">Store page se "➕ Apna product add karo" dabao.</small>';
+  : '<small style="color:var(--text-soft)">Store page se "➕ Apna product add karo" dabao.</small>';
 }
 
 /* ---------- Loveway Control Center (sirf admin) ---------- */
@@ -1112,96 +1072,6 @@ async function logoutAll(){
  LW.logout();
 }
 
-/* Spotify ab Loveway ke login se alag hai — koi bhi user (email, Google,
-   kisi bhi tarah se aaya ho) apna Spotify jod sakta hai, aur jodne se
-   Loveway ka session bilkul nahi badalta. Token refresh bhi apne aap hota
-   hai, isliye har ghante dobara login karne ki zarurat nahi. */
-async function checkSpotify(){
- const statusEl=document.getElementById("spotifyStatus");
- const btn=document.getElementById("spotifyBtn");
- const help=document.getElementById("spotifyHelp");
- if(!statusEl||!btn) return;
-
- if(help) help.innerHTML=redirectHelpHtml();
-
- // config.js mein client id hi nahi hai to connect kabhi chalega hi nahi —
- // "connect karo" dikhana bekaar hai, asli wajah batao
- if(window.LWSpotify && !LWSpotify.configured()){
-  statusEl.textContent="⚙️ Setup baaki hai — config.js mein SPOTIFY_CLIENT_ID daalein";
-  btn.textContent="Kaise?";
-  btn.onclick=()=>{ if(help) help.innerHTML=
-    'developer.spotify.com/dashboard &gt; app &gt; Settings &gt; <b>Client ID</b> copy karke '+
-    'config.js mein daalein.'+redirectHelpHtml(); };
-  return;
- }
-
- statusEl.textContent=tl("spotifyChecking");
- btn.disabled=true;
- const r=await LW.spotifyApi("/me");
- btn.disabled=false;
-
- if(r.error){
-  statusEl.textContent=r.error==="no-token"?tl("spotifyNotConnected"):tl("spotifyExpired");
-  btn.textContent=tl("spotifyConnectBtn");
-  btn.onclick=()=>LW.spotifyConnect();
-  if(help) help.innerHTML="Jodne par search, playlists, liked songs aur Music of the Day — sab tumhare apne Spotify se chalenge."+redirectHelpHtml();
- } else {
-  statusEl.textContent="✅ "+tl("spotifyConnectedAs")+" "+(r.data.display_name||r.data.email||r.data.id);
-  btn.textContent="Disconnect";
-  btn.onclick=disconnectSpotify;
-  if(help) help.innerHTML='<a href="#" onclick="checkSpotify();return false">Dobara check karo</a>'+redirectHelpHtml();
- }
-}
-
-/* "redirect_uri: Not matching configuration" ki wajah hamesha ek hi hoti hai —
-   jo URI browser bhejta hai wo Spotify Dashboard mein register nahi hai. Dono
-   ka EXACT match chahiye (https, www, port, path — sab). Isliye jo browser
-   sach mein bhejega, wahi yahan copy karne ke liye dikha dete hain. */
-function redirectHelpHtml(){
- if(!window.LWSpotify) return "";
- const problem = LWSpotify.redirectProblem();
-
- // DO alag-alag URI chahiye, kyunki do alag flow hain:
- //   1. "🎵 Spotify se login" (login/signup page) → Supabase ka OAuth,
- //      uska callback Supabase par hota hai
- //   2. "Connect" (yahan Settings se) → apna PKCE flow, callback
- //      spotify-callback.html par
- // Sirf ek register karne par doosra "redirect_uri: Not matching
- // configuration" deta hai — isliye dono dikha rahe hain.
- const sup = (window.LOVEWAY_CONFIG && LOVEWAY_CONFIG.SUPABASE_URL || "").replace(/\/+$/,"");
- const rows = [
-  { id:"spRedirUri",     label:"Connect ke liye (Settings ka button)", uri: LWSpotify.redirectUri() },
-  { id:"spRedirUriAuth", label:'"Spotify se login" ke liye',           uri: sup ? sup+"/auth/v1/callback" : "" }
- ].filter(r=>r.uri);
-
- return '<div style="margin-top:10px;padding:10px;border:1px solid var(--border);border-radius:10px">'+
-   '<div style="font-size:.78rem;margin-bottom:8px">Spotify Dashboard &gt; apni app &gt; <b>Settings &gt; Redirect URIs</b> mein ye <b>dono</b> lines honi chahiye:</div>'+
-   rows.map(r=>
-     '<div style="margin-bottom:8px">'+
-       '<div style="font-size:.72rem;color:var(--muted);margin-bottom:3px">'+r.label+'</div>'+
-       '<div style="display:flex;gap:6px;align-items:center">'+
-         '<code id="'+r.id+'" style="flex:1;min-width:0;overflow:auto;white-space:nowrap;background:var(--bg2);padding:6px 8px;border-radius:8px;font-size:.76rem">'+
-         LW.escapeHtml(r.uri)+'</code>'+
-         '<button type="button" class="btn secondary" style="flex:none;padding:6px 12px;font-size:.75rem" onclick="copyRedirectUri(\''+r.id+'\')">Copy</button>'+
-       '</div>'+
-     '</div>').join('')+
-   (problem ? '<div style="margin-top:4px;font-size:.78rem;color:#ff8080">⚠️ '+LW.escapeHtml(problem)+'</div>' : '')+
-   '<div style="margin-top:4px;font-size:.72rem;color:var(--muted)">Add karke <b>Save</b> dabana mat bhoolna. Ek-ek akshar match hona chahiye — https/http, www, port aur aakhir ka .html bhi.</div>'+
- '</div>';
-}
-
-function copyRedirectUri(id){
- const el=document.getElementById(id||"spRedirUri");
- const uri=el?el.textContent:"";
- if(navigator.clipboard && navigator.clipboard.writeText){
-  navigator.clipboard.writeText(uri).then(()=>toast("📋 Copy ho gaya"),()=>toast("❌ Copy nahi hua"));
- } else if(el){
-  // purane/insecure context wale browser — user khud select kar le
-  const r=document.createRange(); r.selectNodeContents(el);
-  const s=getSelection(); s.removeAllRanges(); s.addRange(r); toast("Select ho gaya — Ctrl+C dabao");
- }
-}
-
 /* ---------- Popup notifications ----------
    Permission KABHI apne aap nahi maangte. Page khulte hi prompt dikhana
    user ko chidha deta hai, aur Chrome/Firefox aise site ko baad me
@@ -1261,7 +1131,7 @@ async function loadMuted(){
  try{
   const ids=await LWApp.mutedIds(true);
   if(!ids.length){
-   box.innerHTML='<small style="color:var(--muted)">Kisi ko mute nahi kiya.</small>';
+   box.innerHTML='<small style="color:var(--text-soft)">Kisi ko mute nahi kiya.</small>';
    return;
   }
   const people=await LWApp.peopleByIds(ids);
@@ -1272,7 +1142,7 @@ async function loadMuted(){
      '<button class="btn" onclick="unmute(\''+LW.escapeHtml(u.id)+'\')">Unmute</button>'+
    '</div>').join("");
  }catch(e){
-  box.innerHTML='<small style="color:var(--muted)">'+
+  box.innerHTML='<small style="color:var(--text-soft)">'+
     (LWApp.setupMissing(e)?'Mute ka database setup abhi baaki hai.':'List nahi aa payi.')+'</small>';
  }
 }
@@ -1289,7 +1159,7 @@ async function loadArchived(){
  try{
   const rows=await LWApp.archivedPosts(30);
   if(!rows.length){
-   box.innerHTML='<small style="color:var(--muted)">Koi archived post nahi.</small>';
+   box.innerHTML='<small style="color:var(--text-soft)">Koi archived post nahi.</small>';
    return;
   }
   box.innerHTML=rows.map(p=>
@@ -1300,7 +1170,7 @@ async function loadArchived(){
      '<button class="btn" onclick="unarchive('+p.id+')">Wapas laao</button>'+
    '</div>').join("");
  }catch(e){
-  box.innerHTML='<small style="color:var(--muted)">'+
+  box.innerHTML='<small style="color:var(--text-soft)">'+
     (LWApp.setupMissing(e)?'Archive ka database setup abhi baaki hai.':'List nahi aa payi.')+'</small>';
  }
 }
@@ -1391,14 +1261,14 @@ async function loadCloseFriends(){
   const [friends,closeIds]=await Promise.all([LWApp.myFriends(),LWApp.closeFriendIds()]);
   const close={}; closeIds.forEach(id=>close[id]=true);
   if(!friends.length){
-   box.innerHTML='<small style="color:var(--muted)">Abhi koi dost nahi hai. Pehle dost banao, phir unme se close friends chuno.</small>';
+   box.innerHTML='<small style="color:var(--text-soft)">Abhi koi dost nahi hai. Pehle dost banao, phir unme se close friends chuno.</small>';
    return;
   }
   box.innerHTML=friends.map(f=>
    '<label style="display:flex;align-items:center;gap:9px;padding:6px 0;cursor:pointer">'+
      LWApp.avatarHtml(f,"sm")+
      '<span style="flex:1;min-width:0"><b>'+LW.escapeHtml(f.full_name||f.username||"—")+'</b>'+
-     (f.username?'<br><small style="color:var(--muted)">@'+LW.escapeHtml(f.username)+'</small>':'')+'</span>'+
+     (f.username?'<br><small style="color:var(--text-soft)">@'+LW.escapeHtml(f.username)+'</small>':'')+'</span>'+
      '<span class="switch"><input type="checkbox" data-cf="'+LW.escapeHtml(f.id)+'"'+
        (close[f.id]?" checked":"")+'><span class="slider"></span></span>'+
    '</label>').join("");
@@ -1409,9 +1279,9 @@ async function loadCloseFriends(){
   // (LWApp.setupMissing) se aati hai, teen jagah alag-alag regex nahi.
   const missing=LWApp.setupMissing(e);
   box.innerHTML=missing
-   ? '<small style="color:var(--muted)">Close Friends ka database setup abhi baaki hai — '+
+   ? '<small style="color:var(--text-soft)">Close Friends ka database setup abhi baaki hai — '+
      '<code>supabase-schema.sql</code> ko Supabase ke SQL Editor me chalao, phir ye list aa jaayegi.</small>'
-   : '<small style="color:var(--muted)">List nahi aa payi. Dobara try karo.</small>';
+   : '<small style="color:var(--text-soft)">List nahi aa payi. Dobara try karo.</small>';
  }
 }
 
@@ -1431,13 +1301,6 @@ document.addEventListener("change",async function(e){
   toast(on?"💚 Close friends me jud gaya":"Close friends se hata diya");
  }
 });
-
-function disconnectSpotify(){
- if(!confirm("Spotify ka connection hata dein?")) return;
- if(window.LWSpotify) LWSpotify.disconnect();
- toast("Spotify hata diya");
- checkSpotify();
-}
 
 // native <select> ka dropdown popup style nahi ho sakta (OS/browser control karta hai) —
 // isliye ek chhota custom button+list widget bana dete hain. Asli select chhupa rehta hai
@@ -1480,8 +1343,8 @@ async function loadBlockedSettings(){
  const box=document.getElementById("blockedList");
  const {data,error}=await LW.sb.from("friendships").select("id, requester_id, addressee_id")
   .eq("status","blocked").or("requester_id.eq."+me.id+",addressee_id.eq."+me.id);
- if(error){box.innerHTML='<small style="color:var(--muted)">'+tl("blockedLoadError")+'</small>';return}
- if(!data||!data.length){box.innerHTML='<small style="color:var(--muted)">'+tl("blockedNone")+'</small>';return}
+ if(error){box.innerHTML='<small style="color:var(--text-soft)">'+tl("blockedLoadError")+'</small>';return}
+ if(!data||!data.length){box.innerHTML='<small style="color:var(--text-soft)">'+tl("blockedNone")+'</small>';return}
  const others=data.map(r=>r.requester_id===me.id?r.addressee_id:r.requester_id);
  const {data:profs}=await LW.sb.from("lw_public_profiles").select("id, full_name, username").in("id",others);
  const by={}; (profs||[]).forEach(p=>by[p.id]=p);
@@ -1489,7 +1352,7 @@ async function loadBlockedSettings(){
   const oid=r.requester_id===me.id?r.addressee_id:r.requester_id;
   const p=by[oid]||{};
   return '<div class="blocked-row"><div><strong>'+LW.escapeHtml(p.full_name||p.username||window.t("someoneLabel"))+
-   '</strong><br><small style="color:var(--muted)">@'+LW.escapeHtml(p.username||"—")+'</small></div>'+
+   '</strong><br><small style="color:var(--text-soft)">@'+LW.escapeHtml(p.username||"—")+'</small></div>'+
    '<button class="btn secondary" onclick="unblockSettings('+r.id+')">'+tl("unblockBtn")+'</button></div>';
  }).join("");
 }
@@ -1505,6 +1368,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
  const p=await LW.requireAuth({allowBlocked:true});
  if(!p) return;
  window.LW_ME=p; window.LW.profile=p;
+ LWApp.shell("settings");
  paintMe(p); paintPrefs(p); paintProfileSection(p); paintDashboard(p); paintStore(p); paintControlCenter(p);
  if(window.LWFest) LWFest.load().then(paintFestival);
  paintFestival();
@@ -1514,14 +1378,11 @@ document.addEventListener("DOMContentLoaded",async()=>{
  loadArchived();
  paintPopupNotif();
  paintPush();
- checkSpotify();
- enhanceSelect(document.getElementById("languageQuick"));
  enhanceSelect(document.getElementById("languageMain"));
  enhanceSelect(document.getElementById("pfRel"));
  enhanceSelect(document.getElementById("prefDefaultPostVis"));
 });
 function saveLanguage(){setLanguage(document.getElementById("languageMain").value);toast((translations[getLang()]||translations.en).saved)}
-document.getElementById("languageQuick").addEventListener("change",e=>setLanguage(e.target.value));
 
 document.querySelectorAll(".menu button").forEach(btn=>{
  btn.addEventListener("click",()=>{
@@ -1536,50 +1397,30 @@ if(hash&&document.getElementById(hash)){
  document.querySelector(`[data-tab="${hash}"]`)?.click();
 }
 
-const THEME_VARS=["--bg","--bg2","--card","--primary","--soft","--accent","--text","--muted","--border","--shadow","--grad"];
+/* Theme lagane ka asli kaam ab LWApp karta hai (lw-app.js).
+
+   Pehle ye page apni alag setTheme/setCustomColor rakhta tha jo --soft
+   aur --muted naam set karti thi, jabki baaki app --primary-soft aur
+   --text-soft padhta hai. Isliye yahan se theme badalne par settings to
+   badal jaata tha par baaki pages par aadha-adhoora lagta tha.
+
+   Ab yahan sirf is page ke swatch highlight ka hisaab bacha hai. */
+function paintThemeSwatches(theme){
+ document.querySelectorAll(".theme[data-theme]").forEach(x=>x.classList.toggle("active",x.dataset.theme===theme));
+ const dot=document.getElementById("customColorDot");
+ if(dot) dot.classList.toggle("active",theme==="custom");
+}
 
 function setTheme(theme){
- THEME_VARS.forEach(v=>document.documentElement.style.removeProperty(v));   // custom color override hatao
- document.body.dataset.theme=theme;
- // 'loveway_theme' (underscore) hi poore app mein shared key hai — hyphen wali purani
- // key alag storage slot thi, isliye theme yahan aur baaki pages mein sync nahi hoti thi
- localStorage.setItem("loveway_theme",theme);
- localStorage.removeItem("loveway_custom_color");
- document.querySelectorAll(".theme[data-theme]").forEach(x=>x.classList.toggle("active",x.dataset.theme===theme));
- document.getElementById("customColorDot").classList.remove("active");
+ LWApp.setTheme(theme);
+ paintThemeSwatches(theme);
 }
 document.querySelectorAll(".theme[data-theme]").forEach(x=>x.addEventListener("click",()=>setTheme(x.dataset.theme)));
 
-// user apna accent color chunta hai — baaki (bg/text/border) ek safe neutral scaffold
-// se aate hain taaki koi bhi color pick karo, UI hamesha padhne layak rahe
-function hexToRgb(hex){
- const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex||"");
- return m?{r:parseInt(m[1],16),g:parseInt(m[2],16),b:parseInt(m[3],16)}:{r:233,g:30,b:99};
-}
-function shade(hex,amt){
- const c=hexToRgb(hex);
- const adj=v=>Math.max(0,Math.min(255,Math.round(v+(amt>0?(255-v)*amt:v*amt))));
- return "rgb("+adj(c.r)+","+adj(c.g)+","+adj(c.b)+")";
-}
+// naam wahi rakha hai kyunki restoreAppearance() isse bulata hai
 function setCustomColorSettings(hex){
- const root=document.documentElement;
- const accent=shade(hex,.25);
- root.style.setProperty("--primary",hex);
- root.style.setProperty("--accent",accent);
- root.style.setProperty("--soft",shade(hex,.85));
- root.style.setProperty("--grad","linear-gradient(135deg,"+accent+","+hex+")");
- root.style.setProperty("--bg","#f7f7fa");
- root.style.setProperty("--bg2","#eeeef4");
- root.style.setProperty("--card","#ffffff");
- root.style.setProperty("--text","#242430");
- root.style.setProperty("--muted","#82829a");
- root.style.setProperty("--border","#e3e3ec");
- root.style.setProperty("--shadow","0 8px 30px rgba(0,0,0,.10)");
- document.body.dataset.theme="custom";
- localStorage.setItem("loveway_theme","custom");
- localStorage.setItem("loveway_custom_color",hex);
- document.querySelectorAll(".theme[data-theme]").forEach(x=>x.classList.remove("active"));
- document.getElementById("customColorDot").classList.add("active");
+ LWApp.setCustomColor(hex);
+ paintThemeSwatches("custom");
 }
 function onCustomColorPick(hex){
  document.getElementById("customColorDot").style.background=hex;

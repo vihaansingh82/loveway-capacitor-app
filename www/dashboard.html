@@ -4,14 +4,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json?v=1">
+<meta name="theme-color" content="#ff4f7b">
+<meta name="mobile-web-app-capable" content="yes">
+<!-- iOS: push sirf installed (Add to Home Screen) site par chalta hai -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Loveway">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>Loveway 💕</title>
-<link rel="stylesheet" href="lw-styles.css?v=6">
+<link rel="stylesheet" href="lw-styles.css?v=9">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="config.js?v=2"></script>
+<script src="config.js?v=3"></script>
 <script src="lw-core.js?v=8"></script>
 <script src="lw-festivals.js?v=2"></script>
 <script src="lw-spotify.js?v=7"></script>
-<script src="lw-app.js?v=21"></script>
+<script src="lw-app.js?v=27"></script>
 <script src="lw-rails.js?v=9"></script>
 <script src="lw-camera.js?v=3"></script>
 <link rel="stylesheet" href="lw-camera.css?v=5">
@@ -30,6 +38,19 @@
   border:2px solid transparent;transition:border-color .15s}
 .sfilter small{display:block;font-size:.68rem;color:var(--text-soft);margin-top:3px}
 .sfilter.on img{border-color:var(--primary)}
+.story-hl-btn{position:absolute;right:12px;bottom:12px;z-index:3;border:0;cursor:pointer;
+  background:#0000008c;color:#fff;border-radius:999px;padding:6px 12px;font-size:.8rem;font-weight:600}
+.story-hl-btn:hover{background:#000000b8}
+.story-reply{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:10px 12px 12px;
+  background:linear-gradient(transparent,#000000b3 40%)}
+.story-react{display:flex;gap:6px;justify-content:center;margin-bottom:8px}
+.story-react button{border:0;background:#ffffff26;border-radius:50%;width:38px;height:38px;
+  font-size:1.15rem;cursor:pointer;transition:transform .15s}
+.story-react button:hover{transform:scale(1.18);background:#ffffff40}
+.story-reply-row{display:flex;gap:7px}
+.story-reply-row input{flex:1;min-width:0;border-radius:999px;border:1px solid #ffffff59;
+  background:#00000059;color:#fff;padding:9px 14px;font-size:.85rem}
+.story-reply-row input::placeholder{color:#ffffffa6}
 .story-seen{position:absolute;left:12px;bottom:12px;z-index:3;border:0;cursor:pointer;
   background:#0000008c;color:#fff;border-radius:999px;padding:6px 12px;font-size:.8rem;font-weight:600}
 .story-seen:hover{background:#000000b8}
@@ -211,13 +232,44 @@
     <!-- sirf apni story par dikhta hai -->
     <button type="button" class="story-seen" id="storySeen" hidden
             onclick="openStoryViewers()">👁 <span id="storySeenN">0</span></button>
+    <!-- Sirf apni story par. Story 24 ghante me chali jaati hai —
+         highlight usi ko hamesha ke liye profile par rakh deta hai. -->
+    <button type="button" class="story-hl-btn" id="storyHlBtn" hidden
+            onclick="openHighlightPicker()">✨ Highlight</button>
     <img id="storyImg" src="" alt="">
     <video id="storyVid" playsinline autoplay hidden></video>
     <div class="story-music" id="storyMusic"></div>
     <div id="storyCaption" class="story-caption"></div>
+    <!-- Reply + reaction — sirf doosre ki story par (apni story par
+         "kisne dekhi" dikhta hai, uski jagah yahi bar aata hai) -->
+    <div class="story-reply" id="storyReply" hidden>
+      <div class="story-react" id="storyReact"></div>
+      <form class="story-reply-row" onsubmit="sendStoryReply(event)">
+        <input type="text" id="storyReplyText" maxlength="500" autocomplete="off"
+               placeholder="Jawab do…" onfocus="storyPause()" onblur="storyResume()">
+        <button type="submit" class="btn sm primary">➤</button>
+      </form>
+    </div>
     <button class="story-nav prev" onclick="storyStep(-1)" aria-label="Previous"></button>
     <button class="story-nav next" onclick="storyStep(1)" aria-label="Next"></button>
     <button class="story-close" onclick="closeStoryViewer()">✕</button>
+  </div>
+</div>
+
+<!-- story ko highlight me daalo -->
+<div class="modal-bg" id="hlPickerModal" onclick="if(event.target===this)closeHighlightPicker()">
+  <div class="modal" style="max-width:380px">
+    <h3>✨ Highlight me daalo</h3>
+    <small style="display:block;color:var(--text-soft);margin-bottom:10px">
+      Story 24 ghante me chali jaati hai. Highlight me daalne par uski ek
+      copy hamesha tumhari profile par rahegi.
+    </small>
+    <div id="hlPickerBody" style="max-height:44vh;overflow:auto"></div>
+    <div style="display:flex;gap:7px;margin-top:12px">
+      <input type="text" id="hlNewName" maxlength="40" placeholder="Naya highlight ka naam…" style="flex:1">
+      <button class="btn primary" onclick="createHighlightAndAdd()">Banao</button>
+    </div>
+    <div class="foot"><button class="btn" onclick="closeHighlightPicker()">Band karo</button></div>
   </div>
 </div>
 
@@ -394,8 +446,11 @@ function postHtml(p) {
   t += '<small>' + LWApp.timeAgo(p.created_at) +
        '<span class="vis-tag">' + visLabel(p.visibility) + '</span></small></div>';
   if (p.author_id === me.id) {
+    // Archive delete se pehle — delete wapas nahi aata, archive aata hai
+    t += '<button class="icon-btn" onclick="archivePost(' + p.id + ')" title="Archive karo (delete nahi)">🗄</button>';
     t += '<button class="icon-btn" onclick="removePost(' + p.id + ')" title="' + LWApp.esc(window.t('deleteTitle')) + '">🗑</button>';
   } else {
+    t += '<button class="icon-btn" onclick="muteAuthor(\'' + p.author_id + '\')" title="Inki posts kam dikhao">🔕</button>';
     t += '<button class="icon-btn" onclick="openReport(\'post\',' + p.id + ')" title="Report karo">🚩</button>';
   }
   t += '</div>';
@@ -512,6 +567,35 @@ async function sendComment() {
 
 var savedIds = {};          // { postId: true } — feed ke saath ek hi query me
 
+/* Archive: post rehti hai, sirf doosron ko dikhna band. Delete se yahi
+   farak hai, aur isiliye ye pehle aata hai — delete wapas nahi aata. */
+async function archivePost(id) {
+  if (!confirm('Is post ko archive kar dein? Sirf tumhe dikhegi, delete nahi hogi.')) return;
+  try {
+    await LWApp.setArchived(id, true);
+    posts = posts.filter(function (p) { return p.id !== id; });
+    render();
+    LWApp.toast('🗄 Archive ho gayi — Settings me se wapas la sakte ho');
+  } catch (e) {
+    LWApp.toast(LWApp.setupMissing(e) ? 'Archive ka setup abhi baaki hai' : '❌ ' + LWApp.err(e), 'error');
+  }
+}
+
+/* Mute: block nahi hai. Wo phir bhi message kar sakta hai aur use kabhi
+   pata nahi chalta — bas uski posts/stories feed me nahi aatin. */
+async function muteAuthor(userId) {
+  if (!confirm('Inki posts aur stories dikhna band kar dein?\n\nBlock nahi hoga — ye message phir bhi kar sakte hain, aur inhe pata nahi chalega.')) return;
+  try {
+    await LWApp.setMuted(userId, true);
+    posts = posts.filter(function (p) { return p.author_id !== userId; });
+    render();
+    loadStories();
+    LWApp.toast('🔕 Mute kar diya — Settings me se hata sakte ho');
+  } catch (e) {
+    LWApp.toast(LWApp.setupMissing(e) ? 'Mute ka setup abhi baaki hai' : '❌ ' + LWApp.err(e), 'error');
+  }
+}
+
 async function toggleSave(id) {
   var was = !!savedIds[id];
   savedIds[id] = !was;      // turant palto, network ka intezaar nahi
@@ -536,6 +620,9 @@ async function toggleSave(id) {
 async function loadFeed() {
   try {
     posts = await LWApp.feed({ limit: 40 });
+    // Mute server par nahi lagta (wo pasand hai, ijazat nahi) — isliye
+    // yahan filter hota hai. Fail ho jaaye to feed phir bhi chalti hai.
+    posts = await LWApp.dropMuted(posts);
     // ek hi query me poori feed ka saved-status — har post par alag
     // poochhne se N+1 ban jaata
     savedIds = await LWApp.savedIdsFor(posts.map(function (p) { return p.id; }));
@@ -663,6 +750,147 @@ function paintStorySeen(story, count) {
              story.author.id === window.LW.profile.id;
   btn.hidden = !mine;
   if (mine) document.getElementById('storySeenN').textContent = count || 0;
+
+  // Highlight bhi sirf apni story par — doosre ki story apni profile par
+  // nahi laga sakte (server bhi mana karta hai, par button hi na dikhe)
+  var hl = document.getElementById('storyHlBtn');
+  if (hl) hl.hidden = !mine;
+}
+
+/* Story ke gaane ka Spotify track id — posts table me alag column nahi
+   hai, isliye URL se nikalna padta hai. */
+function storyMusicTrackId(s) {
+  var m = /open\.spotify\.com\/track\/([A-Za-z0-9]+)/.exec((s && s.song_url) || '');
+  return m ? m[1] : null;
+}
+
+function playStoryMusic() {
+  var s = storyQueue[storyIdx];
+  var id = storyMusicTrackId(s);
+  if (!id) return;
+  if (typeof playMusicTrack !== 'function') {   // lw-rails na hui to chup rehna behtar
+    LWApp.toast('Player abhi taiyaar nahi hai', 'error');
+    return;
+  }
+  playMusicTrack({ id: id, t: s.song_title, a: s.song_artist, url: s.song_url });
+}
+
+/* ---------- Story Highlights ----------
+   Highlight story ki COPY rakhta hai (schema section 44 me wajah likhi
+   hai), isliye story expire hone ke baad bhi zinda rehti hai. */
+
+function openHighlightPicker() {
+  var s = storyQueue[storyIdx];
+  if (!s) return;
+  storyPause();                       // chunte waqt story aage na badhe
+  document.getElementById('hlPickerModal').classList.add('open');
+  document.getElementById('hlNewName').value = '';
+  loadHighlightPicker();
+}
+
+function closeHighlightPicker() {
+  document.getElementById('hlPickerModal').classList.remove('open');
+  storyResume();
+}
+
+async function loadHighlightPicker() {
+  var box = document.getElementById('hlPickerBody');
+  box.innerHTML = '<div class="spinner">Load ho raha hai…</div>';
+  try {
+    var rows = await LWApp.myHighlights();
+    box.innerHTML = rows.length
+      ? rows.map(function (h) {
+          return '<div class="item" style="display:flex;align-items:center;gap:9px;padding:8px 0;cursor:pointer" ' +
+            'onclick="addCurrentStoryToHighlight(' + h.id + ')">' +
+            (h.cover_url
+              ? '<img src="' + LWApp.esc(h.cover_url) + '" alt="" style="width:38px;height:38px;object-fit:cover;border-radius:50%">'
+              : '<span style="font-size:1.3rem">✨</span>') +
+            '<b style="flex:1">' + LWApp.esc(h.title) + '</b><span>＋</span></div>';
+        }).join('')
+      : '<div class="empty"><span class="ic">✨</span>Abhi koi highlight nahi. Neeche naam likh kar bana lo.</div>';
+  } catch (e) {
+    box.innerHTML = '<div class="empty"><span class="ic">⚙️</span>' +
+      (LWApp.setupMissing(e) ? 'Highlights ka setup abhi baaki hai.' : 'List nahi aa payi.') + '</div>';
+  }
+}
+
+async function addCurrentStoryToHighlight(hlId) {
+  var s = storyQueue[storyIdx];
+  if (!s) return;
+  try {
+    await LWApp.addStoryToHighlight(hlId, s.id);
+    LWApp.toast('✨ Highlight me daal diya');
+    closeHighlightPicker();
+  } catch (e) {
+    LWApp.toast('❌ ' + LWApp.err(e), 'error');
+  }
+}
+
+async function createHighlightAndAdd() {
+  var name = (document.getElementById('hlNewName').value || '').trim();
+  if (!name) { LWApp.toast('Naam to do', 'error'); return; }
+  var s = storyQueue[storyIdx];
+  try {
+    var h = await LWApp.createHighlight(name);
+    if (s && h) await LWApp.addStoryToHighlight(h.id, s.id);
+    LWApp.toast('✨ "' + name + '" ban gaya');
+    closeHighlightPicker();
+  } catch (e) {
+    LWApp.toast(LWApp.setupMissing(e) ? 'Highlights ka setup abhi baaki hai' : '❌ ' + LWApp.err(e), 'error');
+  }
+}
+
+/* ---------- Story par reply / reaction ----------
+   Reply ek normal DM hai (meta.story_id ke saath) aur reaction
+   post_reactions me jaata hai — dono server par ek hi RPC/table se
+   handle hote hain, isliye yahan sirf UI ka kaam hai. */
+var STORY_EMOJI = ['❤️', '😂', '😮', '😢', '🔥'];
+var EMOJI_KIND = { '❤️': 'love', '😂': 'haha', '😮': 'wow', '😢': 'sad', '🔥': 'like' };
+
+function paintStoryReply(story) {
+  var box = document.getElementById('storyReply');
+  if (!box) return;
+  var mine = story && window.LW.profile && story.author &&
+             story.author.id === window.LW.profile.id;
+  // Apni story par reply/reaction ka koi matlab nahi — wahan "kisne
+  // dekhi" wala button dikhta hai
+  box.hidden = !!mine;
+  if (mine) return;
+
+  document.getElementById('storyReact').innerHTML = STORY_EMOJI.map(function (e) {
+    return '<button type="button" onclick="reactStory(\'' + e + '\')">' + e + '</button>';
+  }).join('');
+  document.getElementById('storyReplyText').value = '';
+}
+
+async function reactStory(emoji) {
+  var s = storyQueue[storyIdx];
+  if (!s) return;
+  try {
+    await LWApp.reactToStory(s.id, EMOJI_KIND[emoji] || 'love');
+    LWApp.toast(emoji + ' bhej diya');
+  } catch (e) {
+    LWApp.toast(LWApp.setupMissing(e) ? 'Story reactions ka setup baaki hai' : '❌ Nahi bheja gaya', 'error');
+  }
+}
+
+async function sendStoryReply(ev) {
+  ev.preventDefault();
+  var s = storyQueue[storyIdx];
+  var input = document.getElementById('storyReplyText');
+  var txt = (input.value || '').trim();
+  if (!s || !txt) return;
+
+  input.disabled = true;
+  try {
+    await LWApp.replyToStory(s.id, txt);
+    input.value = '';
+    LWApp.toast('✅ Jawab bhej diya');
+  } catch (e) {
+    LWApp.toast(LWApp.setupMissing(e) ? 'Story reply ka setup baaki hai' : ('❌ ' + LWApp.err(e)), 'error');
+  }
+  input.disabled = false;
+  storyResume();
 }
 
 async function openStoryViewers() {
@@ -692,7 +920,7 @@ async function openStoryViewers() {
     return '<div class="item" style="display:flex;gap:9px;align-items:center;padding:7px 0">' +
       LWApp.avatarHtml(u, 'sm') +
       '<div style="min-width:0;flex:1"><b>' + LWApp.esc(u.full_name || u.username || '') + '</b>' +
-      (u.is_verified ? ' <span title="Verified">✅</span>' : '') +
+      LWApp.verifiedTick(u) +
       '<br><small class="muted">' + LWApp.timeAgo(u.seen_at) + '</small></div></div>';
   }).join('');
 }
@@ -704,6 +932,8 @@ function closeStoryViewers() {
 
 async function loadStories() {
   var rows = await LWApp.storiesFeed();
+  // Mute ka matlab stories bhi — warna "kam dikhao" aadha hi sach hota
+  rows = await LWApp.dropMuted(rows);
   storiesByAuthor = {};
   rows.forEach(function (p) { (storiesByAuthor[p.author_id] = storiesByAuthor[p.author_id] || []).push(p); });
 
@@ -1020,13 +1250,20 @@ function renderStory() {
   // ginti markStorySeen() ke jawab me aayegi; tab tak purani story ki
   // ginti na dikhe isliye abhi 0 se shuru
   paintStorySeen(s, 0);
+  paintStoryReply(s);
 
   var musicBox = document.getElementById('storyMusic');
   if (s.song_title) {
     musicBox.classList.add('show');
     musicBox.innerHTML = '<span class="ic">🎵</span><div style="min-width:0;flex:1"><b>' + LWApp.esc(s.song_title) + '</b>' +
       (s.song_artist ? '<br><small>' + LWApp.esc(s.song_artist) + '</small>' : '') + '</div>' +
-      (s.song_url ? '<a href="' + LWApp.esc(s.song_url) + '" target="_blank" rel="noopener" title="Spotify par suno">▶</a>' : '');
+      // Spotify ka gaana ab YAHIN bajta hai (mini player me) — pehle ye
+      // link Spotify khol kar user ko Loveway se bahar bhej deta tha.
+      // Koi aur link (mp3 waghairah) ho to wo Spotify hai hi nahi, use
+      // waise hi rehne dete hain — warna sunne ka koi raasta hi na bache.
+      (storyMusicTrackId(s)
+        ? '<span class="icon-btn" style="cursor:pointer" onclick="playStoryMusic()" title="Yahin bajao">▶</span>'
+        : (s.song_url ? '<a href="' + LWApp.esc(s.song_url) + '" target="_blank" rel="noopener" title="Kholo">▶</a>' : ''));
   } else {
     musicBox.classList.remove('show');
     musicBox.innerHTML = '';

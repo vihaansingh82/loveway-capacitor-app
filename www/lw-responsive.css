@@ -1,0 +1,2062 @@
+/* ============================================================
+   Loveway — responsive layer  (mobile + desktop)
+   ------------------------------------------------------------
+   Ye file har page par SABSE AAKHIR me load hoti hai aur jaan-bujh
+   kar kisi @layer ke andar nahi hai. CSS cascade layers ka rule ye
+   hai ki bina-layer wali normal declaration har layered declaration
+   ko beat karti hai. lw-styles.css ka poora content
+   @layer components / @layer utilities me hai, isliye yahan likhi
+   baat bina !important ke jeet jaati hai — aur lw-styles.css ko
+   dobara build karne par ye file bachi rehti hai.
+
+   Breakpoints (ek hi jagah tay, poori site me wahi):
+     <  520px   chhota phone
+     <  640px   phone
+     <  900px   phone / tablet  -> header dropdown, single-pane chat
+     >= 1024px  DESKTOP         -> left sidebar on, bottom-nav off
+     >= 1280px  desktop         -> feed ke saath 320px ka side column
+     >= 1440px  wide            -> right rail (profile / music / festivals)
+     >= 1900px  ultrawide       -> left rail bhi (original 2-rail design)
+   ============================================================ */
+
+:root {
+  /* ek rail (230px) ke liye content ke bagal me chhodi gayi jagah */
+  --lw-rail-w: 230px;
+  --lw-rail-gap: 32px;
+  --lw-rail-gutter: 278px;   /* rail-w + gap + edge */
+  --lw-rail-edge: 16px;
+  --lw-rail-offset: 262px;   /* rail-w + gap */
+  --lw-content-max: 1180px;
+}
+
+/* ------------------------------------------------------------
+   0. Base hygiene — har viewport par
+   ------------------------------------------------------------ */
+
+/* Page kabhi horizontally scroll na ho. `clip` isliye (na ki `hidden`)
+   kyunki `hidden` html par scroll-container bana deta hai aur
+   position:sticky header tod sakta hai. */
+html {
+  overflow-x: clip;
+}
+
+/* Media aur embeds apne container se bahar na nikle.
+
+   NOTE: yahan `height: auto` jaan-bujh kar NAHI hai. Is codebase me
+   bahut si images ki height CSS se fix hai (.lw-logo-icon 40px,
+   .app-sidebar-brand img 36px, .avatar img 100%) — aur ye file
+   bina layer ke hai, isliye ek blanket `height:auto` un sab ko
+   overpower karke logo aur avatars ko phula deta hai. Overflow
+   rokne ke liye `max-width` akela hi kaafi hai. */
+img,
+video,
+canvas,
+iframe {
+  max-width: 100%;
+}
+
+/* Lambe words / URLs / bina space ke usernames se overflow na ho. */
+p,
+h1,
+h2,
+h3,
+h4,
+b,
+small,
+li,
+td,
+th,
+.card,
+.msg-bubble,
+.chat-list .item b,
+.chat-list .item small {
+  overflow-wrap: break-word;
+}
+
+/* admin.html tables ko `.table-scroll` wrapper me lapeta gaya hai
+   lekin us class ka CSS kahin tha hi nahi — isliye 4 tables har
+   chhoti screen par page ko horizontally tod deti thin. */
+.table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll > table {
+  min-width: 560px;
+}
+
+/* iOS par 16px se chhota font wale input ko focus karte hi Safari
+   page zoom kar deta hai. Sirf touch devices par 16px, taaki
+   desktop ka compact design waisa hi rahe. */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Chhoti screen par tap target kam se kam 40px. */
+@media (max-width: 899px) {
+  .btn,
+  .icon-btn,
+  .header-action,
+  .bottom-nav a {
+    min-height: 40px;
+  }
+}
+
+/* ------------------------------------------------------------
+   0b. BOTTOM NAV — poore screen ko dhak lene wala bug
+   ------------------------------------------------------------
+   lw-app.js app ka bottom bar `<nav class="bottom-nav">` banata hai.
+   lw-styles.css me marketing site ka nav bare element selector se
+   style hota hai:
+
+       nav { position: fixed; top: 0; left: 0; right: 0;
+             min-height: var(--lw-nav-h); padding: 10px 40px; … }
+
+   `.bottom-nav` khud `bottom: 0` deta hai lekin `top` kabhi reset
+   nahi karta — aur `nav` ka `top: 0` us par bhi lagta hai. Nateeja:
+   top:0 + bottom:0 = poori viewport height ka opaque bar, z-index 60
+   par, header aur content dono ke upar.
+
+   Yaani har logged-in page phone par ek khaali safed screen tha
+   jis par beech me 5 icons tairte the, aur koi bhi tap page tak
+   pahunchta hi nahi tha (har point ka hit-test NAV.bottom-nav
+   deta tha). Yahan wo saari inherited properties reset ho rahi hain.
+   ------------------------------------------------------------ */
+
+.bottom-nav {
+  position: fixed;
+  top: auto;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  gap: 0;
+  min-height: 0;
+  padding: 0 0 env(safe-area-inset-bottom, 0px);
+  border-top: 1px solid var(--border);
+  border-bottom: 0;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: var(--card);
+  animation: none;
+}
+
+.bottom-nav::after {
+  content: none;
+}
+
+/* ------------------------------------------------------------
+   1. App header — mobile par ek hi row
+   ------------------------------------------------------------
+   Pehle .header-tools ke 10-11 icon buttons wrap hoke header ko
+   ~156px tall bana dete the (390px phone par screen ka ~18%).
+   Ab chhoti screen par wo ek labelled dropdown me chale jaate hain
+   jise "⋯" button kholta hai. DOM waisa ka waisa rehta hai —
+   sirf layout badalta hai, isliye har page ke inline onclick
+   handlers aur i18n labels waise hi kaam karte hain.
+   ------------------------------------------------------------ */
+
+.lw-header-more {
+  display: none;
+  box-sizing: border-box;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  color: var(--text);
+  cursor: pointer;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.lw-header-more:hover,
+.lw-header-more[aria-expanded="true"] {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+/* dropdown khula ho to notification ki red dot "⋯" par bhi dikhe */
+/* lw-responsive.js un header buttons par lagata hai jinke paas apna
+   .label nahi hai (jaise theme toggle). Sirf mobile dropdown me. */
+.lw-mlabel {
+  display: none;
+}
+
+.lw-header-more .lw-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  background: var(--primary);
+  border-radius: 50%;
+}
+
+/* Dropdown wahan tak chalta hai jahan tak sidebar nahi hai (<1024px),
+   warna 900–1023px ki range me header phir se do rows le leta hai. */
+@media (max-width: 1023px) {
+  /* `header:has(.header-tools)` — sirf app shell ka header.
+     admin.html aur settings.html ke apne headers alag markup ke
+     hain aur unhe wrap karna hi chahiye; bare `header` selector
+     un par bhi lag jaata tha aur admin ke do buttons 360px par
+     bahar nikal jaate the. */
+  header:has(.header-tools) {
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding: 10px 14px;
+  }
+
+  header:has(.header-tools) > h1 {
+    flex: 0 1 auto;
+    min-width: 0;
+    font-size: 1rem;
+  }
+
+  header:has(.header-tools) h1 img.lw-logo-icon {
+    height: 32px;
+  }
+
+  .lw-header-more {
+    position: relative;
+    display: inline-flex;
+    margin-left: auto;
+  }
+
+  /* .header-tools ab ek dropdown panel hai */
+  header .header-tools {
+    position: absolute;
+    top: 100%;
+    right: 8px;
+    left: auto;
+    z-index: 70;
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    width: min(268px, calc(100vw - 16px));
+    max-height: min(70vh, 520px);
+    margin-left: 0;
+    padding: 8px;
+    overflow-y: auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 18px 40px #00000038;
+  }
+
+  header .header-tools.lw-open {
+    display: flex;
+  }
+
+  /* panel ke andar har action full-width labelled row ban jata hai */
+  header .header-tools .header-action,
+  header .header-tools .header-action.has-label {
+    justify-content: flex-start;
+    width: 100%;
+    height: auto;
+    min-height: 42px;
+    padding: 0 12px;
+    border-radius: 10px;
+  }
+
+  header .header-tools .header-action:hover {
+    transform: none;
+  }
+
+  /* .label ko lw-styles.css <=760px par chhupa deti hai — panel ke
+     andar wapas dikhao, warna sirf icons ki list rah jaati hai */
+  header .header-tools .header-action .label,
+  header .header-tools .header-action .lw-mlabel {
+    display: inline;
+    font-size: 0.85rem;
+  }
+
+  header .header-tools .language-box {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  header .header-tools .header-action .badge-count {
+    position: static;
+    margin-left: auto;
+  }
+
+  /* topbar search dropdown ke saath ek row me nahi samaata */
+  .app-topbar-search {
+    display: none;
+  }
+}
+
+/* Ticker pehle mobile par chhupa diya gaya tha kyunki wo header ko
+   squeeze kar raha tha. Ab wo header ke NEECHE apni patli patti mein
+   aata hai (section 10 dekho) — isliye yahan chhupana zaruri nahi raha. */
+
+/* ------------------------------------------------------------
+   2. Desktop app shell — sidebar 1024px se, 1680px se nahi
+   ------------------------------------------------------------
+   Ye sabse badi dikkat thi: .app-sidebar sirf `min-width:1680px`
+   par dikhta tha, to 1024–1679px ke har laptop (1366x768,
+   1440x900, aur 1920 par non-maximised window) ko phone wala
+   bottom-nav milta tha aur left nav kabhi nahi.
+
+   `:has(.app-sidebar)` se ye rules sirf un pages par lagte hain
+   jahan lw-app.js ne sach me shell banaya hai — settings.html
+   jaisa apna alag layout wala page chhua nahi jaata.
+   ------------------------------------------------------------ */
+
+@media (min-width: 1024px) {
+  .app-sidebar {
+    display: flex;
+  }
+
+  .bottom-nav {
+    display: none;
+  }
+
+  /* Sidebar fixed hai, isliye body ko utna padding do — header
+     (sticky) aur content dono uske neeche nahi jaate. Bottom-nav
+     ab nahi hai to uski reserved jagah wapas le lo. */
+  body:has(.app-sidebar) {
+    padding-bottom: 0;
+    padding-left: var(--sidebar-w);
+    transition: padding-left 0.22s;
+  }
+
+  /* .container ka max-width utilities layer ke Tailwind `.container`
+     se aa raha tha (96rem = 1536px tak), jo 1180px wale design se
+     mel nahi khata tha. Ab ek hi jagah tay. */
+  body:has(.app-sidebar) .container {
+    /* `width:100%` yahan jaan-bujh kar NAHI hai: fixed width ke saath
+       `margin-left:auto` over-constrained ho jaata hai aur box apne
+       container se bahar nikal jaata hai (1440px par content right
+       rail ke upar chadh raha tha). `auto` rehne do — max-width
+       chaudai cap karti hai aur auto margins center karte hain. */
+    width: auto;
+    max-width: var(--lw-content-max);
+    margin-inline: auto;
+    padding: 22px 24px;
+  }
+}
+
+/* Desktop par header ke aadhe se zyada pills wahi links hain jo ab
+   left sidebar me hain (Life Chain, Announcements, Store, Goals,
+   Friends, Settings). Duplicate hone ki wajah se header 1366px par
+   do rows le raha tha — 768px lambi laptop screen ka ~15% sirf nav.
+   Sidebar wale hata do; Notifications (uspar unread badge hai),
+   App download, theme, language aur Logout header me hi rehte hain. */
+@media (min-width: 1024px) {
+  body:has(.app-sidebar) .header-tools .header-action[href="journey.html"],
+  body:has(.app-sidebar) .header-tools .header-action[href="announcements.html"],
+  body:has(.app-sidebar) .header-tools .header-action[href="store.html"],
+  body:has(.app-sidebar) .header-tools .header-action[href="goals.html"],
+  body:has(.app-sidebar) .header-tools .header-action[href="friends.html"],
+  body:has(.app-sidebar) .header-tools .header-action[href="community.html"],
+  body:has(.app-sidebar) .header-tools .header-action[href="activities.html"],
+  body:has(.app-sidebar) .header-tools .header-action[href="settings.html"] {
+    display: none;
+  }
+
+  header:has(.header-tools) {
+    flex-wrap: nowrap;
+    gap: 14px;
+  }
+
+  header .header-tools {
+    flex-wrap: nowrap;
+    flex: none;
+  }
+
+  .app-topbar-search {
+    flex: 1 1 200px;
+    min-width: 0;
+  }
+}
+
+/* 1024–1499px: header ki baaki pills ke liye itni jagah nahi ki search
+   bhi theek rahe (1200px par wo 63px ka reh jaata tha). In do pills ko
+   sirf icon kar do — labels 1500px se dobara aa jaate hain. */
+@media (min-width: 1024px) and (max-width: 1499px) {
+  body:has(.app-sidebar) .header-tools .header-action[href="app.html"] .label,
+  body:has(.app-sidebar) .header-tools .header-action[data-icon="logout"] .label {
+    display: none;
+  }
+
+  body:has(.app-sidebar) .header-tools .header-action[href="app.html"],
+  body:has(.app-sidebar) .header-tools .header-action[data-icon="logout"] {
+    width: 38px;
+    padding: 0;
+    border-radius: 50%;
+  }
+}
+
+/* Sidebar ke baad 1280px se pehle itni jagah nahi bachti ki feed +
+   320px ka column dono theek dikhein — us range me single column. */
+@media (min-width: 900px) and (max-width: 1279px) {
+  .grid-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .grid-2 {
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
+}
+
+/* ------------------------------------------------------------
+   3. Side rails — content ke saath overlap kiye bina
+   ------------------------------------------------------------
+   Purana rule `.side-rail-left ~ .container { width: calc(1180px - …) }`
+   utilities layer ke `.container { width: 100% }` se har haal me
+   haar jaata tha. Nateeja: 1680px+ par container 1536px chauda
+   hokar margin-left ke saath right edge se ~226px bahar nikal
+   jaata tha (1920 par document 2146px chauda ho jaata tha), aur
+   right rail content ke upar chadh jaati thi.
+
+   Ab math simple hai: body ka padding-left sidebar sambhalta hai,
+   aur container ke margin me rail ke liye ek fixed gutter chhoda
+   jaata hai — isliye gap har width par exactly 16px rehta hai.
+   ------------------------------------------------------------ */
+
+/* Default: dono rails band, "✨" sheet button on. */
+.side-rail {
+  display: none;
+}
+
+.rail-sheet-trigger {
+  display: inline-flex;
+}
+
+.side-rail-left ~ .container {
+  width: 100%;
+  margin-left: auto;
+}
+
+/* 1440–1899px: sirf right rail. Container `margin-right` se uske liye
+   jagah chhodta hai, isliye gap har width par exactly 32px rehta hai. */
+@media (min-width: 1440px) and (max-width: 1899px) {
+  body:has(.app-sidebar) .side-rail-right,
+  body:has(.app-sidebar) .app-rail-right {
+    display: block;
+    right: var(--lw-rail-edge);
+  }
+
+  body:has(.app-sidebar) .container {
+    width: auto;
+    margin-left: auto;
+    margin-right: var(--lw-rail-gutter);
+  }
+}
+
+/* >= 1900px: dono rails — yahi original do-rail wala design hai, aur
+   itni hi chaudai par sidebar + rail + content + rail sab samaate hain.
+   Content dono rails ke beech center hota hai; rails apne aap uske
+   kinaron se naapte hain, viewport ke kinaron se nahi. */
+@media (min-width: 1900px) {
+  body:has(.app-sidebar) {
+    --lw-avail: calc(100vw - var(--sidebar-w));
+    --lw-cw: min(
+      var(--lw-content-max),
+      calc(var(--lw-avail) - var(--lw-rail-gutter) * 2)
+    );
+    --lw-gap: calc((var(--lw-avail) - var(--lw-cw)) / 2);
+  }
+
+  body:has(.app-sidebar) .container {
+    width: auto;
+    max-width: var(--lw-cw);
+    margin-inline: auto;
+  }
+
+  body:has(.app-sidebar) .side-rail-left {
+    display: block;
+    left: calc(var(--sidebar-w) + var(--lw-gap) - var(--lw-rail-offset));
+    transition: left 0.22s;
+  }
+
+  body:has(.app-sidebar) .side-rail-right,
+  body:has(.app-sidebar) .app-rail-right {
+    display: block;
+    right: calc(var(--lw-gap) - var(--lw-rail-offset));
+  }
+
+  .rail-sheet-trigger {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------
+   4. Bottom nav — sirf phone / tablet par, safe-area ke saath
+   ------------------------------------------------------------ */
+
+@media (max-width: 1023px) {
+  body[data-theme] {
+    padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .bottom-nav a {
+    min-height: 48px;
+    padding: 13px 2px;
+  }
+
+  .rail-sheet {
+    padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ------------------------------------------------------------
+   5. Chat — mobile par do-pane ki jagah single-pane + back
+   ------------------------------------------------------------
+   Pehle 820px se neeche conversation list 200px ki dabbi me
+   squeeze hoti thi aur uske neeche thread — dono me se koi theek
+   se use nahi hota tha. Ab list poori screen leti hai; chat
+   kholte hi thread full-screen ho jaata hai aur "‹" se wapas.
+   Class `.lw-thread-open` lw-responsive.js lagata hai.
+   ------------------------------------------------------------ */
+
+.lw-chat-back {
+  display: none;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin-right: 2px;
+  color: var(--text);
+  cursor: pointer;
+  background: var(--bg2);
+  border: 0;
+  border-radius: 50%;
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+@media (max-width: 899px) {
+  .chat-wrap {
+    grid-template-columns: minmax(0, 1fr);
+    height: calc(100dvh - 210px);
+    min-height: 60vh;
+  }
+
+  .chat-list {
+    max-height: none;
+    border-right: 0;
+    border-bottom: 0;
+  }
+
+  /* thread tab tak chhupa jab tak koi chat na chuni jaye */
+  .chat-wrap .chat-main {
+    display: none;
+  }
+
+  .chat-wrap.lw-thread-open .chat-list {
+    display: none;
+  }
+
+  .chat-wrap.lw-thread-open .chat-main {
+    display: flex;
+  }
+
+  .chat-wrap.lw-thread-open .lw-chat-back {
+    display: inline-flex;
+  }
+
+  .chat-msgs {
+    min-height: 0;
+  }
+
+  .chat-head {
+    padding: 11px 12px;
+  }
+
+  .chat-input {
+    gap: 6px;
+    padding: 9px 8px;
+  }
+
+  .chat-input .btn {
+    flex: none;
+    padding: 8px 10px;
+  }
+
+  .chat-input input[type="text"] {
+    min-width: 0;
+  }
+
+  /* Spotify/audio embed ka min-width:220px chat ko phaila deta tha */
+  .now-playing iframe,
+  .now-playing audio {
+    min-width: 0;
+  }
+
+  .msg-bubble {
+    max-width: 84%;
+  }
+}
+
+/* ------------------------------------------------------------
+   6. Phone polish — 640px se neeche
+   ------------------------------------------------------------ */
+
+@media (max-width: 639px) {
+  .container {
+    padding: 14px 12px;
+  }
+
+  .card {
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  .page-head {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .page-head h2 {
+    font-size: 1.15rem;
+  }
+
+  /* 260px minmax 360px screen par padding ke saath overflow karta tha */
+  .grid-3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* modal phone par bottom-sheet ki tarah */
+  .modal-bg {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal {
+    width: 100%;
+    max-width: none;
+    max-height: 88vh;
+    padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .modal .foot {
+    flex-wrap: wrap;
+  }
+
+  .modal .foot .btn {
+    flex: 1 1 auto;
+  }
+
+  .stories-bar {
+    margin-inline: -12px;
+    padding-inline: 12px;
+  }
+}
+
+/* ------------------------------------------------------------
+   6b. Inline grid-template-columns — responsive classes ko haraana
+   ------------------------------------------------------------
+   Marketing aur form pages apne grids ko INLINE style se set karte
+   hain, aur uske saath responsive Tailwind classes bhi likhte hain:
+
+       <div class="grid max-md:grid-cols-2 max-[520px]:grid-cols-1"
+            style="grid-template-columns:repeat(4,1fr)">
+
+   Inline style har class ko beat karti hai, isliye wo
+   `max-md:` / `max-[520px]:` variants kabhi lagte hi nahi the.
+   Phone par grid 3-4 columns me hi rehta tha aur baad ke cards
+   viewport se poori tarah bahar chale jaate the — about.html par
+   team card [374,528] par tha jabki uska apna grid [18,342] tak
+   hi tha, yaani wo dikhta hi nahi tha aur us tak pahunchne ka
+   koi rasta bhi nahi tha.
+
+   Ye 6 pages affected the: about, features, app, contact,
+   how-it-works, index (aur forms me complete-profile, signup,
+   settings). Inline style ko haraane ke liye `!important` zaroori
+   hai — poori file me sirf yahin use hua hai.
+
+   `repeat(auto-fit, minmax(...))` wale grids pehle se responsive
+   hain, unhe chheda nahi gaya.
+   ------------------------------------------------------------ */
+
+/* Har jagah `1fr` ki jagah `minmax(0,1fr)` — warna lamba content
+   column ko min-content se neeche shrink nahi hone deta. */
+[style*="grid-template-columns:1fr 1fr"],
+[style*="grid-template-columns: 1fr 1fr"] {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+}
+
+@media (min-width: 901px) {
+  [style*="grid-template-columns:repeat(3,"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  [style*="grid-template-columns:repeat(4,"] {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Tablet: 3 / 4 columns wale grids do columns me */
+@media (min-width: 561px) and (max-width: 900px) {
+  [style*="grid-template-columns:repeat(3,"],
+  [style*="grid-template-columns:repeat(4,"],
+  [style*="grid-template-columns:1.5fr"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Phone: sab ek column */
+@media (max-width: 560px) {
+  [style*="grid-template-columns:repeat(2,"],
+  [style*="grid-template-columns:repeat(3,"],
+  [style*="grid-template-columns:repeat(4,"],
+  [style*="grid-template-columns:1fr 1fr"],
+  [style*="grid-template-columns: 1fr 1fr"],
+  [style*="grid-template-columns:1.5fr"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+/* how-it-works.html ke 4 icon+text callouts.
+   Markup me pehla child ek emoji hai (`<div class="text-[1.4rem]
+   shrink-0">❤</div>`), lekin runtime par lw-site.js ki i18n usme
+   ek poora phrase daal deti hai ("Loveway Dashboard"). `shrink-0`
+   ki wajah se wo 227px le leta hai aur baaki text 360px screen se
+   bahar nikal jaata hai. Ye content/i18n ka issue hai — yahan sirf
+   layout bachaya gaya hai taaki text clip na ho: row ko wrap karne
+   do. `flex-wrap: wrap` sirf tab asar karta hai jab content fit
+   nahi hota, isliye desktop par kuch nahi badalta — koi media
+   query nahi chahiye. (Sirf ye 4 elements match karte hain.) */
+[class*="bg-bg2"][class*="flex items-center"][class*="gap-3"] {
+  flex-wrap: wrap;
+}
+
+/* ------------------------------------------------------------
+   7. Marketing nav (index / about / features / …)
+   ------------------------------------------------------------
+   360px par nav ka content 490px chauda ho jaata tha: brand +
+   language + Login + Sign Up + hamburger sab `flex:none` the,
+   isliye koi shrink nahi hota tha. Nateeja — hamburger button
+   screen se bahar, yaani phone par menu khulta hi nahi tha.
+   ------------------------------------------------------------ */
+
+@media (max-width: 900px) {
+  nav {
+    flex-wrap: nowrap;
+  }
+
+  nav .lw-brand,
+  nav .nav-actions {
+    min-width: 0;
+  }
+
+  nav .lw-brand {
+    flex: 0 1 auto;
+    overflow: hidden;
+  }
+
+  nav .nav-actions {
+    flex: none;
+  }
+}
+
+@media (max-width: 560px) {
+  nav .lw-brand img.nav-logo {
+    max-width: 92px;
+    height: 30px !important;
+  }
+
+  nav .lw-lang span {
+    display: none;
+  }
+
+  nav .lw-lang {
+    padding: 2px 4px;
+  }
+
+  nav .lw-lang select {
+    max-width: 46px;
+    padding: 4px 2px;
+    font-size: 0.68rem;
+  }
+
+  nav .btn-ghost,
+  nav .btn-primary {
+    max-width: 86px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 7px 9px !important;
+    font-size: 0.7rem !important;
+  }
+}
+
+/* 400px se neeche Login/Sign Up dropdown me chale jaate hain —
+   lw-responsive.js unki ek copy mobile menu ke andar rakhta hai. */
+@media (max-width: 400px) {
+  nav .nav-actions > .btn-ghost,
+  nav .nav-actions > .btn-primary {
+    display: none;
+  }
+
+  nav ul .lw-nav-cta {
+    display: block;
+  }
+}
+
+.lw-nav-cta {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  section {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+  }
+
+  .lang-switcher {
+    max-width: calc(100vw - 24px);
+    overflow-x: auto;
+  }
+}
+
+/* ------------------------------------------------------------
+   8. settings.html — apna alag layout hai, apna header
+   ------------------------------------------------------------
+   Us page ki apni CSS 750px se neeche `.back { display:none }`
+   kar deti thi, yaani phone par Settings se nikalne ka koi
+   rasta hi nahi bachta tha. Link wapas laao — bas "←" ke roop me.
+   ------------------------------------------------------------ */
+
+@media (max-width: 750px) {
+  header .back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 38px;
+    padding: 8px 0;
+    overflow: hidden;
+    font-size: 0;
+    white-space: nowrap;
+  }
+
+  header .back::before {
+    content: "←";
+    font-size: 1rem;
+  }
+
+  header .brand {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  header .brand h1 {
+    overflow: hidden;
+    font-size: 1.05rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  header .header-right {
+    flex: none;
+  }
+
+  header .lang select {
+    max-width: 96px;
+  }
+}
+
+/* ------------------------------------------------------------
+   9. Landscape phone — header aur bottom nav dono chhote
+   ------------------------------------------------------------ */
+
+@media (max-height: 460px) and (orientation: landscape) {
+  header {
+    position: static;
+  }
+
+  .bottom-nav a {
+    padding: 8px 2px;
+  }
+
+  body[data-theme] {
+    padding-bottom: calc(46px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ============================================================
+   10. Announcements ticker — user id + marquee + mobile
+   ------------------------------------------------------------
+   Pehle ticker sirf desktop par dikhta tha (mobile par
+   `display:none` tha) aur lamba text ellipsis se kat jaata tha —
+   yaani jo announcement lamba ho uska aadha hissa kabhi padha hi
+   nahi ja sakta tha. Ab:
+     • har announcement ke saath uska @user-id dikhta hai,
+     • text agar dabbe se lamba ho to marquee ban kar khud chalta
+       hai (chhota ho to sthir rehta hai — bewajah harkat nahi),
+     • mobile par ticker header ke NEECHE apni ek patli patti
+       mein aata hai, header ko squeeze kiye bina.
+   ============================================================ */
+
+.header-ticker .tick-item {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+}
+
+/* @user-id — naam se alag dikhe, kate nahi */
+.header-ticker .tick-user {
+  flex: none;
+  font-weight: 700;
+  color: var(--primary, #ff4f7b);
+  background: var(--primary-soft, rgba(255, 79, 123, 0.12));
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.76rem;
+  max-width: 42vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-ticker .tick-text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Sthir haalat: lamba text ellipsis se katega (marquee tabhi lagta
+   hai jab JS naap kar bataye ki text sach mein bahar nikal raha hai). */
+.header-ticker .tick-text > span {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
+/* Marquee: do copies side-by-side, seamless loop.
+   --lw-tick-dur JS set karta hai — lambai ke hisaab se, taaki chhota
+   text tez aur lamba text aaram se chale (speed ek si lage). */
+.header-ticker .tick-text.marquee {
+  text-overflow: clip;
+}
+
+.header-ticker .tick-text.marquee > span {
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  animation: lwTickMarquee var(--lw-tick-dur, 12s) linear infinite;
+  will-change: transform;
+}
+
+/* Dono copies bilkul ek jaisi — tabhi -50% par jodh nazar nahi aata. */
+.header-ticker .tick-text.marquee .tick-copy {
+  display: inline-block;
+  padding-right: 48px;
+  white-space: nowrap;
+}
+
+.header-ticker .tick-text.marquee:hover > span {
+  animation-play-state: paused;   /* padhne ke liye ruk jaaye */
+}
+
+@keyframes lwTickMarquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-ticker .tick-text.marquee > span {
+    animation: none;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* ---- Mobile: ticker header ke neeche apni patti mein ---- */
+@media (max-width: 767px) {
+  /* Section 1 me `header:has(.header-tools) { flex-wrap: nowrap }` hai,
+     isliye ticker apni row par ja hi nahi paata tha — wo pehli row me
+     hi rehta tha aur page ko 390px se 477px chauda kar deta tha (page
+     daayein-baayein khisakne lagta tha). Jahan ticker sach me bhara
+     hua hai, sirf wahan wrap wapas on karo. */
+  header:has(.header-ticker) {
+    flex-wrap: wrap;
+  }
+
+  .header-ticker {
+    display: flex;
+    order: 99;               /* header ke wrap hone par sabse neeche */
+    flex: 1 0 100%;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;        /* marquee kabhi page chauda na kare */
+    padding: 6px 2px 2px;
+    border-top: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+    margin-top: 6px;
+  }
+
+  .header-ticker:empty {
+    display: none;           /* koi announcement nahi to jagah bhi na ghere */
+    border-top: 0;
+    margin-top: 0;
+  }
+
+  .header-ticker .tick-item {
+    font-size: 0.78rem;
+    width: 100%;
+  }
+
+  .header-ticker .tick-user {
+    max-width: 38vw;
+    font-size: 0.72rem;
+  }
+}
+
+/* ============================================================
+   11. Music of the Day — voting card
+   ============================================================ */
+
+.motd-winner-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  cursor: pointer;
+  background: linear-gradient(135deg, rgba(255, 196, 0, 0.16), rgba(255, 79, 123, 0.12));
+  border: 1px solid rgba(255, 196, 0, 0.35);
+  border-radius: 12px;
+  padding: 7px 10px;
+  margin-bottom: 10px;
+  font-size: 0.78rem;
+}
+
+.motd-winner-chip b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.motd-winner-chip small {
+  color: var(--muted);
+  margin-left: auto;
+  flex: none;
+}
+
+.motd-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--border);
+  border-radius: 10px;
+  transition: background 0.2s;
+}
+
+.motd-row:last-child { border-bottom: 0; }
+.motd-row.leading    { background: rgba(255, 196, 0, 0.08); }
+.motd-row.voted      { background: var(--primary-soft, rgba(255, 79, 123, 0.1)); }
+
+.motd-rank { flex: none; font-size: 1.05rem; }
+
+.motd-song {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.motd-song b {
+  display: block;
+  font-size: 0.82rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.motd-song small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.motd-vote {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 48px;
+  justify-content: center;
+  cursor: pointer;
+  background: var(--bg2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 0.8rem;
+  transition: all 0.18s;
+}
+
+.motd-vote:hover  { transform: scale(1.06); }
+.motd-vote.on     { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); font-weight: 700; }
+.motd-vote span   { font-size: 0.75rem; }
+
+.motd-foot {
+  margin-top: 8px;
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+/* ---- Spotify connection status row (music card ke upar) ---- */
+.sp-status-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.76rem;
+}
+
+.sp-status-row:empty { display: none; }
+
+.sp-status-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.sp-status-row .btn.sm { flex: none; padding: 3px 10px; font-size: 0.72rem; }
+
+.sp-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.sp-dot.on  { background: #1ed760; box-shadow: 0 0 0 3px rgba(30, 215, 96, 0.18); }
+.sp-dot.off { background: #ff5a5a; }
+
+/* ============================================================
+   12. "Beta Version" badge — logo ke bilkul baad
+   ------------------------------------------------------------
+   Ek hi class har jagah: app header (lw-app.js ke shell() se),
+   sidebar, settings/admin ke apne header, marketing nav aur
+   auth pages ka bada logo.
+
+   -webkit-text-fill-color ZARURI hai: `header h1` gradient ko
+   text par clip karta hai (`background-clip:text` +
+   `-webkit-text-fill-color:transparent`), aur wo har child par
+   virasat mein jaata hai — bina reset kiye badge ka text bilkul
+   invisible rehta.
+   ============================================================ */
+
+.lw-beta {
+  flex: none;
+  display: inline-block;
+  vertical-align: middle;
+  white-space: nowrap;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.45;                       /* nav .lw-brand ka line-height:0 reset */
+  font-family: inherit;
+  color: #fff;
+  -webkit-text-fill-color: #fff;           /* gradient-clip wale parent ke liye */
+  background: linear-gradient(135deg, #ff8fb1, #ff4f7b);
+  box-shadow: 0 2px 8px rgba(255, 79, 123, 0.32);
+  text-decoration: none;
+  cursor: default;
+}
+
+/* h1 ke andar logo + badge — ek line mein, bina baseline gadbad ke.
+   :has() se sirf wahi h1 flex banta hai jisme badge sach mein hai. */
+header h1:has(.lw-beta) {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Desktop sidebar ka brand — logo aur badge saath mein */
+.app-sidebar-brand .lw-beta {
+  font-size: 0.55rem;
+  padding: 2px 6px;
+}
+
+/* Sidebar collapse hone par sirf logo bachta hai */
+body.sidebar-collapsed .app-sidebar-brand .lw-beta {
+  display: none;
+}
+
+/* Marketing nav ka brand link */
+nav .lw-brand {
+  gap: 8px;
+}
+
+/* Auth pages ka bada centered logo — badge uske bagal mein.
+   Yahan flex zaruri hai: reset layer `img { display:block }` set karta
+   hai, isliye text-align:center wale is dabbe mein badge agli line par
+   chala jaata tha (logo ke neeche, bagal mein nahi). */
+.auth-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* admin.html: h1 block hai, isliye badge use inline la kar bagal mein bithao */
+.brand-copy h1 {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.brand-copy .lw-beta {
+  margin-left: 8px;
+}
+
+/* Chhoti screen par header pehle hi tang hai — badge aur chhota */
+@media (max-width: 520px) {
+  .lw-beta {
+    font-size: 0.55rem;
+    padding: 1px 6px;
+    letter-spacing: 0.04em;
+  }
+}
+
+/* ============================================================
+   13. Indian festival themes — palettes
+   ------------------------------------------------------------
+   Admin Control Center > 🎨 Themes se chunta hai; lw-festivals.js
+   body par data-theme="fest-<id>" laga deta hai. Variables wahi
+   hain jo baaki themes use karti hain, isliye poora UI apne aap
+   badal jaata hai — kisi component ko chhune ki zarurat nahi.
+   ============================================================ */
+
+[data-theme="fest-lohri"] {
+  --bg: #fff4e6;
+  --bg2: #ffe6c9;
+  --card: #fff;
+  --primary: #c2410c;
+  --primary-soft: #ffedd5;
+  --soft: #ffedd5;
+  --accent: #f59e0b;
+  --text: #4a2409;
+  --text-soft: #8a5a33;
+  --muted: #8a5a33;
+  --border: #f6d3ab;
+  --shadow: 0 4px 20px #c2410c1f;
+  --grad: linear-gradient(135deg, #f59e0b, #c2410c);
+  color-scheme: light;
+}
+
+[data-theme="fest-sankranti"] {
+  --bg: #eef6ff;
+  --bg2: #dbeafe;
+  --card: #fff;
+  --primary: #1d4ed8;
+  --primary-soft: #dbeafe;
+  --soft: #dbeafe;
+  --accent: #38bdf8;
+  --text: #10233f;
+  --text-soft: #4b6a90;
+  --muted: #4b6a90;
+  --border: #c7dcf7;
+  --shadow: 0 4px 20px #1d4ed81f;
+  --grad: linear-gradient(135deg, #38bdf8, #1d4ed8);
+  color-scheme: light;
+}
+
+[data-theme="fest-pongal"] {
+  --bg: #fffbea;
+  --bg2: #fdf0c8;
+  --card: #fff;
+  --primary: #b45309;
+  --primary-soft: #fef3c7;
+  --soft: #fef3c7;
+  --accent: #65a30d;
+  --text: #3d2f08;
+  --text-soft: #7a6733;
+  --muted: #7a6733;
+  --border: #f0e0ae;
+  --shadow: 0 4px 20px #b453091f;
+  --grad: linear-gradient(135deg, #65a30d, #b45309);
+  color-scheme: light;
+}
+
+[data-theme="fest-republic"] {
+  --bg: #fff7ed;
+  --bg2: #ffedd5;
+  --card: #fff;
+  --primary: #c2410c;
+  --primary-soft: #ffedd5;
+  --soft: #ffedd5;
+  --accent: #15803d;
+  --text: #20160c;
+  --text-soft: #6b5c4a;
+  --muted: #6b5c4a;
+  --border: #f3ddc4;
+  --shadow: 0 4px 20px #c2410c1f;
+  --grad: linear-gradient(135deg, #ff9933, #138808);
+  color-scheme: light;
+}
+
+[data-theme="fest-vasant"] {
+  --bg: #fffdf0;
+  --bg2: #fef9c3;
+  --card: #fff;
+  --primary: #ca8a04;
+  --primary-soft: #fef9c3;
+  --soft: #fef9c3;
+  --accent: #eab308;
+  --text: #3b3407;
+  --text-soft: #7d7133;
+  --muted: #7d7133;
+  --border: #f2e9b0;
+  --shadow: 0 4px 20px #ca8a041f;
+  --grad: linear-gradient(135deg, #facc15, #ca8a04);
+  color-scheme: light;
+}
+
+[data-theme="fest-shivratri"] {
+  --bg: #f5f3ff;
+  --bg2: #ede9fe;
+  --card: #fff;
+  --primary: #6d28d9;
+  --primary-soft: #ede9fe;
+  --soft: #ede9fe;
+  --accent: #8b5cf6;
+  --text: #241a3d;
+  --text-soft: #645a80;
+  --muted: #645a80;
+  --border: #ddd4f7;
+  --shadow: 0 4px 20px #6d28d91f;
+  --grad: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  color-scheme: light;
+}
+
+[data-theme="fest-valentine"] {
+  --bg: #fff1f5;
+  --bg2: #ffe4ec;
+  --card: #fff;
+  --primary: #e11d48;
+  --primary-soft: #ffe4e6;
+  --soft: #ffe4e6;
+  --accent: #fb7185;
+  --text: #40101f;
+  --text-soft: #8a5a68;
+  --muted: #8a5a68;
+  --border: #fbcfda;
+  --shadow: 0 4px 20px #e11d481f;
+  --grad: linear-gradient(135deg, #fb7185, #e11d48);
+  color-scheme: light;
+}
+
+[data-theme="fest-holi"] {
+  --bg: #fdf2f8;
+  --bg2: #fce7f3;
+  --card: #fff;
+  --primary: #db2777;
+  --primary-soft: #fce7f3;
+  --soft: #fce7f3;
+  --accent: #22c55e;
+  --text: #3b1029;
+  --text-soft: #7d5a70;
+  --muted: #7d5a70;
+  --border: #f7d0e6;
+  --shadow: 0 4px 20px #db27771f;
+  --grad: linear-gradient(135deg, #22c55e, #db2777);
+  color-scheme: light;
+}
+
+[data-theme="fest-gudipadwa"] {
+  --bg: #fffbeb;
+  --bg2: #fef3c7;
+  --card: #fff;
+  --primary: #d97706;
+  --primary-soft: #fef3c7;
+  --soft: #fef3c7;
+  --accent: #84cc16;
+  --text: #3b2a07;
+  --text-soft: #7a6a35;
+  --muted: #7a6a35;
+  --border: #f2e2b3;
+  --shadow: 0 4px 20px #d977061f;
+  --grad: linear-gradient(135deg, #84cc16, #d97706);
+  color-scheme: light;
+}
+
+[data-theme="fest-eid"] {
+  --bg: #f0fdf9;
+  --bg2: #ccfbef;
+  --card: #fff;
+  --primary: #0f766e;
+  --primary-soft: #ccfbf1;
+  --soft: #ccfbf1;
+  --accent: #14b8a6;
+  --text: #0b302c;
+  --text-soft: #4a7d76;
+  --muted: #4a7d76;
+  --border: #b6ecdf;
+  --shadow: 0 4px 20px #0f766e1f;
+  --grad: linear-gradient(135deg, #14b8a6, #0f766e);
+  color-scheme: light;
+}
+
+[data-theme="fest-ramnavami"] {
+  --bg: #fff7ed;
+  --bg2: #ffedd5;
+  --card: #fff;
+  --primary: #ea580c;
+  --primary-soft: #ffedd5;
+  --soft: #ffedd5;
+  --accent: #f97316;
+  --text: #40200a;
+  --text-soft: #8a6144;
+  --muted: #8a6144;
+  --border: #f5d9bc;
+  --shadow: 0 4px 20px #ea580c1f;
+  --grad: linear-gradient(135deg, #f97316, #ea580c);
+  color-scheme: light;
+}
+
+[data-theme="fest-baisakhi"] {
+  --bg: #fefce8;
+  --bg2: #fef08a;
+  --card: #fff;
+  --primary: #a16207;
+  --primary-soft: #fef9c3;
+  --soft: #fef9c3;
+  --accent: #eab308;
+  --text: #3a3208;
+  --text-soft: #75693a;
+  --muted: #75693a;
+  --border: #f0e39c;
+  --shadow: 0 4px 20px #a162071f;
+  --grad: linear-gradient(135deg, #eab308, #a16207);
+  color-scheme: light;
+}
+
+[data-theme="fest-bakrid"] {
+  --bg: #f0fdf4;
+  --bg2: #dcfce7;
+  --card: #fff;
+  --primary: #15803d;
+  --primary-soft: #dcfce7;
+  --soft: #dcfce7;
+  --accent: #22c55e;
+  --text: #0f2e19;
+  --text-soft: #4c7a5d;
+  --muted: #4c7a5d;
+  --border: #c2e9cd;
+  --shadow: 0 4px 20px #15803d1f;
+  --grad: linear-gradient(135deg, #22c55e, #15803d);
+  color-scheme: light;
+}
+
+[data-theme="fest-rathyatra"] {
+  --bg: #fff7ed;
+  --bg2: #ffedd5;
+  --card: #fff;
+  --primary: #b91c1c;
+  --primary-soft: #fee2e2;
+  --soft: #fee2e2;
+  --accent: #f59e0b;
+  --text: #3f1414;
+  --text-soft: #86544f;
+  --muted: #86544f;
+  --border: #f5d2c4;
+  --shadow: 0 4px 20px #b91c1c1f;
+  --grad: linear-gradient(135deg, #f59e0b, #b91c1c);
+  color-scheme: light;
+}
+
+[data-theme="fest-independence"] {
+  --bg: #fff7ed;
+  --bg2: #ffedd5;
+  --card: #fff;
+  --primary: #138808;
+  --primary-soft: #e8f5e9;
+  --soft: #e8f5e9;
+  --accent: #ff9933;
+  --text: #1c2a16;
+  --text-soft: #5d6b56;
+  --muted: #5d6b56;
+  --border: #d9e6cf;
+  --shadow: 0 4px 20px #1388081f;
+  --grad: linear-gradient(135deg, #ff9933, #138808);
+  color-scheme: light;
+}
+
+[data-theme="fest-rakhi"] {
+  --bg: #fff5f7;
+  --bg2: #ffe9ef;
+  --card: #fff;
+  --primary: #be123c;
+  --primary-soft: #ffe4e6;
+  --soft: #ffe4e6;
+  --accent: #f43f5e;
+  --text: #3d1119;
+  --text-soft: #8a5964;
+  --muted: #8a5964;
+  --border: #f7ccd6;
+  --shadow: 0 4px 20px #be123c1f;
+  --grad: linear-gradient(135deg, #f43f5e, #be123c);
+  color-scheme: light;
+}
+
+[data-theme="fest-janmashtami"] {
+  --bg: #eff6ff;
+  --bg2: #dbeafe;
+  --card: #fff;
+  --primary: #1e40af;
+  --primary-soft: #dbeafe;
+  --soft: #dbeafe;
+  --accent: #eab308;
+  --text: #101f3d;
+  --text-soft: #4e6389;
+  --muted: #4e6389;
+  --border: #c6d9f5;
+  --shadow: 0 4px 20px #1e40af1f;
+  --grad: linear-gradient(135deg, #eab308, #1e40af);
+  color-scheme: light;
+}
+
+[data-theme="fest-onam"] {
+  --bg: #fffdf5;
+  --bg2: #fef7dd;
+  --card: #fff;
+  --primary: #b45309;
+  --primary-soft: #fef3c7;
+  --soft: #fef3c7;
+  --accent: #dc2626;
+  --text: #3c2f10;
+  --text-soft: #7d6b41;
+  --muted: #7d6b41;
+  --border: #f0e2b8;
+  --shadow: 0 4px 20px #b453091f;
+  --grad: linear-gradient(135deg, #dc2626, #b45309);
+  color-scheme: light;
+}
+
+[data-theme="fest-ganesh"] {
+  --bg: #fff7ed;
+  --bg2: #ffedd5;
+  --card: #fff;
+  --primary: #c2410c;
+  --primary-soft: #ffedd5;
+  --soft: #ffedd5;
+  --accent: #f59e0b;
+  --text: #40230d;
+  --text-soft: #8a6449;
+  --muted: #8a6449;
+  --border: #f5d9bf;
+  --shadow: 0 4px 20px #c2410c1f;
+  --grad: linear-gradient(135deg, #f59e0b, #c2410c);
+  color-scheme: light;
+}
+
+[data-theme="fest-navratri"] {
+  --bg: #fdf4ff;
+  --bg2: #fae8ff;
+  --card: #fff;
+  --primary: #a21caf;
+  --primary-soft: #fae8ff;
+  --soft: #fae8ff;
+  --accent: #f59e0b;
+  --text: #3a1039;
+  --text-soft: #7c5079;
+  --muted: #7c5079;
+  --border: #efcbee;
+  --shadow: 0 4px 20px #a21caf1f;
+  --grad: linear-gradient(135deg, #f59e0b, #a21caf);
+  color-scheme: light;
+}
+
+[data-theme="fest-durgapuja"] {
+  --bg: #fff1f2;
+  --bg2: #ffe4e6;
+  --card: #fff;
+  --primary: #be123c;
+  --primary-soft: #ffe4e6;
+  --soft: #ffe4e6;
+  --accent: #dc2626;
+  --text: #3f1117;
+  --text-soft: #8a5a61;
+  --muted: #8a5a61;
+  --border: #f7cbd2;
+  --shadow: 0 4px 20px #be123c1f;
+  --grad: linear-gradient(135deg, #dc2626, #be123c);
+  color-scheme: light;
+}
+
+[data-theme="fest-dussehra"] {
+  --bg: #fffbeb;
+  --bg2: #fef3c7;
+  --card: #fff;
+  --primary: #b45309;
+  --primary-soft: #fef3c7;
+  --soft: #fef3c7;
+  --accent: #dc2626;
+  --text: #3d2c0a;
+  --text-soft: #7d6a3c;
+  --muted: #7d6a3c;
+  --border: #f0e0b2;
+  --shadow: 0 4px 20px #b453091f;
+  --grad: linear-gradient(135deg, #dc2626, #b45309);
+  color-scheme: light;
+}
+
+[data-theme="fest-karvachauth"] {
+  --bg: #fdf2f8;
+  --bg2: #fbe8f3;
+  --card: #fff;
+  --primary: #9d174d;
+  --primary-soft: #fce7f3;
+  --soft: #fce7f3;
+  --accent: #e879f9;
+  --text: #3d0f28;
+  --text-soft: #7f5169;
+  --muted: #7f5169;
+  --border: #f2cbdf;
+  --shadow: 0 4px 20px #9d174d1f;
+  --grad: linear-gradient(135deg, #e879f9, #9d174d);
+  color-scheme: light;
+}
+
+[data-theme="fest-dhanteras"] {
+  --bg: #fffdf0;
+  --bg2: #fdf6d3;
+  --card: #fff;
+  --primary: #a16207;
+  --primary-soft: #fef9c3;
+  --soft: #fef9c3;
+  --accent: #d4af37;
+  --text: #3a3108;
+  --text-soft: #77693a;
+  --muted: #77693a;
+  --border: #efe3a8;
+  --shadow: 0 4px 20px #a162071f;
+  --grad: linear-gradient(135deg, #d4af37, #a16207);
+  color-scheme: light;
+}
+
+[data-theme="fest-diwali"] {
+  --bg: #fff8ec;
+  --bg2: #ffeccc;
+  --card: #fff;
+  --primary: #b45309;
+  --primary-soft: #fff1d6;
+  --soft: #fff1d6;
+  --accent: #f59e0b;
+  --text: #3d2708;
+  --text-soft: #7f6640;
+  --muted: #7f6640;
+  --border: #f2ddb6;
+  --shadow: 0 4px 20px #b453091f;
+  --grad: linear-gradient(135deg, #fbbf24, #b45309);
+  color-scheme: light;
+}
+
+[data-theme="fest-bhaidooj"] {
+  --bg: #fff7ed;
+  --bg2: #ffedd5;
+  --card: #fff;
+  --primary: #c2410c;
+  --primary-soft: #ffedd5;
+  --soft: #ffedd5;
+  --accent: #fb923c;
+  --text: #40230d;
+  --text-soft: #87634a;
+  --muted: #87634a;
+  --border: #f5d9bf;
+  --shadow: 0 4px 20px #c2410c1f;
+  --grad: linear-gradient(135deg, #fb923c, #c2410c);
+  color-scheme: light;
+}
+
+[data-theme="fest-chhath"] {
+  --bg: #fff7ed;
+  --bg2: #ffedd5;
+  --card: #fff;
+  --primary: #ea580c;
+  --primary-soft: #fff1d6;
+  --soft: #fff1d6;
+  --accent: #facc15;
+  --text: #3f2409;
+  --text-soft: #856448;
+  --muted: #856448;
+  --border: #f5dcbd;
+  --shadow: 0 4px 20px #ea580c1f;
+  --grad: linear-gradient(135deg, #facc15, #ea580c);
+  color-scheme: light;
+}
+
+[data-theme="fest-gurunanak"] {
+  --bg: #fffbeb;
+  --bg2: #fef3c7;
+  --card: #fff;
+  --primary: #a16207;
+  --primary-soft: #fef9c3;
+  --soft: #fef9c3;
+  --accent: #f59e0b;
+  --text: #3a2f0b;
+  --text-soft: #786a3d;
+  --muted: #786a3d;
+  --border: #f0e2ae;
+  --shadow: 0 4px 20px #a162071f;
+  --grad: linear-gradient(135deg, #f59e0b, #a16207);
+  color-scheme: light;
+}
+
+[data-theme="fest-christmas"] {
+  --bg: #f2fbf4;
+  --bg2: #dcf5e3;
+  --card: #fff;
+  --primary: #15803d;
+  --primary-soft: #dcfce7;
+  --soft: #dcfce7;
+  --accent: #dc2626;
+  --text: #12291a;
+  --text-soft: #4d7059;
+  --muted: #4d7059;
+  --border: #c3e6cd;
+  --shadow: 0 4px 20px #15803d1f;
+  --grad: linear-gradient(135deg, #dc2626, #15803d);
+  color-scheme: light;
+}
+
+[data-theme="fest-newyear"] {
+  --bg: #f5f3ff;
+  --bg2: #ece9fe;
+  --card: #fff;
+  --primary: #6d28d9;
+  --primary-soft: #ede9fe;
+  --soft: #ede9fe;
+  --accent: #f59e0b;
+  --text: #231a3c;
+  --text-soft: #655c81;
+  --muted: #655c81;
+  --border: #dbd3f6;
+  --shadow: 0 4px 20px #6d28d91f;
+  --grad: linear-gradient(135deg, #f59e0b, #6d28d9);
+  color-scheme: light;
+}
+
+
+/* Sidebar ka Control Center link — sirf admin ko dikhta hai */
+.app-sidebar-admin {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* ============================================================
+   14. Festival animation + greeting banner
+   ------------------------------------------------------------
+   Sirf CSS animation (koi JS loop nahi), pointer-events:none se
+   click kabhi nahi rukta, aur reduced-motion par poori tarah
+   band. Modal khulne par bhi chhup jaati hai taaki dhyaan na bate.
+   ============================================================ */
+
+.lw-fest-fx {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  overflow: hidden;
+  pointer-events: none;   /* kabhi kisi click ke beech me nahi aata */
+  contain: strict;        /* baaki page ka layout isse na hile */
+}
+
+.lw-fest-fx span {
+  position: absolute;
+  top: -8vh;
+  font-size: var(--sz, 1rem);
+  line-height: 1;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: lwFxFall var(--d, 10s) linear var(--delay, 0s) infinite;
+}
+
+/* girte hue — barf, phool, sikke */
+@keyframes lwFxFall {
+  0%   { transform: translate3d(0, 0, 0) rotate(0deg);            opacity: 0; }
+  8%   { opacity: 0.75; }
+  92%  { opacity: 0.55; }
+  100% { transform: translate3d(var(--drift, 0), 118vh, 0) rotate(220deg); opacity: 0; }
+}
+
+/* upar uthte hue — diye, gubbare, dil */
+.lw-fx-rise span {
+  top: auto;
+  bottom: -8vh;
+  animation-name: lwFxRise;
+}
+
+@keyframes lwFxRise {
+  0%   { transform: translate3d(0, 0, 0) scale(0.85);              opacity: 0; }
+  10%  { opacity: 0.8; }
+  85%  { opacity: 0.5; }
+  100% { transform: translate3d(var(--drift, 0), -116vh, 0) scale(1.1); opacity: 0; }
+}
+
+/* idhar-udhar hilte hue — patang, khet */
+.lw-fx-sway span { animation-name: lwFxSway; }
+
+@keyframes lwFxSway {
+  0%   { transform: translate3d(0, 0, 0) rotate(-12deg);   opacity: 0; }
+  10%  { opacity: 0.8; }
+  50%  { transform: translate3d(var(--drift, 0), 55vh, 0) rotate(14deg); }
+  90%  { opacity: 0.5; }
+  100% { transform: translate3d(0, 116vh, 0) rotate(-10deg); opacity: 0; }
+}
+
+/* jhilmilate hue — taare, chaand (girte nahi, apni jagah chamakte hain) */
+.lw-fx-twinkle span {
+  top: auto;
+  animation-name: lwFxTwinkle;
+  animation-timing-function: ease-in-out;
+}
+
+.lw-fest-fx.lw-fx-twinkle span:nth-child(odd)  { top: 12vh; }
+.lw-fest-fx.lw-fx-twinkle span:nth-child(even) { top: 42vh; }
+.lw-fest-fx.lw-fx-twinkle span:nth-child(3n)   { top: 68vh; }
+
+@keyframes lwFxTwinkle {
+  0%, 100% { transform: scale(0.7); opacity: 0.12; }
+  50%      { transform: scale(1.15); opacity: 0.8; }
+}
+
+/* phooti hui rang — Holi, New Year */
+.lw-fx-burst span { animation-name: lwFxBurst; }
+
+@keyframes lwFxBurst {
+  0%   { transform: translate3d(0, 0, 0) scale(0.4) rotate(0deg);   opacity: 0; }
+  15%  { opacity: 0.85; }
+  100% { transform: translate3d(var(--drift, 0), 112vh, 0) scale(1.25) rotate(300deg); opacity: 0; }
+}
+
+/* Modal khula ho to sajawat hat jaaye */
+body:has(.modal-bg.open) .lw-fest-fx,
+body:has(.rail-sheet-overlay.open) .lw-fest-fx {
+  display: none;
+}
+
+/* Jinhone motion kam karne ko kaha hai unke liye animation bilkul nahi */
+@media (prefers-reduced-motion: reduce) {
+  .lw-fest-fx {
+    display: none;
+  }
+}
+
+/* ---- Greeting banner (container ke sabse upar) ---- */
+
+.lw-fest-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--bg2);
+  box-shadow: var(--shadow);
+  animation: lwFestIn 0.5s ease both;
+}
+
+@keyframes lwFestIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.lw-fest-sym {
+  flex: none;
+  font-size: 2.2rem;
+  line-height: 1;
+  animation: lwFestGlow 2.8s ease-in-out infinite;
+}
+
+@keyframes lwFestGlow {
+  0%, 100% { transform: scale(1) rotate(-3deg); filter: drop-shadow(0 0 0 transparent); }
+  50%      { transform: scale(1.12) rotate(3deg); filter: drop-shadow(0 3px 10px rgba(0, 0, 0, 0.18)); }
+}
+
+/* Admin ki lagayi apni image (dharmik chitra) */
+.lw-fest-img {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+}
+
+.lw-fest-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.lw-fest-text b {
+  display: block;
+  color: var(--primary);
+  font-size: 1rem;
+}
+
+.lw-fest-text small {
+  display: block;
+  color: var(--muted, var(--text-soft));
+  font-size: 0.8rem;
+  margin-top: 2px;
+}
+
+.lw-fest-x {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  cursor: pointer;
+  color: var(--muted, var(--text-soft));
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  font-size: 0.9rem;
+}
+
+.lw-fest-x:hover {
+  background: var(--card);
+  color: var(--primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lw-fest-banner,
+  .lw-fest-sym {
+    animation: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .lw-fest-banner { padding: 11px 12px; gap: 10px; }
+  .lw-fest-sym    { font-size: 1.7rem; }
+  .lw-fest-img    { width: 44px; height: 44px; }
+  .lw-fest-text b { font-size: 0.9rem; }
+}
+
+/* ============================================================
+   15. Topbar search — default me chhota, tap par khulta hai
+   ------------------------------------------------------------
+   Pehle ye poori chaudi patti header me hamesha padi rehti thi aur
+   baaki icons ko dabaa deti thi. Ab default me sirf ek gol icon-button
+   hai; us par tap karte hi patti khul jaati hai (aur Esc / bahar click
+   se band ho jaati hai).
+   ============================================================ */
+
+.app-topbar-search {
+  flex: none;
+  width: 38px;
+  max-width: 38px;
+  padding: 0;
+  gap: 0;
+  overflow: visible;
+  background: transparent;
+  border-color: transparent;
+  transition: width 0.24s ease, max-width 0.24s ease, background 0.24s, border-color 0.24s;
+}
+
+.app-search-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  color: var(--text-soft);
+  cursor: pointer;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.app-search-btn:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+/* band haalat me input jagah na ghere — width 0 aur focus se bahar */
+.app-topbar-search input {
+  width: 0;
+  min-width: 0;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: width 0.24s ease, opacity 0.18s ease, padding 0.24s ease;
+}
+
+/* ---- khuli haalat ---- */
+.app-topbar-search.open {
+  flex: 1 1 auto;
+  width: auto;
+  max-width: 360px;
+  background: var(--bg2);
+  border-color: var(--border);
+  padding: 0 6px 0 0;
+  gap: 6px;
+}
+
+.app-topbar-search.open .app-search-btn {
+  background: transparent;
+  border-color: transparent;
+  color: var(--primary);
+}
+
+.app-topbar-search.open input {
+  width: 100%;
+  opacity: 1;
+  pointer-events: auto;
+  padding: 0 4px 0 0;
+}
+
+/* results dropdown khuli patti ke neeche, kam se kam itni chaudi */
+.app-topbar-search .app-search-results {
+  min-width: 260px;
+  right: auto;
+  width: max(100%, 260px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-topbar-search,
+  .app-topbar-search input {
+    transition: none;
+  }
+}

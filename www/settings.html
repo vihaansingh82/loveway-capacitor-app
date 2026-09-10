@@ -3,8 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json?v=1">
+<meta name="theme-color" content="#ff4f7b">
+<meta name="mobile-web-app-capable" content="yes">
+<!-- iOS: push sirf installed (Add to Home Screen) site par chalta hai -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Loveway">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>Loveway — Settings ⚙️</title>
-<link rel="stylesheet" href="lw-styles.css?v=6">
+<link rel="stylesheet" href="lw-styles.css?v=9">
 <style>
 /* This page runs its own independent theme-variable set + setTheme()/
    setCustomColorSettings() implementation (see THEME_VARS below), separate
@@ -164,11 +172,11 @@ body.bg-photo[data-theme="dark"]{
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="config.js?v=2"></script>
+<script src="config.js?v=3"></script>
 <script src="lw-core.js?v=8"></script>
 <script src="lw-festivals.js?v=2"></script>
 <script src="lw-spotify.js?v=7"></script>
-<script src="lw-app.js?v=21"></script>
+<script src="lw-app.js?v=27"></script>
 <link rel="stylesheet" href="lw-responsive.css?v=5">
 <link rel="stylesheet" href="lw-clay.css?v=2">
 <script src="lw-responsive.js?v=2" defer></script>
@@ -377,6 +385,25 @@ body.bg-photo[data-theme="dark"]{
           </div>
         </div>
         <div class="card">
+          <strong>🔕 Mute kiye hue log</strong>
+          <small style="display:block;color:var(--muted);margin-top:2px">
+            Inki posts aur stories tumhe nahi dikhtin. Ye block nahi hai —
+            ye message kar sakte hain, aur inhe kabhi pata nahi chalta.
+          </small>
+          <div id="mutedList" style="margin-top:10px">
+            <small style="color:var(--muted)">Load ho raha hai…</small>
+          </div>
+        </div>
+        <div class="card">
+          <strong>🗄 Archived posts</strong>
+          <small style="display:block;color:var(--muted);margin-top:2px">
+            Ye sirf tumhe dikhti hain. Wapas laane par phir sabko dikhne lagengi.
+          </small>
+          <div id="archivedList" style="margin-top:10px">
+            <small style="color:var(--muted)">Load ho raha hai…</small>
+          </div>
+        </div>
+        <div class="card">
           <strong data-i18n="blockedUsersLabel">🚫 Blocked Users</strong>
           <div id="blockedList" style="margin-top:10px"><small style="color:var(--muted)" data-i18n="blockedLoading">Load ho raha hai…</small></div>
         </div>
@@ -385,6 +412,20 @@ body.bg-photo[data-theme="dark"]{
 
       <div class="section" id="notifications">
         <div class="section-head"><h3 data-i18n="notificationTitle">Notifications</h3><p data-i18n="notificationDesc">Loveway ki notifications control karo.</p></div>
+        <div class="card">
+          <strong>🔔 Popup notifications</strong>
+          <small style="display:block;color:var(--muted);margin-top:2px" id="popupNotifDesc">
+            Jaanch ho rahi hai…
+          </small>
+          <div id="popupNotifAction" style="margin-top:10px"></div>
+        </div>
+        <div class="card">
+          <strong>📲 Browser band hone par bhi</strong>
+          <small style="display:block;color:var(--muted);margin-top:2px" id="pushDesc">
+            Jaanch ho rahi hai…
+          </small>
+          <div id="pushAction" style="margin-top:10px"></div>
+        </div>
         <div class="card row"><div><strong data-i18n="messagesLabel">Messages</strong><small data-i18n="messagesDesc">New chat messages</small></div><label class="switch"><input type="checkbox" id="prefNotifMessages" checked><span class="slider"></span></label></div>
         <div class="card row"><div><strong data-i18n="friendRequestsLabel">Friend Requests</strong><small data-i18n="friendReqDescNotif">New friend or partner requests</small></div><label class="switch"><input type="checkbox" id="prefNotifFriendReq" checked><span class="slider"></span></label></div>
         <div class="card row"><div><strong data-i18n="birthdaysLabel">Birthdays</strong><small data-i18n="birthdaysDesc">Upcoming birthday reminders</small></div><label class="switch"><input type="checkbox" id="prefNotifBirthdays" checked><span class="slider"></span></label></div>
@@ -1161,6 +1202,183 @@ function copyRedirectUri(id){
  }
 }
 
+/* ---------- Popup notifications ----------
+   Permission KABHI apne aap nahi maangte. Page khulte hi prompt dikhana
+   user ko chidha deta hai, aur Chrome/Firefox aise site ko baad me
+   prompt dikhane se rok bhi dete hain. Isliye ye sirf is button se
+   maangi jaati hai, jab user khud chahe.
+
+   "denied" ke baad site dobara nahi poochh sakti — wo browser ka niyam
+   hai, code ki kami nahi. Us soorat me user ko batate hain ki address
+   bar wale lock icon se hi wapas on hoga. */
+function paintPopupNotif(){
+ const desc=document.getElementById("popupNotifDesc");
+ const act=document.getElementById("popupNotifAction");
+ if(!desc||!act) return;
+
+ const state=LWApp.browserNotifState();
+
+ if(state==="unsupported"){
+  desc.textContent="Is browser me popup notifications nahi chalte.";
+  act.innerHTML="";
+  return;
+ }
+ if(state==="granted"){
+  desc.textContent="Chalu hai. Jab Loveway kisi doosri tab me khula ho aur kuch naya aaye, popup dikhega.";
+  act.innerHTML='<button class="btn" onclick="testPopupNotif()">Test karke dekho</button>';
+  return;
+ }
+ if(state==="denied"){
+  desc.textContent="Browser me block kiya hua hai. Site dobara nahi poochh sakti — address bar ke lock icon se Notifications ko Allow karo, phir page refresh.";
+  act.innerHTML="";
+  return;
+ }
+ desc.textContent="Abhi band hai. On karne par tab peeche hone par bhi naya message/notification dikh jaayega.";
+ act.innerHTML='<button class="btn primary" onclick="enablePopupNotif()">Chalu karo</button>';
+}
+
+async function enablePopupNotif(){
+ const r=await LWApp.askNotifPermission();
+ paintPopupNotif();
+ if(r==="granted") toast("🔔 Popup notifications chalu");
+ else if(r==="denied") toast("Browser ne mana kar diya","error");
+}
+
+function testPopupNotif(){
+ try{
+  const n=new Notification("Loveway",{body:"Popup notifications theek chal rahe hain.",icon:"logo.png"});
+  setTimeout(()=>n.close(),4000);
+ }catch(e){ toast("Test popup nahi dikha","error"); }
+}
+
+/* ---------- Mute kiye hue log ----------
+   Mute ka poora matlab hi ye hai ki saamne wale ko pata na chale, isliye
+   ye list sirf yahin dikhti hai. Hataana ek click me — warna log mute
+   karne se darte hain. */
+async function loadMuted(){
+ const box=document.getElementById("mutedList");
+ if(!box) return;
+ try{
+  const ids=await LWApp.mutedIds(true);
+  if(!ids.length){
+   box.innerHTML='<small style="color:var(--muted)">Kisi ko mute nahi kiya.</small>';
+   return;
+  }
+  const people=await LWApp.peopleByIds(ids);
+  box.innerHTML=people.map(u=>
+   '<div style="display:flex;align-items:center;gap:9px;padding:6px 0">'+
+     LWApp.avatarHtml(u,"sm")+
+     '<span style="flex:1;min-width:0"><b>'+LW.escapeHtml(u.full_name||u.username||"—")+'</b></span>'+
+     '<button class="btn" onclick="unmute(\''+LW.escapeHtml(u.id)+'\')">Unmute</button>'+
+   '</div>').join("");
+ }catch(e){
+  box.innerHTML='<small style="color:var(--muted)">'+
+    (LWApp.setupMissing(e)?'Mute ka database setup abhi baaki hai.':'List nahi aa payi.')+'</small>';
+ }
+}
+
+async function unmute(id){
+ try{ await LWApp.setMuted(id,false); toast("Unmute kar diya"); loadMuted(); }
+ catch(e){ toast("Nahi ho paya","error"); }
+}
+
+/* ---------- Archived posts ---------- */
+async function loadArchived(){
+ const box=document.getElementById("archivedList");
+ if(!box) return;
+ try{
+  const rows=await LWApp.archivedPosts(30);
+  if(!rows.length){
+   box.innerHTML='<small style="color:var(--muted)">Koi archived post nahi.</small>';
+   return;
+  }
+  box.innerHTML=rows.map(p=>
+   '<div style="display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid var(--border)">'+
+     (p.media_url?'<img src="'+LW.escapeHtml(p.media_url)+'" alt="" style="width:42px;height:42px;object-fit:cover;border-radius:8px">':'<span style="font-size:1.3rem">📝</span>')+
+     '<span style="flex:1;min-width:0;font-size:.82rem">'+
+       LW.escapeHtml((p.content||"(sirf media)").slice(0,80))+'</span>'+
+     '<button class="btn" onclick="unarchive('+p.id+')">Wapas laao</button>'+
+   '</div>').join("");
+ }catch(e){
+  box.innerHTML='<small style="color:var(--muted)">'+
+    (LWApp.setupMissing(e)?'Archive ka database setup abhi baaki hai.':'List nahi aa payi.')+'</small>';
+ }
+}
+
+async function unarchive(id){
+ try{ await LWApp.setArchived(id,false); toast("Wapas aa gayi — ab sabko dikhegi"); loadArchived(); }
+ catch(e){ toast("Nahi ho paya","error"); }
+}
+
+/* ---------- Web Push (browser band hone par bhi) ----------
+   Upar wala "Popup notifications" sirf tab chalta hai jab Loveway kisi
+   tab me khula ho. Ye uske aage ka hissa hai. Dono alag card hain
+   kyunki dono alag cheezein hain — ek hi toggle bana dete to user ko
+   lagta ki push on hai jabki sirf tab-wala on tha. */
+async function paintPush(){
+ const desc=document.getElementById("pushDesc");
+ const act=document.getElementById("pushAction");
+ if(!desc||!act) return;
+
+ // iPhone par "nahi chalta" likhna jhooth hai — chalta hai, bas pehle
+ // Home Screen par install karna padta hai (Apple ki pabandi)
+ if(LWApp.iosNeedsInstall()){
+  desc.innerHTML='iPhone/iPad par pehle Loveway ko Home Screen par install karo — '+
+                 'Safari me <b>Share ⬆️ → Add to Home Screen</b>. '+
+                 'Uske baad wahan se kholo aur ye option chalu ho jaayega. '+
+                 '<small style="display:block;margin-top:4px">Ye Apple ka niyam hai: '+
+                 'iOS me push sirf installed site par milta hai.</small>';
+  act.innerHTML="";
+  return;
+ }
+ if(!LWApp.pushSupported()){
+  desc.textContent="Is browser me ye nahi chalta (https aur service worker chahiye).";
+  act.innerHTML="";
+  return;
+ }
+ if(!LWApp.pushConfigured()){
+  desc.innerHTML='Setup abhi baaki hai — <code>config.js</code> me <code>VAPID_PUBLIC_KEY</code> daalna hai. '+
+                 'Tab tak Loveway khula hone par notifications aate rahenge.';
+  act.innerHTML="";
+  return;
+ }
+
+ const sub=await LWApp.pushSubscription();
+ if(sub){
+  desc.textContent="Chalu hai. Browser band ho tab bhi is device par notification aayegi.";
+  act.innerHTML='<button class="btn" onclick="turnOffPush()">Band karo</button>';
+ }else{
+  desc.textContent="Abhi band hai. On karne par Loveway band hone par bhi zaroori notification mil jaayegi.";
+  act.innerHTML='<button class="btn primary" onclick="turnOnPush()">Chalu karo</button>';
+ }
+}
+
+async function turnOnPush(){
+ const btn=document.querySelector("#pushAction button");
+ if(btn) btn.disabled=true;
+ const r=await LWApp.enablePush();
+ if(btn) btn.disabled=false;
+
+ if(r.ok){ toast("📲 Chalu ho gaya"); }
+ else if(r.why==="denied") toast("Browser ne mana kar diya — lock icon se Allow karo","error");
+ else if(r.why==="not-configured") toast("VAPID key config.js me nahi hai","error");
+ else if(r.why==="unsupported") toast("Is browser me nahi chalta","error");
+ else if(r.why==="dismissed") toast("Permission ka jawab nahi mila","error");
+ else toast("Chalu nahi ho paya","error");
+
+ paintPush();
+ paintPopupNotif();       // permission badli ho sakti hai, upar wala card bhi taaza karo
+}
+
+async function turnOffPush(){
+ const btn=document.querySelector("#pushAction button");
+ if(btn) btn.disabled=true;
+ const r=await LWApp.disablePush();
+ if(btn) btn.disabled=false;
+ toast(r.ok?"Band kar diya":"Band nahi ho paya",r.ok?"success":"error");
+ paintPush();
+}
+
 /* ---------- Close Friends ----------
    Dost ki poori list dikhate hain, har ek ke saamne ek toggle. List sirf
    isi user ko dikhti hai (RLS bhi yahi kehti hai) — jise close friend
@@ -1292,6 +1510,10 @@ document.addEventListener("DOMContentLoaded",async()=>{
  paintFestival();
  loadBlockedSettings();
  loadCloseFriends();
+ loadMuted();
+ loadArchived();
+ paintPopupNotif();
+ paintPush();
  checkSpotify();
  enhanceSelect(document.getElementById("languageQuick"));
  enhanceSelect(document.getElementById("languageMain"));

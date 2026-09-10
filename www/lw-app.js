@@ -213,9 +213,30 @@
   // Verified account ka tick. Flag admin hi laga sakta hai (DB par
   // lw_protect_profile ise admin-only rakhta hai), isliye ise jahan bhi
   // naam dikhta hai wahan bina soche laga sakte hain.
+  /* Verified ka HARA tick.
+     Pehle ✔️ emoji tha. Emoji ka rang CSS se badla hi nahi ja sakta —
+     colour-emoji font apna rang khud rakhta hai — isliye wo Android par
+     kaala, iOS par neela aur Windows par kuch aur dikhta tha. Inline SVG
+     me rang hamesha wahi rehta hai jo hum kehte hain, aur light/dark
+     dono me saaf dikhta hai. */
   function verifiedTick(p) {
     if (!p || !p.is_verified) return '';
-    return '<span class="verified-tick" title="Verified account">✔️</span>';
+    /* Instagram jaisa scalloped "seal" badge — seedha gol daayra nahi.
+       24 point ka polygon hai (12 bahar, 12 andar). Nokein khud se
+       nukeeli hoti, par usi rang ka stroke + stroke-linejoin="round"
+       unhe narm kar deta hai — wahi phool jaisa kinara ban jaata hai.
+
+       Rang HARA rakha hai (tumne pehle wahi maanga tha). Instagram ka
+       apna neela chahiye to sirf lw-styles.css me .verified-tick ka
+       color badalna hai — SVG me fill="currentColor" hai, isliye ek
+       line se poore app me badal jaayega. */
+    return '<span class="verified-tick" title="Verified account" aria-label="Verified">' +
+      '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">' +
+        '<path d="M12.00 0.80 L14.30 3.40 L17.60 2.30 L18.29 5.71 L21.70 6.40 L20.60 9.70 L23.20 12.00 L20.60 14.30 L21.70 17.60 L18.29 18.29 L17.60 21.70 L14.30 20.60 L12.00 23.20 L9.70 20.60 L6.40 21.70 L5.71 18.29 L2.30 17.60 L3.40 14.30 L0.80 12.00 L3.40 9.70 L2.30 6.40 L5.71 5.71 L6.40 2.30 L9.70 3.40Z" fill="currentColor" stroke="currentColor" ' +
+          'stroke-width="1.3" stroke-linejoin="round"></path>' +
+        '<path d="M7.4 12.3l3.1 3.1L16.6 9.3" fill="none" stroke="#fff" stroke-width="2.4" ' +
+          'stroke-linecap="round" stroke-linejoin="round"></path>' +
+      '</svg></span>';
   }
 
   // "2 ghante pehle" type
@@ -670,7 +691,10 @@
       var n = r.data || 0;
       el.textContent = n;
       el.style.display = n > 0 ? '' : 'none';
-    }, function () {});
+      // pehli ginti aane ke BAAD sunna shuru karo, warna realtime se
+      // aaya hua badha hua number is RPC ke jawab se mit jaata
+      watchNotifications();
+    }, function () { watchNotifications(); });
   }
 
   /* ---------- profiles ---------- */
@@ -696,6 +720,233 @@
   // Settings > Dashboard/Privacy/Notifications ke toggles profiles.preferences
   // (jsonb) mein rehte hain. Har page yahin se padhta hai, taaki default
   // value ek hi jagah tay ho.
+  /* ============================================================
+     Live notifications
+     ------------------------------------------------------------
+     Pehle notifCount badge sirf EK BAAR set hota tha — shell banate
+     waqt lw_unread_count se. Uske baad kuch bhi aa jaaye, page reload
+     kiye bina na badge badalta tha na kuch dikhta tha. Naya message
+     aane par bhi user ko tab tak pata nahi chalta tha jab tak wo khud
+     notifications.html na khole.
+
+     Ab notifications table par realtime sunte hain (ye table pehle se
+     supabase_realtime publication me hai) aur teen cheezein karte hain:
+       1. badge turant badha do
+       2. page saamne ho to in-app toast
+       3. page peeche ho (doosri tab) to browser notification
+
+     JO YE NAHI KARTA: browser BAND hone par notification. Uske liye
+     service worker + VAPID keys + push bhejne wala server chahiye
+     (Edge Function). Wo alag kaam hai — ye sirf tab chalta hai jab
+     Loveway kisi tab me khula ho.
+     ============================================================ */
+
+  var NOTIF_PREF = {
+    message:               'prefNotifMessages',
+    friend_request:        'prefNotifFriendReq',
+    friend_accepted:       'prefNotifFriendReq',
+    announcement_request:  'prefNotifAnnouncements',
+    announcement_approved: 'prefNotifAnnouncements',
+    announcement_rejected: 'prefNotifAnnouncements',
+    birthday:              'prefNotifBirthdays',
+    song:                  'prefNotifSongs'
+  };
+
+  // Settings ke toggle ko izzat do. Jis kind ka koi toggle hi nahi hai
+  // (reaction, comment, mention, gift...) wo hamesha dikhta hai — user
+  // ne use band karne ka koi tarika maanga hi nahi.
+  function notifAllowed(kind) {
+    var key = NOTIF_PREF[kind];
+    return key ? pref(key, true) !== false : true;
+  }
+
+  function browserNotifState() {
+    if (typeof Notification === 'undefined') return 'unsupported';
+    return Notification.permission;          // 'granted' | 'denied' | 'default'
+  }
+
+  /* Permission KABHI apne aap nahi maangte. Page khulte hi prompt
+     dikhana user ko chidha deta hai, aur Chrome aise prompts ko block
+     bhi kar deta hai. Ye sirf Settings ke button se chalta hai. */
+  function askNotifPermission() {
+    if (typeof Notification === 'undefined') return Promise.resolve('unsupported');
+    return Notification.requestPermission().catch(function () { return 'denied'; });
+  }
+
+  function showBrowserNotif(row) {
+    if (browserNotifState() !== 'granted') return false;
+    try {
+      var n = new Notification(row.title || 'Loveway', {
+        body: row.body || '',
+        icon: 'logo.png',
+        tag: 'lw-' + row.id            // ek hi notification do baar na dikhe
+      });
+      n.onclick = function () {
+        window.focus();
+        window.location.href = row.link || 'notifications.html';
+        n.close();
+      };
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function bumpNotifBadge(by) {
+    var el = document.getElementById('notifCount');
+    if (!el) return;
+    var n = (parseInt(el.textContent, 10) || 0) + (by || 1);
+    if (n < 0) n = 0;
+    el.textContent = n;
+    el.style.display = n > 0 ? '' : 'none';
+  }
+
+  /* ---------- Web Push (browser BAND hone par bhi) ----------
+     Upar wala watchNotifications() sirf tab chalta hai jab Loveway kisi
+     tab me khula ho. Ye uske aage ka hissa hai: service worker + push
+     subscription, taaki browser band hone par bhi notification aaye.
+
+     Teen cheezein chahiye aur teeno alag jagah hain:
+       sw.js                — browser me, band hone par bhi zinda
+       VAPID_PUBLIC_KEY     — config.js me (public hai, safe hai)
+       VAPID_PRIVATE_KEY    — sirf Edge Function ke secrets me
+     Private key browser me rakhne ka matlab hota koi bhi kisi ke naam
+     par push bhej sakta — isliye bhejne ka kaam server hi karta hai. */
+
+  /* iOS ki apni pabandi: Safari me Web Push SIRF tab chalta hai jab
+     site "Add to Home Screen" se install ho. Bina install ke PushManager
+     hota hi nahi — matlab pushSupported() false aata hai aur user ko
+     lagta hai "iPhone par ye chalta hi nahi", jo galat hai. Chalta hai,
+     bas pehle install karna padta hai. Ye do helper wahi farak batate
+     hain.
+
+     iPadOS khud ko Mac batata hai, isliye sirf userAgent kaafi nahi —
+     touch points bhi dekhne padte hain. */
+  function isIOS() {
+    var ua = navigator.userAgent || '';
+    if (/iPad|iPhone|iPod/.test(ua)) return true;
+    return /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+  }
+
+  function isInstalled() {
+    if (window.navigator.standalone === true) return true;          // iOS
+    try { return window.matchMedia('(display-mode: standalone)').matches; }
+    catch (e) { return false; }
+  }
+
+  // "iPhone hai, install nahi hai, isliye abhi push nahi" — ye alag se
+  // batane layak halat hai, "support hi nahi" se bilkul alag
+  function iosNeedsInstall() {
+    return isIOS() && !isInstalled() && typeof PushManager === 'undefined';
+  }
+
+  function pushSupported() {
+    return typeof navigator !== 'undefined' &&
+           'serviceWorker' in navigator &&
+           typeof PushManager !== 'undefined' &&
+           window.isSecureContext;          // http par push chalta hi nahi
+  }
+
+  function pushConfigured() {
+    var c = window.LOVEWAY_CONFIG || {};   // LW.cfg ek object hai, function nahi
+    return !!c.VAPID_PUBLIC_KEY;
+  }
+
+  // base64url -> Uint8Array (PushManager sirf yahi leta hai)
+  function urlB64ToBytes(b64) {
+    var pad = '='.repeat((4 - (b64.length % 4)) % 4);
+    var raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+    var out = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
+  }
+
+  function swRegister() {
+    if (!pushSupported()) return Promise.resolve(null);
+    return navigator.serviceWorker.register('sw.js').catch(function () { return null; });
+  }
+
+  // Abhi is browser par push chaalu hai ya nahi
+  function pushSubscription() {
+    if (!pushSupported()) return Promise.resolve(null);
+    return navigator.serviceWorker.getRegistration()
+      .then(function (reg) { return reg ? reg.pushManager.getSubscription() : null; })
+      .catch(function () { return null; });
+  }
+
+  function enablePush() {
+    if (!pushSupported())  return Promise.resolve({ ok: false, why: 'unsupported' });
+    if (!pushConfigured()) return Promise.resolve({ ok: false, why: 'not-configured' });
+
+    return askNotifPermission().then(function (perm) {
+      if (perm !== 'granted') return { ok: false, why: perm === 'denied' ? 'denied' : 'dismissed' };
+
+      return swRegister().then(function (reg) {
+        if (!reg) return { ok: false, why: 'sw-failed' };
+        return navigator.serviceWorker.ready.then(function (r) {
+          return r.pushManager.subscribe({
+            userVisibleOnly: true,          // Chrome iske bina subscribe hi nahi karne deta
+            applicationServerKey: urlB64ToBytes((window.LOVEWAY_CONFIG || {}).VAPID_PUBLIC_KEY)
+          });
+        });
+      }).then(function (sub) {
+        if (!sub || !sub.ok && !sub.endpoint) return sub || { ok: false, why: 'no-sub' };
+        var j = sub.toJSON ? sub.toJSON() : sub;
+        return sb().rpc('lw_save_push_subscription', {
+          p_endpoint: j.endpoint,
+          p_p256dh:   j.keys && j.keys.p256dh,
+          p_auth:     j.keys && j.keys.auth,
+          p_ua:       navigator.userAgent
+        }).then(function (r) {
+          if (r && r.error) throw r.error;
+          return { ok: true };
+        });
+      });
+    }).catch(function (e) {
+      return { ok: false, why: 'error', error: e };
+    });
+  }
+
+  function disablePush() {
+    return pushSubscription().then(function (sub) {
+      if (!sub) return { ok: true };
+      var endpoint = sub.endpoint;
+      return sub.unsubscribe().catch(function () { return false; }).then(function () {
+        // Server par row rehne dena bhi "kaam kiya" nahi hai — wahan se
+        // bhejna band hona chahiye, warna user ko lagta hai band ho gaya
+        // par push aate rehte hain
+        return sb().rpc('lw_forget_push_subscription', { p_endpoint: endpoint });
+      }).then(function () { return { ok: true }; });
+    }).catch(function () { return { ok: false }; });
+  }
+
+  var _notifChannel = null;
+
+  function watchNotifications() {
+    if (_notifChannel) return _notifChannel;             // ek page, ek channel
+    var me = window.LW && window.LW.profile && window.LW.profile.id;
+    if (!me) return null;
+
+    _notifChannel = sb().channel('lw-notif-' + me)
+      .on('postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'notifications',
+            filter: 'user_id=eq.' + me },
+          function (payload) {
+            var row = payload.new || {};
+            bumpNotifBadge(1);                            // badge hamesha, chahe toggle band ho
+            if (!notifAllowed(row.kind)) return;
+
+            // Page saamne hai to toast kaafi hai — browser notification
+            // dikhana jhalla-pan hoga jab user wahi dekh raha ho.
+            if (document.hidden) {
+              if (showBrowserNotif(row)) return;
+            }
+            toast((row.title || 'Nayi notification') +
+                  (row.body ? ' — ' + row.body : ''));
+          })
+      .subscribe();
+
+    return _notifChannel;
+  }
+
   function pref(key, def) {
     var p = (window.LW && window.LW.profile && window.LW.profile.preferences) || {};
     return p[key] === undefined ? def : p[key];
@@ -941,6 +1192,150 @@
         // khaali list aur "function hi nahi hai" — dono [] dikhte the
         if (r && r.error) throw r.error;
         return (r && r.data) || [];
+      });
+  }
+
+  /* ---------- Story par reply aur reaction ----------
+     Dono jaan-boojh kar maujooda cheezon par bane hain: reaction
+     post_reactions me jaata hai (story ek post hi hai) aur reply ek
+     normal DM hai jisme meta.story_id laga hota hai. Isse notification,
+     RLS aur realtime sab pehle se kaam karte hain. */
+
+  // Ek call: DM khulti hai (ya jo hai wahi milti hai) aur reply chala jaata hai
+  function replyToStory(postId, text) {
+    return sb().rpc('lw_reply_to_story', { p_post: postId, p_text: text })
+      .then(function (r) {
+        if (r && r.error) throw r.error;
+        return r.data;                       // message id
+      });
+  }
+
+  // Story par emoji — post_reactions hi use hota hai, isliye author ko
+  // notification bhi apne aap chali jaati hai
+  function reactToStory(postId, kind) {
+    return sb().from('post_reactions')
+      .upsert({ post_id: postId, user_id: window.LW.profile.id, kind: kind || 'love' },
+              { onConflict: 'post_id,user_id' })
+      .then(function (r) {
+        if (r && r.error) throw r.error;
+        return true;
+      });
+  }
+
+  /* ---------- Story Highlights ----------
+     Highlight story ki COPY rakhta hai, reference nahi — story 24 ghante
+     me expire hokar delete ho jaati hai, par uski storage file rehti hai,
+     isliye copy hamesha zinda rehti hai. Poori wajah schema section 44
+     me likhi hai. */
+
+  function myHighlights(ownerId) {
+    return sb().from('story_highlights')
+      .select('id, title, cover_url, position, created_at')
+      .eq('owner_id', ownerId || window.LW.profile.id)
+      .order('position').order('created_at')
+      .then(function (r) { if (r && r.error) throw r.error; return (r && r.data) || []; });
+  }
+
+  function highlightItems(highlightId) {
+    return sb().from('story_highlight_items')
+      .select('id, media_url, caption, song_title, song_artist, song_url, position')
+      .eq('highlight_id', highlightId)
+      .order('position').order('added_at')
+      .then(function (r) { if (r && r.error) throw r.error; return (r && r.data) || []; });
+  }
+
+  function createHighlight(title) {
+    return sb().from('story_highlights')
+      .insert({ owner_id: window.LW.profile.id, title: String(title || '').trim() })
+      .select('id, title, cover_url').maybeSingle()
+      .then(function (r) { if (r && r.error) throw r.error; return r.data; });
+  }
+
+  function deleteHighlight(id) {
+    return sb().from('story_highlights').delete().eq('id', id)
+      .then(function (r) { if (r && r.error) throw r.error; return true; });
+  }
+
+  // Ek call: copy ban jaati hai aur pehli item cover bhi set kar deti hai
+  function addStoryToHighlight(highlightId, postId) {
+    return sb().rpc('lw_add_to_highlight', { p_highlight: highlightId, p_post: postId })
+      .then(function (r) { if (r && r.error) throw r.error; return r.data; });
+  }
+
+  /* ---------- Archive ----------
+     Delete se alag: post rehti hai, sirf doosron ko dikhna band. Author
+     ko apni archived post hamesha dikhti hai (RLS me wahi likha hai),
+     warna wo use wapas la hi nahi paata. */
+
+  function setArchived(postId, on) {
+    return sb().from('posts').update({ archived: !!on }).eq('id', postId)
+      .then(function (r) { if (r && r.error) throw r.error; return !!on; });
+  }
+
+  function archivedPosts(limit) {
+    return sb().from('posts').select(POST_COLS)
+      .eq('author_id', window.LW.profile.id).eq('archived', true)
+      .order('created_at', { ascending: false }).limit(limit || 40)
+      .then(function (r) { if (r && r.error) throw r.error; return (r && r.data) || []; });
+  }
+
+  /* ---------- Mute ----------
+     Block se alag cheez hai: mute ek PASAND hai, ijazat nahi. Isliye ye
+     RLS me nahi hai — filter yahan hota hai. Jise mute kiya gaya use
+     kabhi pata nahi chalta, aur wo tumhe message bhi kar sakta hai. */
+
+  // Kai profile ek saath — mute list jaisi jagah par ids to hain par
+  // naam/avatar nahi. Har id par alag query karna N+1 hai.
+  function peopleByIds(ids) {
+    if (!ids || !ids.length) return Promise.resolve([]);
+    return sb().from('lw_public_profiles')
+      .select('id, full_name, username, avatar_url, is_verified')
+      .in('id', ids)
+      .then(function (r) { if (r && r.error) throw r.error; return (r && r.data) || []; });
+  }
+
+  var _mutedCache = null;
+
+  function mutedIds(force) {
+    if (_mutedCache && !force) return Promise.resolve(_mutedCache);
+    return sb().from('muted_users').select('muted_id')
+      .eq('muter_id', window.LW.profile.id)
+      .then(function (r) {
+        if (r && r.error) throw r.error;
+        _mutedCache = ((r && r.data) || []).map(function (x) { return x.muted_id; });
+        return _mutedCache;
+      });
+  }
+
+  function setMuted(userId, on) {
+    var me = window.LW.profile.id;
+    var q = on
+      ? sb().from('muted_users').insert({ muter_id: me, muted_id: userId })
+      : sb().from('muted_users').delete().eq('muter_id', me).eq('muted_id', userId);
+    return q.then(function (r) {
+      if (r && r.error) throw r.error;
+      _mutedCache = null;               // agli baar taaza list aaye
+      return !!on;
+    });
+  }
+
+  // Feed/story list me se mute kiye hue log nikaal do
+  function dropMuted(rows, getId) {
+    return mutedIds().then(function (ids) {
+      if (!ids.length) return rows;
+      var block = {};
+      ids.forEach(function (i) { block[i] = true; });
+      return rows.filter(function (r) { return !block[(getId || function (x) { return x.author_id; })(r)]; });
+    }).catch(function () { return rows; });   // mute na aa paaye to feed to chale
+  }
+
+  /* ---------- Gayab hone wale messages (per-chat timer) ---------- */
+
+  function setDisappearing(convId, secs) {
+    return sb().rpc('lw_set_disappearing', { p_conv: convId, p_secs: secs === 0 ? null : secs })
+      .then(function (r) {
+        if (r && r.error) throw r.error;
+        return true;
       });
   }
 
@@ -2480,6 +2875,11 @@
   /* ---------- export ---------- */
   window.LWApp = {
     esc: esc, initials: initials, avatarHtml: avatarHtml, verifiedTick: verifiedTick, timeAgo: timeAgo, icon: icon,
+    watchNotifications: watchNotifications, browserNotifState: browserNotifState,
+    askNotifPermission: askNotifPermission, notifAllowed: notifAllowed,
+    pushSupported: pushSupported, pushConfigured: pushConfigured,
+    isIOS: isIOS, isInstalled: isInstalled, iosNeedsInstall: iosNeedsInstall,
+    pushSubscription: pushSubscription, enablePush: enablePush, disablePush: disablePush,
     toast: toast, err: err, setTheme: setTheme, restoreTheme: restoreTheme, setCustomColor: setCustomColor,
     restoreBgPhoto: restoreBgPhoto,
     shell: shell, refreshNotifCount: refreshNotifCount, customSelect: customSelect, toggleSidebar: toggleSidebar, toggleRail: toggleRail,
@@ -2500,6 +2900,11 @@
 
     setupMissing: setupMissing,
     markStorySeen: markStorySeen, storyViewers: storyViewers,
+    replyToStory: replyToStory, reactToStory: reactToStory, setDisappearing: setDisappearing,
+    myHighlights: myHighlights, highlightItems: highlightItems, createHighlight: createHighlight,
+    deleteHighlight: deleteHighlight, addStoryToHighlight: addStoryToHighlight,
+    setArchived: setArchived, archivedPosts: archivedPosts,
+    mutedIds: mutedIds, setMuted: setMuted, dropMuted: dropMuted, peopleByIds: peopleByIds,
     toggleSave: toggleSave, savedIdsFor: savedIdsFor, savedPosts: savedPosts,
     closeFriendIds: closeFriendIds, setCloseFriend: setCloseFriend,
     postsByTag: postsByTag, trendingTags: trendingTags, linkifyTags: linkifyTags,

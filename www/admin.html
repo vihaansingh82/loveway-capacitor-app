@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<link rel="manifest" href="manifest.json?v=1">
+<meta name="theme-color" content="#ff4f7b">
+<meta name="mobile-web-app-capable" content="yes">
+<!-- iOS: push sirf installed (Add to Home Screen) site par chalta hai -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Loveway">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>Loveway — Admin</title>
-<link rel="stylesheet" href="lw-styles.css?v=6">
+<link rel="stylesheet" href="lw-styles.css?v=9">
 <style>
 /* Page-local, loaded after lw-styles.css so it wins cascade on this page —
    admin.html has its own bespoke panel/table design (renamed .btn/.tab/
@@ -92,7 +100,7 @@
   @media(max-width:760px){.stats{grid-template-columns:1fr}.header-actions{width:100%;justify-content:flex-end}.toolbar{align-items:stretch}.search-wrap,.search{width:100%}body{padding:20px 12px 50px}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="config.js?v=2"></script>
+<script src="config.js?v=3"></script>
 <script src="lw-core.js?v=8"></script>
 <script src="lw-festivals.js?v=2"></script>
 <link rel="stylesheet" href="lw-responsive.css?v=5">

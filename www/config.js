@@ -32,7 +32,16 @@ window.LOVEWAY_CONFIG = {
   OTP_CHANNEL: 'email',
 
   SUPPORT_EMAIL: 'help@loveway.in',
-  BRAND: 'Loveway'
+  BRAND: 'Loveway',
+
+  /* Web Push ka PUBLIC key (base64url).
+     Ye browser me rakhna safe hai — isi ka to kaam hai browser ko dena.
+     PRIVATE key kabhi yahan nahi: wo sirf Edge Function ke secrets me
+     rehti hai (Dashboard > Edge Functions > push-send > Secrets).
+     Khaali chhodne par push chup-chaap band rehta hai; baaki sab —
+     in-app toast aur tab-background wali notification — waise hi chalte
+     hain. Banane ke liye:  npx web-push generate-vapid-keys           */
+  VAPID_PUBLIC_KEY: ''
 };
 
 /* ------------------------------------------------------------

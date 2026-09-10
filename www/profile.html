@@ -3,14 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json?v=1">
+<meta name="theme-color" content="#ff4f7b">
+<meta name="mobile-web-app-capable" content="yes">
+<!-- iOS: push sirf installed (Add to Home Screen) site par chalta hai -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Loveway">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>Profile — Loveway</title>
-<link rel="stylesheet" href="lw-styles.css?v=6">
+<link rel="stylesheet" href="lw-styles.css?v=9">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="config.js?v=2"></script>
+<script src="config.js?v=3"></script>
 <script src="lw-core.js?v=8"></script>
 <script src="lw-festivals.js?v=2"></script>
 <script src="lw-spotify.js?v=7"></script>
-<script src="lw-app.js?v=21"></script>
+<script src="lw-app.js?v=27"></script>
 <link rel="stylesheet" href="lw-responsive.css?v=5">
 <link rel="stylesheet" href="lw-clay.css?v=2">
 <script src="lw-responsive.js?v=2" defer></script>
@@ -81,6 +89,10 @@
         <div class="card">
           <h3 data-i18n="hobbiesHeading">✨ Hobbies</h3>
           <div id="hobbies"></div>
+        </div>
+        <div class="card" id="highlightsCard" style="display:none">
+          <h3>✨ Highlights</h3>
+          <div id="highlightsRow" class="hl-row"></div>
         </div>
         <div class="card" id="pinnedSongCard" style="display:none">
           <h3>🎵 Pinned Song</h3>
@@ -263,19 +275,135 @@ function paint(p) {
         '<div style="min-width:0;flex:1"><b style="display:block">' + LWApp.esc(p.pinned_song_title) + '</b>' +
         '<small class="muted">' + LWApp.esc(p.pinned_song_artist || '') + '</small></div>' +
         '<span class="icon-btn" style="font-size:1.1rem">▶</span>' +
-      '</div>';
+      '</div>' +
+      // Gaana YAHIN bajta hai. Pehle yahan se Spotify khul jaata tha
+      // (neeche playPinnedSong ka comment dekho) — ab kabhi nahi.
+      '<div id="pinnedPlayer" style="margin-top:8px"></div>';
+    // paint() dobara chal sakta hai (bhasha badalne par lw:language
+    // handler ise phir se bulata hai) aur upar wali line poora HTML
+    // badal deti hai — isliye player yahin dobara laga dete hain,
+    // warna language switch karte hi gaana gayab ho jaata tha.
+    renderPinnedPlayer(p);
   } else {
     pinCard.style.display = 'none';
   }
 }
 
-function playPinnedSong() {
-  if (!viewing || !viewing.pinned_spotify_track_id) return;
-  if (typeof playMusicTrack === 'function') {
-    playMusicTrack({ id: viewing.pinned_spotify_track_id, title: viewing.pinned_song_title, artist: viewing.pinned_song_artist });
-  } else if (viewing.pinned_song_url) {
-    window.open(viewing.pinned_song_url, '_blank', 'noopener');
+/* Pinned song profile ke ANDAR hi bajta hai — Spotify kabhi nahi khulta.
+
+   Pehle yahan window.open(pinned_song_url) tha. Wo kaagaz par "fallback"
+   tha par asal me hamesha chalta tha: profile.html lw-rails.js load hi
+   nahi karta (dekho <script> tags upar), isliye playMusicTrack yahan
+   kabhi define hota hi nahi — matlab har click Spotify khol deta tha,
+   user Loveway se bahar chala jaata tha.
+
+   Ab teen raaste, isi tarteeb me:
+     1. playMusicTrack ho (dashboard/messages jaise pages) -> mini player
+     2. warna Spotify ka embed iframe, yahin card ke neeche
+     3. dono na ho -> kuch mat karo. Bahar bhejna sabse bura vikalp hai. */
+/* ---------- Story Highlights ----------
+   Highlight ke andar story ki COPY hoti hai (schema section 44), isliye
+   asli story expire ho chuki ho tab bhi ye chalti hai. */
+var hlItems = [], hlIdx = 0, hlTitle = '';
+
+async function loadHighlights(ownerId) {
+  var card = document.getElementById('highlightsCard');
+  var row  = document.getElementById('highlightsRow');
+  if (!card || !row) return;
+  try {
+    var rows = await LWApp.myHighlights(ownerId);
+    if (!rows.length) { card.style.display = 'none'; return; }
+    card.style.display = '';
+    row.innerHTML = rows.map(function (h) {
+      return '<button type="button" class="hl-item" onclick="openHlViewer(' + h.id + ',' +
+        JSON.stringify(h.title).replace(/"/g, '&quot;') + ')">' +
+        '<span class="ring">' +
+          (h.cover_url ? '<img src="' + LWApp.esc(h.cover_url) + '" alt="">' : '<span>✨</span>') +
+        '</span><small>' + LWApp.esc(h.title) + '</small></button>';
+    }).join('');
+  } catch (e) {
+    // setup na hua ho to card chhupa hi rehne do — khaali card se behtar
+    card.style.display = 'none';
   }
+}
+
+async function openHlViewer(id, title) {
+  hlTitle = title || '';
+  hlIdx = 0;
+  document.getElementById('hlViewer').classList.add('open');
+  document.getElementById('hlViewerTitle').textContent = hlTitle;
+  document.getElementById('hlViewerCaption').textContent = '';
+  document.getElementById('hlViewerCount').textContent = '';
+  document.getElementById('hlViewerImg').removeAttribute('src');
+  try {
+    hlItems = await LWApp.highlightItems(id);
+  } catch (e) {
+    hlItems = [];
+  }
+  if (!hlItems.length) {
+    document.getElementById('hlViewerCaption').textContent = 'Is highlight me abhi kuch nahi hai.';
+    return;
+  }
+  paintHl();
+}
+
+function paintHl() {
+  var it = hlItems[hlIdx];
+  if (!it) return;
+  var img = document.getElementById('hlViewerImg');
+  if (it.media_url) { img.src = it.media_url; img.style.display = ''; }
+  else { img.removeAttribute('src'); img.style.display = 'none'; }
+  document.getElementById('hlViewerCaption').textContent = it.caption || '';
+  document.getElementById('hlViewerCount').textContent = (hlIdx + 1) + '/' + hlItems.length;
+}
+
+function hlStep(d) {
+  if (!hlItems.length) return;
+  // aage-peeche ghoomta rehta hai — dead end par button dabana bura lagta hai
+  hlIdx = (hlIdx + d + hlItems.length) % hlItems.length;
+  paintHl();
+}
+
+function closeHlViewer() {
+  document.getElementById('hlViewer').classList.remove('open');
+  hlItems = [];
+}
+
+function playPinnedSong() {
+  if (!viewing) return;
+
+  if (typeof playMusicTrack === 'function' && viewing.pinned_spotify_track_id) {
+    playMusicTrack({
+      id: viewing.pinned_spotify_track_id,
+      title: viewing.pinned_song_title,
+      artist: viewing.pinned_song_artist
+    });
+    return;
+  }
+
+  renderPinnedPlayer(viewing);
+}
+
+/* Embed iframe card ke neeche. paint() bhi ise bulata hai, isliye
+   language switch ya kisi bhi re-render ke baad player bana rehta hai. */
+function renderPinnedPlayer(p) {
+  var host = document.getElementById('pinnedPlayer');
+  if (!host || !p) return;
+
+  // Embed ke liye track id kaafi hai; sirf url ho to usse nikaal lete hain
+  var src = p.pinned_spotify_track_id
+    ? 'https://open.spotify.com/embed/track/' +
+      encodeURIComponent(p.pinned_spotify_track_id) + '?utm_source=loveway'
+    : (p.pinned_song_url && LWApp.spotifyEmbedUrl
+        ? LWApp.spotifyEmbedUrl(p.pinned_song_url) : null);
+
+  if (!src) return;                        // sirf naam hai, bajane layak kuch nahi
+  if (host.dataset.loaded === src) return; // dobara click par gaana shuru se na ho
+
+  host.dataset.loaded = src;
+  host.innerHTML = '<iframe src="' + LWApp.esc(src) + '" width="100%" height="80" ' +
+    'frameborder="0" allow="encrypted-media" loading="lazy" ' +
+    'style="border-radius:12px"></iframe>';
 }
 
 function fillForm(p) {
@@ -535,15 +663,15 @@ document.addEventListener('DOMContentLoaded', async function () {
   await hydratePartner(viewing);
   paint(viewing);
 
-  // Profile khulte hi pinned song apne aap baj jaaye (Instagram/Snapchat
-  // profile-music jaisa). Sirf tabhi jab asli Spotify track id ho — plain
-  // URL wale case mein playPinnedSong() window.open() karta hai, aur wo
-  // yahan har profile visit par khud-ba-khud popup khol deta, isliye us
-  // wale case ko yahan jaan-boojh kar skip kiya hai. Browser ki apni
-  // autoplay policy phir bhi lag sakti hai — page par pehla click/tap
-  // hone tak kabhi kabhi audio start nahi hota, ye Loveway control nahi
-  // kar sakta, sirf Chrome/Android ka apna niyam hai.
-  if (viewing.pinned_song_title && viewing.pinned_spotify_track_id) {
+  /* Profile khulte hi player laga do (Instagram/Snapchat profile-music
+     jaisa). Ab har case me safe hai — playPinnedSong Spotify kholta hi
+     nahi, isliye pehle wali "plain URL par popup khul jaayega" wali
+     pabandi ki zarurat nahi rahi.
+
+     Bajega ya nahi ye browser tay karta hai: Chrome/Android bina pehle
+     click ke audio start nahi karne dete. Player dikh jaata hai, user
+     ek tap me chala sakta hai — ye Loveway ke haath me nahi hai. */
+  if (viewing.pinned_song_title) {
     playPinnedSong();
   }
 
@@ -567,6 +695,7 @@ document.addEventListener('DOMContentLoaded', async function () {
   if (typeof window.applyLanguage === 'function') window.applyLanguage();
   await loadStats();
   loadBadges();
+  loadHighlights(viewing.id);
 });
 
 function loadBadges() {
@@ -630,5 +759,21 @@ document.addEventListener('lw:language', function () {
   </div>
 </div>
 
+<!-- highlight dekhne wala viewer -->
+<div class="modal-bg" id="hlViewer" onclick="if(event.target===this)closeHlViewer()">
+  <div class="hl-viewer-box">
+    <div class="hl-viewer-head">
+      <b id="hlViewerTitle"></b>
+      <span id="hlViewerCount" class="muted" style="font-size:.78rem"></span>
+      <button class="icon-btn" style="margin-left:auto;color:#fff" onclick="closeHlViewer()">✕</button>
+    </div>
+    <img id="hlViewerImg" src="" alt="">
+    <div id="hlViewerCaption" class="hl-viewer-caption"></div>
+    <div class="hl-viewer-nav">
+      <button class="btn" onclick="hlStep(-1)">‹</button>
+      <button class="btn" onclick="hlStep(1)">›</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

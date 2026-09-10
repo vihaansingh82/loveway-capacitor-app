@@ -910,6 +910,18 @@
     return sb().from('posts').insert(p).select(POST_COLS).maybeSingle();
   }
 
+  /* Table/RPC hai hi nahi — matlab migration abhi chali nahi.
+     Ise "khaali data" se alag batana zaroori hai: dono ka natija ek jaisa
+     dikhta hai (koi viewer nahi / kuch saved nahi), par wajah bilkul alag
+     hai. Isi farak ko na batane ki wajah se Settings ka Close Friends card
+     har dost ko toggle-OFF dikha raha tha, jo sach nahi tha. */
+  function setupMissing(err) {
+    if (!err) return false;
+    var s = (err.message || '') + ' ' + (err.hint || '') + ' ' + (err.details || '') +
+            ' ' + (err.code || '');
+    return /does not exist|PGRST202|PGRST205|schema cache|Could not find the function/i.test(s);
+  }
+
   /* ---------- Story "kisne dekhi" ----------
      Pehle seen sirf localStorage me tha, isliye story daalne wale ko
      kabhi pata hi nahi chalta tha ki kisne dekhi, aur doosre device par
@@ -925,8 +937,11 @@
   // sirf story ke author ko list milti hai (RPC khud check karta hai)
   function storyViewers(postId, limit) {
     return sb().rpc('lw_story_viewers', { p_post: postId, p_limit: limit || 50 })
-      .then(function (r) { return (r && r.data) || []; })
-      .catch(function () { return []; });
+      .then(function (r) {
+        // khaali list aur "function hi nahi hai" — dono [] dikhte the
+        if (r && r.error) throw r.error;
+        return (r && r.data) || [];
+      });
   }
 
   /* ---------- Saved posts (private bookmarks) ---------- */
@@ -935,12 +950,19 @@
     var uid = window.LW.profile.id;
     return sb().from('post_saves').select('post_id').eq('post_id', postId).eq('user_id', uid).maybeSingle()
       .then(function (r) {
+        if (r && r.error) throw r.error;
         if (r && r.data) {
           return sb().from('post_saves').delete().eq('post_id', postId).eq('user_id', uid)
-            .then(function () { return false; });      // ab saved nahi hai
+            .then(function (del) {
+              if (del && del.error) throw del.error;
+              return false;                            // ab saved nahi hai
+            });
         }
         return sb().from('post_saves').insert({ post_id: postId, user_id: uid })
-          .then(function (ins) { return !(ins && ins.error); });
+          .then(function (ins) {
+            if (ins && ins.error) throw ins.error;
+            return true;
+          });
       });
   }
 
@@ -973,11 +995,18 @@
      use bhi nahi pata. Isliye koi "X ne tumhe hataya" wali situation
      nahi banti. */
 
+  /* Error ko yahan NIGALNA nahi hai. Pehle catch khaali [] laut aata tha,
+     jiska matlab "koi close friend nahi hai" — bilkul waisa hi dikhta hai
+     jaisa table ka na hona. Us soorat me Settings har dost ko toggle-off
+     dikhata tha (jhooth), aur toggle dabane par chup-chaap fail hota tha.
+     Ab error upar jaata hai taaki UI saaf keh sake ki asli baat kya hai. */
   function closeFriendIds() {
     return sb().from('close_friends').select('friend_id')
       .eq('owner_id', window.LW.profile.id)
-      .then(function (r) { return ((r && r.data) || []).map(function (x) { return x.friend_id; }); })
-      .catch(function () { return []; });
+      .then(function (r) {
+        if (r && r.error) throw r.error;
+        return ((r && r.data) || []).map(function (x) { return x.friend_id; });
+      });
   }
 
   function setCloseFriend(friendId, on) {
@@ -2469,6 +2498,7 @@
     feed: feed, createPost: createPost, deletePost: deletePost, toggleLove: toggleLove,
     comments: comments, addComment: addComment,
 
+    setupMissing: setupMissing,
     markStorySeen: markStorySeen, storyViewers: storyViewers,
     toggleSave: toggleSave, savedIdsFor: savedIdsFor, savedPosts: savedPosts,
     closeFriendIds: closeFriendIds, setCloseFriend: setCloseFriend,

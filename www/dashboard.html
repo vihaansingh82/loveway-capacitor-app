@@ -11,7 +11,7 @@
 <script src="lw-core.js?v=8"></script>
 <script src="lw-festivals.js?v=2"></script>
 <script src="lw-spotify.js?v=7"></script>
-<script src="lw-app.js?v=20"></script>
+<script src="lw-app.js?v=21"></script>
 <script src="lw-rails.js?v=9"></script>
 <script src="lw-camera.js?v=3"></script>
 <link rel="stylesheet" href="lw-camera.css?v=5">
@@ -516,12 +516,21 @@ async function toggleSave(id) {
   var was = !!savedIds[id];
   savedIds[id] = !was;      // turant palto, network ka intezaar nahi
   render();
-  var now = await LWApp.toggleSave(id);
-  if (now !== !was) {       // server ne kuch aur kaha — wapas theek karo
-    savedIds[id] = now;
+  try {
+    var now = await LWApp.toggleSave(id);
+    if (now !== !was) {     // server ne kuch aur kaha — wapas theek karo
+      savedIds[id] = now;
+      render();
+    }
+    LWApp.toast(savedIds[id] ? '🔖 Save ho gaya' : 'Save hata diya');
+  } catch (e) {
+    savedIds[id] = was;     // jo dikhaya tha wo galat tha — wapas lo
     render();
+    // "kuch nahi hua" chhod dena sabse bura hai: user dobara dabata rahega
+    LWApp.toast(LWApp.setupMissing(e)
+      ? 'Saved posts ka setup abhi baaki hai (supabase-schema.sql chalao)'
+      : '❌ Save nahi ho paya', 'error');
   }
-  LWApp.toast(savedIds[id] ? '🔖 Save ho gaya' : 'Save hata diya');
 }
 
 async function loadFeed() {
@@ -664,7 +673,17 @@ async function openStoryViewers() {
   var box = document.getElementById('storyViewersBody');
   box.innerHTML = '<div class="spinner">Dekh rahe hain kaun aaya…</div>';
 
-  var rows = await LWApp.storyViewers(s.id, 100);
+  var rows;
+  try {
+    rows = await LWApp.storyViewers(s.id, 100);
+  } catch (e) {
+    // "kisi ne nahi dekhi" likh dena jhooth hoga jab list aa hi nahi sakti
+    box.innerHTML = '<div class="empty"><span class="ic">⚙️</span>' +
+      (LWApp.setupMissing(e)
+        ? 'Story viewers ka setup abhi baaki hai — supabase-schema.sql chalao.'
+        : 'List nahi aa payi. Dobara try karo.') + '</div>';
+    return;
+  }
   if (!rows.length) {
     box.innerHTML = '<div class="empty"><span class="ic">👀</span>Abhi kisi ne nahi dekhi.</div>';
     return;

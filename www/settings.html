@@ -140,10 +140,10 @@
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="config.js?v=3"></script>
-<script src="lw-core.js?v=8"></script>
+<script src="lw-core.js?v=9"></script>
 <script src="lw-festivals.js?v=2"></script>
 <script src="lw-spotify.js?v=7"></script>
-<script src="lw-app.js?v=27"></script>
+<script src="lw-app.js?v=28"></script>
 <link rel="stylesheet" href="lw-responsive.css?v=5">
 <link rel="stylesheet" href="lw-clay.css?v=2">
 <script src="lw-responsive.js?v=2" defer></script>
@@ -1189,6 +1189,21 @@ async function paintPush(){
  const desc=document.getElementById("pushDesc");
  const act=document.getElementById("pushAction");
  if(!desc||!act) return;
+
+ /* App (Android/iOS) me Web Push hota hi nahi — Capacitor ka WebView
+    browser ki push service se juda nahi hota, isliye wahan PushManager
+    hi nahi hota aur pushSupported() hamesha false aata hai. Par app ko
+    push FCM se milti hai, jo bilkul alag raasta hai. Isliye app me
+    "is browser me nahi chalta" likhna sarasar jhooth hota. */
+ if(LWApp.fcmAvailable()){
+  desc.innerHTML="App me notification apne aap chalu ho jaati hai. "+
+                 "Android khud ek baar permission poochta hai."+
+                 '<small style="display:block;margin-top:4px">Mana kar diya ho to '+
+                 'phone ki <b>Settings &gt; Apps &gt; Loveway &gt; Notifications</b> se on karo — '+
+                 'do baar mana karne ke baad Android dobara nahi poochta.</small>';
+  act.innerHTML="";
+  return;
+ }
 
  // iPhone par "nahi chalta" likhna jhooth hai — chalta hai, bas pehle
  // Home Screen par install karna padta hai (Apple ki pabandi)

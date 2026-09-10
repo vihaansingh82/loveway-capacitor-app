@@ -468,6 +468,7 @@
 
     buildSidebar(active);
     buildTopbarSearch();
+    bootFcm();          // app me FCM; browser me chup-chaap kuch nahi
     buildRailRight();
 
     if (!window._lwScrollBound) {
@@ -916,6 +917,133 @@
         return sb().rpc('lw_forget_push_subscription', { p_endpoint: endpoint });
       }).then(function () { return { ok: true }; });
     }).catch(function () { return { ok: false }; });
+  }
+
+  /* ---------- Android app ki push: FCM ----------
+     App me Web Push chalta hi nahi. Capacitor ka WebView browser ki
+     push service se juda nahi hota, isliye wahan PushManager hota hi
+     nahi aur pushSupported() hamesha false aata hai. App ke liye FCM
+     chahiye — wo ek alag raasta hai, uska apna token hota hai.
+
+     Server wala hissa taiyaar hai: fcm_tokens table, lw_save_fcm_token /
+     lw_forget_fcm_token, aur push-send Edge Function dono raaston par
+     bhejti hai (jo secret set ho wahi chalta hai).
+
+     @capacitor/push-notifications plugin JAAN-BOOJH KAR abhi installed
+     nahi hai: bina google-services.json ke Android ka Gradle build FAIL
+     ho jaata hai. Plugin pehle jod dete to chalta hua APK toot jaata aur
+     badle me kuch milta bhi nahi.
+
+     Isliye ye code plugin ko DHOONDHTA hai, import nahi karta. Plugin na
+     ho to chup-chaap 'no-plugin' lauta deta hai. Jis din plugin aur
+     google-services.json aa jaayenge, ye apne aap chalne lagega — yahan
+     kuch badalna nahi padega. */
+
+  function nativeApp() {
+    // lw-core.js ki pehchan hi ek jagah ki sach hai
+    return !!(window.LW && window.LW.isNativeApp && window.LW.isNativeApp());
+  }
+
+  function fcmPlugin() {
+    var C = window.Capacitor;
+    return (C && C.Plugins && C.Plugins.PushNotifications) || null;
+  }
+
+  // "App me hain aur plugin bhi maujood hai" — settings ka card isi se
+  // tay karta hai ki Web Push wali baat karni hai ya FCM wali
+  function fcmAvailable() { return !!(nativeApp() && fcmPlugin()); }
+
+  var _fcmToken = null;      // is session me jo token mila
+  var _fcmWired = false;     // listener sirf ek baar
+
+  /* Token milte hi server par bhej do. Registration idempotent hai —
+     wahi token dobara aaye to lw_save_fcm_token sirf last_seen taaza
+     karta hai, nayi row nahi banti. */
+  function saveFcmToken(token) {
+    if (!token) return Promise.resolve({ ok: false, why: 'empty-token' });
+    _fcmToken = token;
+    var plat = 'android';
+    try {
+      var C = window.Capacitor;
+      if (C && C.getPlatform && C.getPlatform() === 'ios') plat = 'ios';
+    } catch (e) {}
+    return sb().rpc('lw_save_fcm_token', {
+      p_token: token,
+      p_platform: plat,
+      p_device: (navigator.userAgent || '').slice(0, 200)
+    }).then(function (r) {
+      if (r && r.error) throw r.error;
+      return { ok: true, token: token };
+    }).catch(function (e) {
+      return { ok: false, why: 'save-failed', error: e };
+    });
+  }
+
+  function enableFcm() {
+    if (!nativeApp())  return Promise.resolve({ ok: false, why: 'not-app' });
+    var P = fcmPlugin();
+    if (!P)            return Promise.resolve({ ok: false, why: 'no-plugin' });
+
+    return Promise.resolve()
+      .then(function () { return P.checkPermissions(); })
+      .then(function (st) {
+        // 'prompt' aur 'prompt-with-rationale' dono par poochna hai
+        if (st && st.receive === 'granted') return st;
+        return P.requestPermissions();
+      })
+      .then(function (st) {
+        if (!st || st.receive !== 'granted') {
+          return { ok: false, why: st && st.receive === 'denied' ? 'denied' : 'dismissed' };
+        }
+
+        /* Listener register() se PEHLE lagana zaruri hai: token turant
+           aa sakta hai aur pehle se registered device par 'registration'
+           register() ke andar hi fire ho jaata hai. Baad me lagate to
+           wo event chhoot jaata. */
+        if (!_fcmWired) {
+          _fcmWired = true;
+          P.addListener('registration', function (t) {
+            saveFcmToken(t && (t.value || t.token));
+          });
+          P.addListener('registrationError', function () {
+            // chup rehna theek hai — user ne kuch maanga hi nahi tha,
+            // ye boot par apne aap chalta hai
+          });
+          // App khuli ho tab notification tap karne par sahi page kholo.
+          // push-send data.link bhejta hai.
+          P.addListener('pushNotificationActionPerformed', function (a) {
+            var link = a && a.notification && a.notification.data && a.notification.data.link;
+            if (link) window.location.href = link;
+          });
+        }
+
+        return Promise.resolve(P.register()).then(function () { return { ok: true }; });
+      })
+      .catch(function (e) { return { ok: false, why: 'error', error: e }; });
+  }
+
+  function disableFcm() {
+    var P = fcmPlugin();
+    var token = _fcmToken;
+    return Promise.resolve()
+      .then(function () { if (P && P.unregister) return P.unregister(); })
+      .catch(function () {})
+      .then(function () {
+        if (!token) return { ok: true };
+        return sb().rpc('lw_forget_fcm_token', { p_token: token })
+          .then(function () { _fcmToken = null; return { ok: true }; });
+      })
+      .catch(function () { return { ok: false }; });
+  }
+
+  /* Boot par ek baar. App me push ke liye alag se "chalu karo" dabwana
+     zaruri nahi — Android khud permission dialog dikhata hai, aur user
+     mana kar de to bas token nahi banta. */
+  var _fcmBooted = false;
+  function bootFcm() {
+    if (_fcmBooted || !fcmAvailable()) return;
+    _fcmBooted = true;
+    enableFcm();
   }
 
   var _notifChannel = null;
@@ -2878,6 +3006,7 @@
     watchNotifications: watchNotifications, browserNotifState: browserNotifState,
     askNotifPermission: askNotifPermission, notifAllowed: notifAllowed,
     pushSupported: pushSupported, pushConfigured: pushConfigured,
+    fcmAvailable: fcmAvailable, enableFcm: enableFcm, disableFcm: disableFcm,
     isIOS: isIOS, isInstalled: isInstalled, iosNeedsInstall: iosNeedsInstall,
     pushSubscription: pushSubscription, enablePush: enablePush, disablePush: disablePush,
     toast: toast, err: err, setTheme: setTheme, restoreTheme: restoreTheme, setCustomColor: setCustomColor,

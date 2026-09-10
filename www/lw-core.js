@@ -1204,7 +1204,10 @@
     targetFor: targetFor,
     routeAfterLogin: routeAfterLogin,
     requireAuth: requireAuth,
-    paintNav: paintNav
+    paintNav: paintNav,
+    // lw-app.js ki FCM registration ko bhi yahi pehchan chahiye — teesri
+    // copy banane se behtar hai ise bahar nikaal dena
+    isNativeApp: isNativeApp
   };
 
   // purane inline handlers ke liye aliases
